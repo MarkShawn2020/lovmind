@@ -4,10 +4,11 @@ import * as React from 'react';
 
 import { AIChatPlugin } from '@platejs/ai/react';
 import { useEditorPlugin } from 'platejs/react';
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
 
 import { ToolbarButton } from './toolbar';
+
+// Check if running in Tauri environment
+const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
 
 export function AIToolbarButton(
   props: React.ComponentProps<typeof ToolbarButton>
@@ -16,18 +17,40 @@ export function AIToolbarButton(
   const [aiEnabled, setAiEnabled] = React.useState(false);
 
   React.useEffect(() => {
-    // Check if AI is enabled
-    invoke<boolean>('is_ai_enabled')
-      .then(setAiEnabled)
-      .catch(() => setAiEnabled(false));
+    if (!isTauri) {
+      setAiEnabled(false);
+      return;
+    }
 
-    // Listen for AI enabled changes
-    const unlisten = listen<boolean>('ai-enabled-changed', (event) => {
-      setAiEnabled(event.payload);
+    let cleanup: (() => void) | null = null;
+
+    // Dynamic import Tauri APIs only in Tauri environment
+    Promise.all([
+      import('@tauri-apps/api/core'),
+      import('@tauri-apps/api/event')
+    ]).then(async ([{ invoke }, { listen }]) => {
+      // Check if AI is enabled
+      try {
+        const enabled = await invoke<boolean>('is_ai_enabled');
+        setAiEnabled(enabled);
+      } catch {
+        setAiEnabled(false);
+      }
+
+      // Listen for AI enabled changes
+      const unlisten = await listen<boolean>('ai-enabled-changed', (event) => {
+        setAiEnabled(event.payload);
+      });
+
+      cleanup = unlisten;
+    }).catch(() => {
+      setAiEnabled(false);
     });
 
     return () => {
-      unlisten.then(fn => fn());
+      if (cleanup) {
+        cleanup();
+      }
     };
   }, []);
 
