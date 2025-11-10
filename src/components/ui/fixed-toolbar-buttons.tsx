@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import {
   ArrowUpToLineIcon,
+  ArrowDownToLineIcon,
   BaselineIcon,
   BoldIcon,
   Code2Icon,
@@ -65,8 +66,6 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
             <UndoToolbarButton />
             <RedoToolbarButton />
           </ToolbarGroup>
-
-          <div className="grow" />
 
           <ToolbarGroup>
             <AIToolbarButton tooltip="Ask AI">
@@ -177,9 +176,13 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
                   <ToolbarGroup>
                     <ExportToolbarButton>
                       <ArrowUpToLineIcon />
+                      Export
                     </ExportToolbarButton>
 
-                    <ImportToolbarButton />
+                    <ImportToolbarButton>
+                      <ArrowDownToLineIcon />
+                      Import
+                    </ImportToolbarButton>
                   </ToolbarGroup>
                 </div>
               </PopoverContent>
