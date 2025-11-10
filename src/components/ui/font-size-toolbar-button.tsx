@@ -98,7 +98,7 @@ export function FontSizeToolbarButton() {
         <PopoverTrigger asChild>
           <input
             className={cn(
-              'h-full w-10 shrink-0 bg-transparent px-1 text-center text-sm hover:bg-muted'
+              'h-full w-10 shrink-0 bg-transparent px-1 text-center text-sm hover:bg-muted cursor-default'
             )}
             value={displayValue}
             onBlur={() => {
@@ -116,6 +116,13 @@ export function FontSizeToolbarButton() {
                 handleInputChange();
               }
             }}
+            onMouseDown={(e) => {
+              // Prevent text selection on mouse down
+              if (!isFocused) {
+                e.preventDefault();
+              }
+            }}
+            readOnly={!isFocused}
             data-plate-focus="true"
             type="text"
           />
