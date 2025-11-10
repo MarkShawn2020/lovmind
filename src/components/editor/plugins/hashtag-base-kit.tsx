@@ -17,7 +17,7 @@ export const BaseHashtagPlugin = createSlatePlugin({
   node: {
     isElement: true,
     isInline: true,
-    isVoid: false,
+    isVoid: true, // CRITICAL: Must be void since contentEditable=false
   },
 });
 

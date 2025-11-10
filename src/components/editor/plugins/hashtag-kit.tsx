@@ -11,11 +11,12 @@ const HashtagAutoformatPlugin = createSlatePlugin({
     const { insertText } = editor;
 
     editor.insertText = (text: string) => {
+      // Only intercept space character
       if (text === ' ') {
         const { selection } = editor;
+
         if (selection) {
           try {
-            // Get text before cursor
             const point = selection.anchor;
             const nodeEntry = editor.api.node(point);
 
@@ -27,56 +28,33 @@ const HashtagAutoformatPlugin = createSlatePlugin({
                 const offset = point.offset;
                 const textBeforeCursor = textContent.slice(0, offset);
 
-                // Match hashtag pattern at the end (supports Unicode characters including Chinese)
-                // Using \p{L} for Unicode letters, \p{N} for numbers, and \p{M} for combining marks
+                // Match hashtag pattern (supports Unicode)
                 const hashtagMatch = /#([\p{L}\p{N}_]+)$/u.exec(textBeforeCursor);
 
                 if (hashtagMatch) {
                   const tagValue = hashtagMatch[1];
                   const matchStart = offset - hashtagMatch[0].length;
 
-                  // Store the current selection for later restoration
-                  const currentSelection = editor.selection;
-
                   // Delete the #tag text
                   editor.tf.delete({
-                    at: {
-                      path,
-                      offset: matchStart,
-                    },
+                    at: { path, offset: matchStart },
                     distance: hashtagMatch[0].length,
                     unit: 'character',
                   });
 
-                  // Insert hashtag element
+                  // Insert hashtag element (isVoid: true handles cursor positioning)
                   editor.tf.insertNodes(
                     {
                       type: HASHTAG_KEY,
                       value: tagValue,
                       children: [{ text: '' }],
                     },
-                    {
-                      at: {
-                        path,
-                        offset: matchStart,
-                      },
-                    }
+                    { at: { path, offset: matchStart } }
                   );
 
-                  // Insert a text node with a space after the hashtag
-                  // This creates a valid cursor position
-                  editor.tf.insertText(' ', {
-                    at: {
-                      path,
-                      offset: matchStart + 1,
-                    },
-                  });
-
-                  // Set cursor to be after the space we just inserted
-                  editor.tf.select({
-                    path,
-                    offset: matchStart + 2,
-                  });
+                  // Since hashtag is now a void inline element, Slate automatically
+                  // positions cursor after it. Just insert the space normally.
+                  (insertText as (text: string) => void)(' ');
 
                   return;
                 }
@@ -88,6 +66,7 @@ const HashtagAutoformatPlugin = createSlatePlugin({
         }
       }
 
+      // For all other characters or if hashtag match failed, use original insertText
       (insertText as (text: string) => void)(text);
     };
 
