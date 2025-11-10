@@ -66,6 +66,8 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
             <RedoToolbarButton />
           </ToolbarGroup>
 
+          <div className="grow" />
+
           <ToolbarGroup>
             <AIToolbarButton tooltip="Ask AI">
               <WandSparklesIcon />
