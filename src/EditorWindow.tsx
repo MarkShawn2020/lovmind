@@ -19,7 +19,7 @@ function EditorWindow() {
   const [notes, setNotes] = useAtom(notesAtom);
   const [note, setNote] = useState<Note | null>(null);
   const [content, setContent] = useState('');
-  const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split' | 'wysiwyg'>('split');
+  const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split' | 'wysiwyg'>('wysiwyg');
 
   useEffect(() => {
     // 获取URL参数中的noteId
