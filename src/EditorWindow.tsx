@@ -203,11 +203,12 @@ function EditorWindow() {
       
       <div className="editor-section" style={{ marginTop: '0' }}>
         {viewMode === 'wysiwyg' ? (
-          <div className="wysiwyg-container">
-            <RenderingWysiwygEditor 
+          <div className="editor-area">
+            <RenderingWysiwygEditor
               initialContent={content}
               onChange={setContent}
-              placeholder="Type your amazing content here..."
+              onSubmit={handleSave}
+              placeholder="Start writing your note..."
             />
           </div>
         ) : (
