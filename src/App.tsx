@@ -217,38 +217,72 @@ function App() {
     }
   }, [notes]);
 
-  // 启动时同步后端存储的notes
+  // 启动时同步存储的notes
   useEffect(() => {
-    if (!isTauri()) {
-      console.log("Not running in Tauri environment, skipping backend sync");
+    if (isTauri()) {
+      // Tauri 环境：从后端加载
+      const syncWithBackend = async () => {
+        try {
+          const backendNotes = await invoke<Note[]>("get_all_temp_notes");
+          console.log("Found notes in backend:", backendNotes.length);
+
+          if (backendNotes.length > 0) {
+            // 合并后端的notes到当前状态
+            setNotes((prevNotes) => {
+              const noteMap = new Map(prevNotes.map((n) => [n.id, n]));
+
+              // 用后端的数据更新或添加notes
+              backendNotes.forEach((backendNote) => {
+                noteMap.set(backendNote.id, backendNote);
+              });
+
+              return Array.from(noteMap.values());
+            });
+          }
+        } catch (error) {
+          console.error("Failed to sync with backend:", error);
+        }
+      };
+
+      syncWithBackend();
+    } else {
+      // 浏览器环境：从 localStorage 加载
+      console.log("Browser: Loading notes from localStorage");
+      try {
+        const storedNotes = localStorage.getItem('lovpen-notes');
+        if (storedNotes) {
+          const notesMap = JSON.parse(storedNotes);
+          const notesArray = Object.values(notesMap) as Note[];
+          console.log("Loaded notes from localStorage:", notesArray.length);
+          if (notesArray.length > 0) {
+            setNotes(notesArray);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load notes from localStorage:", error);
+      }
+    }
+  }, []); // 只在组件挂载时运行一次
+
+  // 在浏览器环境下，当笔记更新时持久化到 localStorage
+  useEffect(() => {
+    if (isTauri()) {
+      // Tauri 环境下不需要，使用后端存储
       return;
     }
 
-    const syncWithBackend = async () => {
-      try {
-        const backendNotes = await invoke<Note[]>("get_all_temp_notes");
-        console.log("Found notes in backend:", backendNotes.length);
-
-        if (backendNotes.length > 0) {
-          // 合并后端的notes到当前状态
-          setNotes((prevNotes) => {
-            const noteMap = new Map(prevNotes.map((n) => [n.id, n]));
-
-            // 用后端的数据更新或添加notes
-            backendNotes.forEach((backendNote) => {
-              noteMap.set(backendNote.id, backendNote);
-            });
-
-            return Array.from(noteMap.values());
-          });
-        }
-      } catch (error) {
-        console.error("Failed to sync with backend:", error);
-      }
-    };
-
-    syncWithBackend();
-  }, []); // 只在组件挂载时运行一次
+    // 浏览器环境：同步到 localStorage
+    console.log("Browser: Syncing notes to localStorage, count:", notes.length);
+    try {
+      const notesMap: Record<string, Note> = {};
+      notes.forEach(note => {
+        notesMap[note.id] = note;
+      });
+      localStorage.setItem('lovpen-notes', JSON.stringify(notesMap));
+    } catch (error) {
+      console.error("Failed to sync notes to localStorage:", error);
+    }
+  }, [notes]); // 当 notes 变化时触发
 
   const handleSubmit = async () => {
     if (content.trim()) {
