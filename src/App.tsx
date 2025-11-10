@@ -5,6 +5,11 @@ import {
   getAllWebviewWindows,
 } from "@tauri-apps/api/webviewWindow";
 import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+
+// Check if running in Tauri environment
+const isTauri = () => {
+  return typeof window !== 'undefined' && '__TAURI__' in window;
+};
 import confetti from "canvas-confetti";
 import { Clock, Pin, Play, Send, Star, Trash2, X } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState, useMemo } from "react";
@@ -148,6 +153,11 @@ function App() {
   }, []); // Only run once on mount
 
   useEffect(() => {
+    if (!isTauri()) {
+      console.log("Not running in Tauri environment, skipping event listeners");
+      return;
+    }
+
     // 监听窗口切换事件
     const unlisten = listen("toggle-window", () => {
       console.log("Window toggled");
@@ -231,6 +241,11 @@ function App() {
 
   // 启动时同步后端存储的notes
   useEffect(() => {
+    if (!isTauri()) {
+      console.log("Not running in Tauri environment, skipping backend sync");
+      return;
+    }
+
     const syncWithBackend = async () => {
       try {
         const backendNotes = await invoke<Note[]>("get_all_temp_notes");
@@ -278,7 +293,9 @@ function App() {
         updatedNotes = notes.filter((note) => note.id !== resumingNoteId);
         setResumingNoteId(null);
         // 从后端也删除resumed note
-        await invoke("remove_temp_note", { id: resumingNoteId });
+        if (isTauri()) {
+          await invoke("remove_temp_note", { id: resumingNoteId });
+        }
       }
 
       setNotes([...updatedNotes, newNote]);
@@ -296,6 +313,8 @@ function App() {
         shapes: ['star', 'circle'],
         drift: 0
       });
+
+      if (!isTauri()) return;
 
       // 存储到后端
       await invoke("store_temp_note", { note: newNote });
@@ -327,7 +346,9 @@ function App() {
   const handleDelete = async (noteId: string) => {
     setNotes(notes.filter((note) => note.id !== noteId));
     // 从后端删除
-    await invoke("remove_temp_note", { id: noteId });
+    if (isTauri()) {
+      await invoke("remove_temp_note", { id: noteId });
+    }
     // 如果删除的是正在resume的note，清理状态
     if (resumingNoteId === noteId) {
       setResumingNoteId(null);
@@ -340,9 +361,11 @@ function App() {
     );
     setNotes(updatedNotes);
     // 更新后端
-    const updatedNote = updatedNotes.find((n) => n.id === noteId);
-    if (updatedNote) {
-      await invoke("store_temp_note", { note: updatedNote });
+    if (isTauri()) {
+      const updatedNote = updatedNotes.find((n) => n.id === noteId);
+      if (updatedNote) {
+        await invoke("store_temp_note", { note: updatedNote });
+      }
     }
   };
 
@@ -352,9 +375,11 @@ function App() {
     );
     setNotes(updatedNotes);
     // 更新后端
-    const updatedNote = updatedNotes.find((n) => n.id === noteId);
-    if (updatedNote) {
-      await invoke("store_temp_note", { note: updatedNote });
+    if (isTauri()) {
+      const updatedNote = updatedNotes.find((n) => n.id === noteId);
+      if (updatedNote) {
+        await invoke("store_temp_note", { note: updatedNote });
+      }
     }
   };
 
@@ -379,6 +404,11 @@ function App() {
   };
 
   const handleOpenInNewWindow = async (note: Note) => {
+    if (!isTauri()) {
+      console.log("Opening in new window only works in Tauri environment");
+      return;
+    }
+
     try {
       // 检查是否已经有打开的窗口
       const windowLabel = `note-editor-${note.id}`;
@@ -458,6 +488,8 @@ function App() {
   };
 
   const handleHeaderMouseDown = async () => {
+    if (!isTauri()) return;
+
     try {
       const appWindow = getCurrentWindow();
       await appWindow.startDragging();
@@ -468,29 +500,34 @@ function App() {
 
   // Toggle function - Preserve user's window size adjustments
   const handleToggleRecentNotes = useCallback(async () => {
+    if (!isTauri()) {
+      console.log("Window resizing only works in Tauri environment");
+      return;
+    }
+
     const appWindow = getCurrentWindow();
-    
+
     if (!panelRef.current) {
       console.error('Panel ref not initialized');
       return;
     }
-    
+
     // Get current size and convert to logical pixels
     const physicalSize = await appWindow.innerSize();
     const scaleFactor = await appWindow.scaleFactor();
     const currentSize = physicalSize.toLogical(scaleFactor);
-    
+
     if (!isExpandedRef.current) {
       // Expanding: save current height as collapsed height, then expand
       isExpandedRef.current = true;
       collapsedHeightRef.current = currentSize.height;
-      
+
       // Expand window by adding panel height
       await appWindow.setSize(new LogicalSize(
         currentSize.width,
         currentSize.height + PANEL_HEIGHT
       ));
-      
+
       // Animate panel in
       requestAnimationFrame(() => {
         if (panelRef.current) {
@@ -499,28 +536,28 @@ function App() {
         }
         document.querySelector('.recent-notes-toggle')?.classList.add('active');
       });
-      
+
     } else {
       // Collapsing: restore to saved collapsed height
       isExpandedRef.current = false;
-      
+
       // Animate panel out
       if (panelRef.current) {
         panelRef.current.classList.remove('visible');
         panelRef.current.classList.add('collapsed');
       }
       document.querySelector('.recent-notes-toggle')?.classList.remove('active');
-      
+
       // Resize window after animation
       setTimeout(async () => {
         // Use saved collapsed height if available, otherwise subtract panel height
         const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
-        
+
         await appWindow.setSize(new LogicalSize(
           currentSize.width,
           targetHeight
         ));
-        
+
         if (panelRef.current) {
           panelRef.current.classList.add('hidden');
           panelRef.current.classList.remove('collapsed');

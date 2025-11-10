@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import { DndPlugin, useDraggable, useDropLine } from '@platejs/dnd';
 import { expandListItemsWithChildren } from '@platejs/list';
+import { BlockSelectionPlugin } from '@platejs/selection/react';
 import { GripVertical } from 'lucide-react';
 import { type TElement, getPluginByType, isType, KEYS } from 'platejs';
 import {
@@ -71,11 +72,17 @@ export const BlockDraggable: RenderNodeWrapper = (props) => {
 
 function Draggable(props: PlateElementProps) {
   const { children, editor, element, path } = props;
+  const blockSelectionApi = editor.getApi(BlockSelectionPlugin).blockSelection;
 
   const { isAboutToDrag, isDragging, nodeRef, previewRef, handleRef } =
     useDraggable({
       element,
-      onDropHandler: () => {
+      onDropHandler: (_, { dragItem }) => {
+        const id = (dragItem as { id: string[] | string }).id;
+
+        if (blockSelectionApi) {
+          blockSelectionApi.add(id);
+        }
         resetPreview();
       },
     });
@@ -168,6 +175,11 @@ function Draggable(props: PlateElementProps) {
       <div
         ref={nodeRef}
         className="slate-blockWrapper flow-root"
+        onContextMenu={(event) =>
+          editor
+            .getApi(BlockSelectionPlugin)
+            .blockSelection.addOnContextMenu({ element, event })
+        }
       >
         <MemoizedChildren>{children}</MemoizedChildren>
         <DropLine />
@@ -183,8 +195,12 @@ function Gutter({
 }: React.ComponentProps<'div'>) {
   const editor = useEditorRef();
   const element = useElement();
+  const isSelectionAreaVisible = usePluginOption(
+    BlockSelectionPlugin,
+    'isSelectionAreaVisible'
+  );
   const selected = useSelected();
-
+  
   // Check if this block contains the current selection/focus
   // useSelected() should already handle this, but we'll double-check
   const isFocused = selected;
@@ -201,6 +217,8 @@ function Gutter({
         !isFocused && (getPluginByType(editor, element.type)?.node.isContainer
           ? 'group-hover/container:opacity-100'
           : 'group-hover:opacity-100'),
+        // Hide when selection area is visible
+        isSelectionAreaVisible && 'hidden',
         className
       )}
       contentEditable={false}
@@ -229,12 +247,28 @@ const DragHandle = React.memo(function DragHandle({
       <TooltipTrigger asChild>
         <div
           className="flex size-full items-center justify-center"
+          onClick={(e) => {
+            e.preventDefault();
+            editor.getApi(BlockSelectionPlugin).blockSelection.focus();
+          }}
           onMouseDown={(e) => {
             resetPreview();
 
             if (e.button !== 0 || e.shiftKey) return;
 
-            const selectionNodes = editor.api.blocks({ mode: 'highest' });
+            const blockSelection = editor
+              .getApi(BlockSelectionPlugin)
+              .blockSelection.getNodes({ sort: true });
+
+            let selectionNodes =
+              blockSelection.length > 0
+                ? blockSelection
+                : editor.api.blocks({ mode: 'highest' });
+
+            // If current block is not in selection, use it as the starting point
+            if (!selectionNodes.some(([node]) => node.id === element.id)) {
+              selectionNodes = [[element, editor.api.findPath(element)!]];
+            }
 
             // Process selection nodes to include list children
             const blocks = expandListItemsWithChildren(
@@ -242,14 +276,55 @@ const DragHandle = React.memo(function DragHandle({
               selectionNodes
             ).map(([node]) => node);
 
-            editor.tf.blur();
-            editor.tf.collapse();
+            if (blockSelection.length === 0) {
+              editor.tf.blur();
+              editor.tf.collapse();
+            }
 
             const elements = createDragPreviewElements(editor, blocks);
             previewRef.current?.append(...elements);
             previewRef.current?.classList.remove('hidden');
             previewRef.current?.classList.add('opacity-0');
             editor.setOption(DndPlugin, 'multiplePreviewRef', previewRef);
+
+            editor
+              .getApi(BlockSelectionPlugin)
+              .blockSelection.set(blocks.map((block) => block.id as string));
+          }}
+          onMouseEnter={() => {
+            if (isDragging) return;
+
+            const blockSelection = editor
+              .getApi(BlockSelectionPlugin)
+              .blockSelection.getNodes({ sort: true });
+
+            let selectedBlocks =
+              blockSelection.length > 0
+                ? blockSelection
+                : editor.api.blocks({ mode: 'highest' });
+
+            // If current block is not in selection, use it as the starting point
+            if (!selectedBlocks.some(([node]) => node.id === element.id)) {
+              selectedBlocks = [[element, editor.api.findPath(element)!]];
+            }
+
+            // Process selection to include list children
+            const processedBlocks = expandListItemsWithChildren(
+              editor,
+              selectedBlocks
+            );
+
+            const ids = processedBlocks.map((block) => block[0].id as string);
+
+            if (ids.length > 1 && ids.includes(element.id as string)) {
+              const previewTop = calculatePreviewTop(editor, {
+                blocks: processedBlocks.map((block) => block[0]),
+                element,
+              });
+              setPreviewTop(previewTop);
+            } else {
+              setPreviewTop(0);
+            }
           }}
           onMouseUp={() => {
             resetPreview();

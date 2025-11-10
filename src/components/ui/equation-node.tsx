@@ -9,6 +9,7 @@ import type { TEquationElement } from 'platejs';
 import type { PlateElementProps } from 'platejs/react';
 
 import { useEquationElement, useEquationInput } from '@platejs/math/react';
+import { BlockSelectionPlugin } from '@platejs/selection/react';
 import { CornerDownLeftIcon, RadicalIcon } from 'lucide-react';
 import {
   createPrimitiveComponent,
@@ -204,6 +205,10 @@ const EquationPopoverContent = ({
 
     if (isInline) {
       editor.tf.select(element, { focus: true, next: true });
+    } else {
+      editor
+        .getApi(BlockSelectionPlugin)
+        .blockSelection.set(element.id as string);
     }
   };
 

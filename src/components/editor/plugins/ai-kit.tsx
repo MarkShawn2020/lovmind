@@ -11,6 +11,7 @@ import { usePluginOption } from 'platejs/react';
 import { AILoadingBar, AIMenu } from '@/components/ui/ai-menu';
 import { AIAnchorElement, AILeaf } from '@/components/ui/ai-node';
 
+import { CursorOverlayKit } from './cursor-overlay-kit';
 import { MarkdownKit } from './markdown-kit';
 
 export const aiChatPlugin = AIChatPlugin.extend({
@@ -90,6 +91,7 @@ export const aiChatPlugin = AIChatPlugin.extend({
 });
 
 export const AIKit = [
+  ...CursorOverlayKit,
   ...MarkdownKit,
   AIPlugin.withComponent(AILeaf),
   aiChatPlugin,

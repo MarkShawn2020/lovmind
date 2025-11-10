@@ -6,6 +6,7 @@ import type * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 
 import { useDraggable, useDropLine } from '@platejs/dnd';
 import {
+  BlockSelectionPlugin,
   useBlockSelected,
 } from '@platejs/selection/react';
 import { setCellBackground } from '@platejs/table';
@@ -99,7 +100,11 @@ export const TableElement = withHOC(
     ...props
   }: PlateElementProps<TTableElement>) {
     const readOnly = useReadOnly();
-    const hasControls = !readOnly;
+    const isSelectionAreaVisible = usePluginOption(
+      BlockSelectionPlugin,
+      'isSelectionAreaVisible'
+    );
+    const hasControls = !readOnly && !isSelectionAreaVisible;
     const {
       isSelectingCell,
       marginLeft,
@@ -423,7 +428,11 @@ export function TableRowElement(props: PlateElementProps<TTableRowElement>) {
   const readOnly = useReadOnly();
   const selected = useSelected();
   const editor = useEditorRef();
-  const hasControls = !readOnly;
+  const isSelectionAreaVisible = usePluginOption(
+    BlockSelectionPlugin,
+    'isSelectionAreaVisible'
+  );
+  const hasControls = !readOnly && !isSelectionAreaVisible;
 
   const { isDragging, previewRef, handleRef } = useDraggable({
     element,
@@ -520,6 +529,10 @@ export function TableCellElement({
   });
   const isSelectingTable = useBlockSelected(tableId);
   const isSelectingRow = useBlockSelected(rowId) || isSelectingTable;
+  const isSelectionAreaVisible = usePluginOption(
+    BlockSelectionPlugin,
+    'isSelectionAreaVisible'
+  );
 
   const { borders, colIndex, colSpan, minHeight, rowIndex, selected, width } =
     useTableCellElement();
@@ -567,7 +580,7 @@ export function TableCellElement({
         {props.children}
       </div>
 
-      {true && (
+      {!isSelectionAreaVisible && (
         <div
           className="group absolute top-0 size-full select-none"
           contentEditable={false}

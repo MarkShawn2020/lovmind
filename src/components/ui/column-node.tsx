@@ -8,6 +8,7 @@ import type { PlateElementProps } from 'platejs/react';
 import { useDraggable, useDropLine } from '@platejs/dnd';
 import { setColumns } from '@platejs/layout';
 import { ResizableProvider } from '@platejs/resizable';
+import { BlockSelectionPlugin } from '@platejs/selection/react';
 import { useComposedRef } from '@udecode/cn';
 import { type LucideProps, Trash2Icon } from 'lucide-react';
 import { GripHorizontal } from 'lucide-react';
@@ -45,6 +46,10 @@ export const ColumnElement = withHOC(
   function ColumnElement(props: PlateElementProps<TColumnElement>) {
     const { width } = props.element;
     const readOnly = useReadOnly();
+    const isSelectionAreaVisible = usePluginOption(
+      BlockSelectionPlugin,
+      'isSelectionAreaVisible'
+    );
 
     const { isDragging, previewRef, handleRef } = useDraggable({
       element: props.element,
@@ -59,7 +64,7 @@ export const ColumnElement = withHOC(
 
     return (
       <div className="group/column relative" style={{ width: width ?? '100%' }}>
-        {!readOnly && (
+        {!readOnly && !isSelectionAreaVisible && (
           <div
             ref={handleRef}
             className={cn(
@@ -86,7 +91,7 @@ export const ColumnElement = withHOC(
           >
             {props.children}
 
-            {!readOnly && <DropLine />}
+            {!readOnly && !isSelectionAreaVisible && <DropLine />}
           </div>
         </PlateElement>
       </div>
