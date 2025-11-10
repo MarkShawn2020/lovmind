@@ -24,6 +24,7 @@ import { RenderingWysiwygEditorRef } from "./components/RenderingWysiwygEditor";
 function App() {
   const [content, setContent] = useAtom(contentAtom);
   const [notes, setNotes] = useAtom(notesAtom);
+  const [currentTags, setCurrentTags] = useState<string[]>([]);
   const notesListRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
@@ -200,10 +201,11 @@ function App() {
 
   const handleSubmit = async () => {
     if (content.trim()) {
-      // 生成标题和标签（暂时使用简单逻辑）
+      // 生成标题和标签
       const firstLine = content.split("\n")[0].substring(0, 50);
       const title = firstLine || "Untitled Note";
-      const tags = content.includes("#") ? ["markdown"] : ["text"];
+      // Use tags extracted from the editor, fallback to empty array
+      const tags = currentTags.length > 0 ? currentTags : [];
 
       const newNote: Note = {
         id: Date.now().toString(),
@@ -519,7 +521,10 @@ function App() {
 
       <NoteEditor
         content={content}
-        onContentChange={setContent}
+        onContentChange={(newContent, tags) => {
+          setContent(newContent);
+          if (tags) setCurrentTags(tags);
+        }}
         onSubmit={handleSubmit}
         placeholder="此时此刻，你在想什么呢？"
         isPanelExpanded={isExpandedRef.current}

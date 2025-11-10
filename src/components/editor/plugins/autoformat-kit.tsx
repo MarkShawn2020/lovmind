@@ -14,6 +14,7 @@ import {
 import { insertEmptyCodeBlock } from '@platejs/code-block';
 import { toggleList } from '@platejs/list';
 import { KEYS } from 'platejs';
+import { HASHTAG_KEY } from './hashtag-kit';
 
 const autoformatMarks: AutoformatRule[] = [
   {
@@ -208,6 +209,10 @@ const autoformatLists: AutoformatRule[] = [
   },
 ];
 
+// Hashtag autoformat will be handled by a custom plugin instead
+// due to Plate's autoformat limitations with inline elements
+const autoformatHashtags: AutoformatRule[] = [];
+
 export const AutoformatKit = [
   AutoformatPlugin.configure({
     options: {
@@ -222,6 +227,7 @@ export const AutoformatKit = [
         ...autoformatArrow,
         ...autoformatMath,
         ...autoformatLists,
+        ...autoformatHashtags,
       ].map(
         (rule): AutoformatRule => ({
           ...rule,

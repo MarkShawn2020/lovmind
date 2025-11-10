@@ -13,7 +13,7 @@ dayjs.locale('zh-cn');
 
 interface NoteEditorProps {
   content: string;
-  onContentChange: (content: string) => void;
+  onContentChange: (content: string, tags?: string[]) => void;
   onSubmit: () => void;
   placeholder?: string;
   isPanelExpanded: boolean;

@@ -29,6 +29,7 @@ import { LineHeightKit } from '@/components/editor/plugins/line-height-kit';
 import { LinkKit } from '@/components/editor/plugins/link-kit';
 import { ListKit } from '@/components/editor/plugins/list-kit';
 import { MarkdownKit } from '@/components/editor/plugins/markdown-kit';
+import { HashtagKit } from '@/components/editor/plugins/hashtag-kit';
 import { MathKit } from '@/components/editor/plugins/math-kit';
 import { MediaKit } from '@/components/editor/plugins/media-kit';
 import { MentionKit } from '@/components/editor/plugins/mention-kit';
@@ -56,6 +57,7 @@ export const EditorKit = [
   ...DateKit,
   ...LinkKit,
   ...MentionKit,
+  ...HashtagKit,
 
   // Marks
   ...BasicMarksKit,

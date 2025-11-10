@@ -21,6 +21,7 @@ function EditorWindow() {
   const [notes, setNotes] = useAtom(notesAtom);
   const [note, setNote] = useState<Note | null>(null);
   const [content, setContent] = useState('');
+  const [currentTags, setCurrentTags] = useState<string[]>([]);
   const [isPanelExpanded, setIsPanelExpanded] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const notesListRef = useRef<HTMLDivElement | null>(null);
@@ -73,7 +74,8 @@ function EditorWindow() {
         ...note,
         text: content,
         title: content.split('\n')[0].substring(0, 50) || 'Untitled Note',
-        time: new Date().toLocaleString()
+        time: new Date().toLocaleString(),
+        tags: currentTags.length > 0 ? currentTags : note.tags
       };
 
       if (isTauri()) {
@@ -273,7 +275,10 @@ function EditorWindow() {
     <div className="app-container">
       <NoteEditor
         content={content}
-        onContentChange={setContent}
+        onContentChange={(newContent, tags) => {
+          setContent(newContent);
+          if (tags) setCurrentTags(tags);
+        }}
         onSubmit={handleSave}
         placeholder="此时此刻，你在想什么呢？"
         isPanelExpanded={isPanelExpanded}

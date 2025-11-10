@@ -6,10 +6,12 @@ import { Plate, usePlateEditor } from 'platejs/react';
 
 import { EditorKit } from '@/components/editor/editor-kit';
 import { Editor, EditorContainer } from '@/components/ui/editor';
+import { HASHTAG_KEY } from '@/components/editor/plugins/hashtag-kit';
+import type { THashtagElement } from '@/components/editor/plugins/hashtag-base-kit';
 
 interface RenderingWysiwygEditorProps {
   initialContent?: string;
-  onChange?: (content: string) => void;
+  onChange?: (content: string, tags?: string[]) => void;
   onSubmit?: () => void;
   placeholder?: string;
 }
@@ -36,9 +38,10 @@ const createInitialValue = (text: string = ''): Value => {
   }));
 };
 
-const extractTextContent = (value: Value): string => {
+const extractTextContent = (value: Value): { text: string; tags: string[] } => {
   // Track list item counters for each indent level
   const listCounters = new Map<string, number>();
+  const tags = new Set<string>();
 
   const extractNodeText = (node: any, context?: { prevListType?: string; prevIndent?: number }): string => {
     // If node has text property, it's a text leaf node
@@ -54,6 +57,13 @@ const extractTextContent = (value: Value): string => {
 
     // If node has children, it's a block or inline element
     if (node.children && Array.isArray(node.children)) {
+      // Handle hashtag elements
+      if (node.type === HASHTAG_KEY) {
+        const hashtagElement = node as THashtagElement;
+        tags.add(hashtagElement.value);
+        return `#${hashtagElement.value}`;
+      }
+
       const childText = node.children.map((child: any) => extractNodeText(child, context)).join('');
 
       // Handle different block types with markdown syntax
@@ -123,7 +133,10 @@ const extractTextContent = (value: Value): string => {
     prevNode = node;
   }
 
-  return results.join('\n');
+  return {
+    text: results.join('\n'),
+    tags: Array.from(tags),
+  };
 };
 
 const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWysiwygEditorProps>(
@@ -158,8 +171,8 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     // Handle content changes
     const handleChange = ({ value }: { value: Value }) => {
       if (onChange) {
-        const content = extractTextContent(value);
-        onChange(content);
+        const { text, tags } = extractTextContent(value);
+        onChange(text, tags);
       }
     };
 
