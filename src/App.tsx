@@ -582,7 +582,15 @@ function App() {
 
 
       <div className="editor-section">
-        {/* Panel always rendered but hidden by default - placed first to push from top */}
+        <div className="editor-area">
+          <RenderingWysiwygEditor
+            initialContent={content}
+            onChange={setContent}
+            placeholder="Start writing your note..."
+          />
+        </div>
+
+        {/* Panel always rendered but hidden by default */}
         <div ref={panelRef} className="recent-notes-panel hidden">
             <div className="notes-list" ref={notesListRef}>
               {notes.length === 0 ? (
@@ -684,14 +692,6 @@ function App() {
               )}
             </div>
           </div>
-
-        <div className="editor-area">
-          <RenderingWysiwygEditor
-            initialContent={content}
-            onChange={setContent}
-            placeholder="Start writing your note..."
-          />
-        </div>
 
         <EditorToolbar
           onToggleNotes={handleToggleRecentNotes}
