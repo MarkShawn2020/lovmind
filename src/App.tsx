@@ -13,21 +13,13 @@ const isTauri = () => {
 };
 import confetti from "canvas-confetti";
 import { Clock, Pin, Play, Send, Star, Trash2, X } from "lucide-react";
-import { memo, useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import lovpenLogo from "./assets/lovpen-logo.svg";
 import RenderingWysiwygEditor from "./components/RenderingWysiwygEditor";
 import packageJson from "../package.json";
-
-interface Note {
-  id: string;
-  text: string;
-  title: string;
-  time: string;
-  tags: string[];
-  favorite?: boolean;
-  pinned?: boolean;
-}
+import { useAtom, useAtomValue } from "jotai";
+import { notesAtom, contentAtom, noteStatsAtom, Note } from "./store";
 
 // Memoized toolbar button to prevent re-renders
 const RecentNotesButton = memo(({ 
@@ -82,14 +74,9 @@ const EditorToolbar = memo(({
 ));
 
 function App() {
-  const [content, setContent] = useState("");
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [viewMode, setViewMode] = useState<
-    "edit" | "preview" | "split" | "wysiwyg"
-  >("split");
+  const [content, setContent] = useAtom(contentAtom);
+  const [notes, setNotes] = useAtom(notesAtom);
   const [resumingNoteId, setResumingNoteId] = useState<string | null>(null);
-  const [showRecentNotes, setShowRecentNotes] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
   const notesListRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const isExpandedRef = useRef(false);
@@ -97,54 +84,8 @@ function App() {
   const collapsedHeightRef = useRef<number | null>(null);
   const PANEL_HEIGHT = 250;
 
-  // Calculate note statistics
-  const noteStats = useMemo(() => {
-    const now = new Date();
-    const today = now.toDateString();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
-    const todayNotes = notes.filter(n => 
-      new Date(n.time).toDateString() === today
-    );
-    
-    const weekNotes = notes.filter(n => 
-      new Date(n.time) >= weekAgo
-    );
-    
-    // Calculate streak (consecutive days with notes)
-    const streak = (() => {
-      const sortedDates = [...new Set(notes.map(n => 
-        new Date(n.time).toDateString()
-      ))].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-      
-      let count = 0;
-      const checkDate = new Date();
-      
-      for (let i = 0; i < 30; i++) {
-        if (sortedDates.includes(checkDate.toDateString())) {
-          count++;
-        } else if (count > 0) {
-          break;
-        }
-        checkDate.setDate(checkDate.getDate() - 1);
-      }
-      
-      return count;
-    })();
-    
-    const totalChars = notes.reduce((acc, n) => acc + n.text.length, 0);
-    const avgLength = notes.length > 0 ? Math.round(totalChars / notes.length) : 0;
-    
-    return {
-      total: notes.length,
-      today: todayNotes.length,
-      favorites: notes.filter(n => n.favorite).length,
-      pinned: notes.filter(n => n.pinned).length,
-      weekCount: weekNotes.length,
-      avgLength,
-      streak
-    };
-  }, [notes]);
+  // Get note statistics from derived atom
+  const noteStats = useAtomValue(noteStatsAtom);
 
   // Initialize window state on mount
   useEffect(() => {
