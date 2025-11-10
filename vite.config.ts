@@ -50,12 +50,6 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
-  build: {
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-        editor: resolve(__dirname, 'editor.html'),
-      },
-    },
-  },
+  // 单入口配置，通过 URL 参数控制渲染
+  // build: {},
 }));

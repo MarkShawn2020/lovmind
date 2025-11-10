@@ -387,7 +387,7 @@ function App() {
       console.log("Opening in browser environment:", note.id);
 
       // 打开新窗口（数据通过 Jotai atomWithStorage 自动持久化到 localStorage）
-      const url = `/editor.html?noteId=${note.id}`;
+      const url = `/?window=editor&noteId=${note.id}`;
       window.open(url, `note-editor-${note.id}`, 'width=600,height=500');
       return;
     }
@@ -436,8 +436,8 @@ function App() {
       // 在开发环境中使用完整的开发服务器URL
       const isDev = window.location.hostname === "localhost";
       const url = isDev
-        ? `http://localhost:1420/editor.html?noteId=${note.id}`
-        : `/editor.html?noteId=${note.id}`;
+        ? `http://localhost:1420/?window=editor&noteId=${note.id}`
+        : `/?window=editor&noteId=${note.id}`;
 
       console.log("Opening window with URL:", url);
 
