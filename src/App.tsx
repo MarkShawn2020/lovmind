@@ -586,7 +586,8 @@ function App() {
                     // Pinned notes come first
                     if (a.pinned && !b.pinned) return -1;
                     if (!a.pinned && b.pinned) return 1;
-                    return 0; // Keep original order for same pin status
+                    // Within same pin status, sort by creation time descending (newest first)
+                    return Number(b.id) - Number(a.id);
                   })
                   .map((note) => (
                     <div
