@@ -69,6 +69,84 @@ export default function RenderingWysiwygEditor({
     }
   };
 
+  // Add comprehensive focus/blur logging
+  useEffect(() => {
+    if (!editor) return;
+
+    const editorElement = editor.api.toDOMNode(editor);
+    if (!editorElement) return;
+
+    console.log('[Focus Debug] Editor element found:', editorElement);
+
+    const handleFocus = (e: FocusEvent) => {
+      console.log('[Focus Debug] ✅ Editor FOCUSED', {
+        target: e.target,
+        relatedTarget: e.relatedTarget,
+        timestamp: new Date().toISOString(),
+        selection: editor.tf.selection,
+      });
+    };
+
+    const handleBlur = (e: FocusEvent) => {
+      console.log('[Focus Debug] ❌ Editor BLURRED', {
+        target: e.target,
+        relatedTarget: e.relatedTarget,
+        timestamp: new Date().toISOString(),
+        selection: editor.tf.selection,
+      });
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      console.log('[Focus Debug] 🖱️ MOUSEDOWN on editor area', {
+        target: target.tagName,
+        classList: Array.from(target.classList),
+        contentEditable: target.contentEditable,
+        hasPreventDeselect: target.hasAttribute('data-plate-prevent-deselect'),
+        isSlateElement: target.hasAttribute('data-slate-node'),
+        path: target.getAttribute('data-path'),
+        timestamp: new Date().toISOString(),
+      });
+    };
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      console.log('[Focus Debug] 🖱️ CLICK on editor area', {
+        target: target.tagName,
+        classList: Array.from(target.classList),
+        contentEditable: target.contentEditable,
+        hasPreventDeselect: target.hasAttribute('data-plate-prevent-deselect'),
+        timestamp: new Date().toISOString(),
+      });
+    };
+
+    editorElement.addEventListener('focus', handleFocus, true);
+    editorElement.addEventListener('blur', handleBlur, true);
+    editorElement.addEventListener('mousedown', handleMouseDown, true);
+    editorElement.addEventListener('click', handleClick, true);
+
+    // Also listen on document for global events
+    const handleDocumentMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      console.log('[Focus Debug] 🌐 Global MOUSEDOWN', {
+        target: target.tagName,
+        classList: Array.from(target.classList),
+        isInsideEditor: editorElement.contains(target),
+        timestamp: new Date().toISOString(),
+      });
+    };
+
+    document.addEventListener('mousedown', handleDocumentMouseDown, true);
+
+    return () => {
+      editorElement.removeEventListener('focus', handleFocus, true);
+      editorElement.removeEventListener('blur', handleBlur, true);
+      editorElement.removeEventListener('mousedown', handleMouseDown, true);
+      editorElement.removeEventListener('click', handleClick, true);
+      document.removeEventListener('mousedown', handleDocumentMouseDown, true);
+    };
+  }, [editor]);
+
   return (
     <div className="h-full w-full flex flex-col">
       <Plate editor={editor} onChange={handleChange}>
