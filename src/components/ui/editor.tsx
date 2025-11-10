@@ -58,7 +58,14 @@ const editorVariants = cva(
     'relative w-full cursor-text overflow-x-hidden break-words whitespace-pre-wrap select-text',
     'rounded-md ring-offset-background focus-visible:outline-none',
     'placeholder:text-muted-foreground/80 **:data-slate-placeholder:!top-1/2 **:data-slate-placeholder:-translate-y-1/2 **:data-slate-placeholder:text-muted-foreground/80 **:data-slate-placeholder:opacity-100!',
-    '[&_strong]:font-bold'
+    '[&_strong]:font-bold',
+    // Block interaction visual hints
+    '[&_[data-slate-node="element"][contenteditable="false"]]:cursor-default [&_[data-slate-node="element"][contenteditable="false"]]:select-none',
+    '[&_figure]:transition-all [&_figure:hover]:ring-2 [&_figure:hover]:ring-muted-foreground/20 [&_figure:hover]:rounded-md',
+    '[&_pre]:transition-all',
+    '[&_[data-slate-node="element"]:has(img)]:cursor-pointer',
+    '[&_[data-slate-node="element"]:has(video)]:cursor-pointer',
+    '[&_[data-slate-node="element"]:has(audio)]:cursor-pointer'
   ),
   {
     defaultVariants: {

@@ -29,7 +29,7 @@ export function CalloutElement({
 
   return (
     <PlateElement
-      className={cn('my-1 flex rounded-sm bg-muted p-4 pl-3', className)}
+      className={cn('my-1 flex rounded-sm bg-muted p-4 pl-3 transition-all hover:ring-2 hover:ring-muted-foreground/20', className)}
       style={{
         backgroundColor: props.element.backgroundColor as any,
       }}
