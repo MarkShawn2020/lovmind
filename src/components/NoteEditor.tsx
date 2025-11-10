@@ -107,10 +107,10 @@ function NoteEditor({
                     <div className="note-header">
                       <div className="note-title">
                         {note.pinned && (
-                          <Pin className="icon-inline pinned" size={14} />
+                          <Pin className="icon-inline pinned" size={12} />
                         )}
                         {note.favorite && (
-                          <Star className="icon-inline favorited" size={14} />
+                          <Star className="icon-inline favorited" size={12} />
                         )}
                         {note.title}
                       </div>
@@ -138,7 +138,7 @@ function NoteEditor({
                         onClick={() => handlePin(note.id)}
                         title={note.pinned ? 'Unpin note' : 'Pin note'}
                       >
-                        <Pin size={14} />
+                        <Pin size={12} />
                       </button>
                       <button
                         className={`action-btn favorite-btn ${
@@ -149,14 +149,14 @@ function NoteEditor({
                           note.favorite ? 'Unfavorite note' : 'Favorite note'
                         }
                       >
-                        <Star size={14} />
+                        <Star size={12} />
                       </button>
                       <button
                         className="action-btn delete-btn"
                         onClick={() => handleDelete(note.id)}
                         title="Delete note"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={12} />
                       </button>
                     </div>
                   </div>
