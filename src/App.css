@@ -99,7 +99,9 @@ body {
   position: relative;
   border: 1px solid var(--border);
   height: 120px;
+  min-height: 120px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .note-item:hover {
