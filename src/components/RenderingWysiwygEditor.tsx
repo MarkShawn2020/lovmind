@@ -32,15 +32,23 @@ const createInitialValue = (text: string = ''): Value => {
 };
 
 const extractTextContent = (value: Value): string => {
+  const extractNodeText = (node: any): string => {
+    // If node has text property, return it
+    if (typeof node.text === 'string') {
+      return node.text;
+    }
+
+    // If node has children, recursively extract text from all children
+    if (node.children && Array.isArray(node.children)) {
+      return node.children.map(extractNodeText).join('');
+    }
+
+    return '';
+  };
+
   return value
-    .map((node: any) => {
-      if (node.children) {
-        return node.children
-          .map((child: any) => child.text || '')
-          .join('');
-      }
-      return '';
-    })
+    .map((node: any) => extractNodeText(node))
+    .filter(text => text.length > 0) // Filter out empty strings
     .join('\n');
 };
 

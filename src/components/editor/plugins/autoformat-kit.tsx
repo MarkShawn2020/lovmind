@@ -167,7 +167,7 @@ const autoformatLists: AutoformatRule[] = [
     },
   },
   {
-    match: [String.raw`^\d+\.$ `, String.raw`^\d+\)$ `],
+    match: [String.raw`^\d+\. `, String.raw`^\d+\) `],
     matchByRegex: true,
     mode: 'block',
     type: 'list',
