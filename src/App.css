@@ -98,8 +98,8 @@ body {
   transition: all 0.2s;
   position: relative;
   border: 1px solid var(--border);
-  height: 120px;
-  min-height: 120px;
+  height: 90px;
+  min-height: 90px;
   overflow: hidden;
   flex-shrink: 0;
 }
