@@ -62,13 +62,6 @@ export default function RenderingWysiwygEditor({
     value: createInitialValue(initialContent),
   });
 
-  // Reset editor when initialContent becomes empty
-  useEffect(() => {
-    if (editor && initialContent === '') {
-      editor.tf.reset();
-    }
-  }, [initialContent, editor]);
-
   // Handle content changes
   const handleChange = ({ value }: { value: Value }) => {
     if (onChange) {
