@@ -35,9 +35,9 @@ export const ListKit = [
           return originalInsertBreak();
         }
 
-        // Check if we're in a list item
+        // Check if we're in a list item (identified by listStyleType property)
         const listItemEntry = (editor as PlateEditor).api.above({
-          match: (n: any) => n.type === KEYS.li,
+          match: (n: any) => !!n.listStyleType,
         });
 
         if (!listItemEntry) {
@@ -53,7 +53,6 @@ export const ListKit = [
           // Instead of converting to paragraph, insert a new empty list item
           (editor as PlateEditor).tf.insertNodes(
             (editor as PlateEditor).api.create.block({
-              type: KEYS.li,
               indent: (listItem as any).indent,
               listStyleType: (listItem as any).listStyleType,
             })
