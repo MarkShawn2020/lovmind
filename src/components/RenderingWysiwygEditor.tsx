@@ -133,15 +133,23 @@ export default function RenderingWysiwygEditor({
     value: createInitialValue(initialContent),
   });
 
-  // Reset editor when initialContent becomes empty
+  // Reset editor when initialContent becomes empty from a non-empty state
   useEffect(() => {
     if (initialContent === '' && editor) {
-      editor.tf.setValue([
-        {
-          type: 'p',
-          children: [{ text: '' }],
-        },
-      ]);
+      const currentValue = editor.children;
+      // Only reset if editor currently has content (not just a single empty paragraph)
+      const hasContent = currentValue.length > 1 ||
+        (currentValue.length === 1 &&
+         currentValue[0].children?.some((child: any) => child.text !== ''));
+
+      if (hasContent) {
+        editor.tf.setValue([
+          {
+            type: 'p',
+            children: [{ text: '' }],
+          },
+        ]);
+      }
     }
   }, [initialContent, editor]);
 
