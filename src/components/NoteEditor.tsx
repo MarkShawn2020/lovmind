@@ -197,7 +197,7 @@ function NoteEditor({
       <EditorToolbar
         onToggleNotes={onTogglePanel}
         onSubmit={onSubmit}
-        submitDisabled={!content.trim()}
+        submitDisabled={!content || typeof content !== 'string' || !content.trim()}
       />
     </div>
   );

@@ -68,7 +68,7 @@ function EditorWindow() {
   }, [notes]);
 
   const handleSave = async () => {
-    if (note && content.trim()) {
+    if (note && content && typeof content === 'string' && content.trim()) {
       // 更新note
       const updatedNote: Note = {
         ...note,

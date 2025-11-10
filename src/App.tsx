@@ -200,7 +200,7 @@ function App() {
   }, []); // 只在组件挂载时运行一次
 
   const handleSubmit = async () => {
-    if (content.trim()) {
+    if (content && typeof content === 'string' && content.trim()) {
       // 生成标题和标签
       const firstLine = content.split("\n")[0].substring(0, 50);
       const title = firstLine || "Untitled Note";
