@@ -42,23 +42,23 @@ const HashtagAutoformatPlugin = createSlatePlugin({
                     unit: 'character',
                   });
 
-                  // Insert hashtag element (isVoid: true means cursor can't go inside)
+                  // Insert hashtag followed by space text node
+                  // This ensures proper cursor positioning after the hashtag
+                  const parentPath = path.slice(0, -1);
+
                   editor.tf.insertNodes(
-                    {
-                      type: HASHTAG_KEY,
-                      value: tagValue,
-                      children: [{ text: '' }],
-                    },
-                    { at: { path, offset: matchStart } }
+                    [
+                      {
+                        type: HASHTAG_KEY,
+                        value: tagValue,
+                        children: [{ text: '' }],
+                      },
+                      { text: ' ' }, // Space as a separate text node
+                    ],
+                    { at: { path, offset: matchStart }, select: true }
                   );
 
-                  // After insertNodes, cursor is BEFORE the hashtag
-                  // Move cursor to AFTER the hashtag (move 1 position forward)
-                  editor.tf.move({ distance: 1, unit: 'offset' });
-
-                  // Now insert space at the correct position (after hashtag)
-                  (insertText as (text: string) => void)(' ');
-
+                  // Selection is now automatically at the end (after the space)
                   return;
                 }
               }
