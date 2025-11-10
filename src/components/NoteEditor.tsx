@@ -109,7 +109,7 @@ function NoteEditor({
 
               return sortedNotes.map((note) => {
                 const rank = noteRanks.get(note.id)!;
-                const isTopThree = rank >= notes.length - 2; // Top 3 earliest notes
+                const isTopThree = rank <= 3; // Top 3 oldest notes
 
                 return (
                   <div
