@@ -64,6 +64,7 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
           <ToolbarGroup>
             <AIToolbarButton tooltip="Ask AI">
               <WandSparklesIcon />
+              Ask AI
             </AIToolbarButton>
           </ToolbarGroup>
 
