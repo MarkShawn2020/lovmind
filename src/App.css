@@ -142,7 +142,7 @@ body {
 }
 
 .note-title {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--card-foreground);
   display: flex;
@@ -170,9 +170,9 @@ body {
 }
 
 .note-preview {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   color: var(--muted-foreground);
-  line-height: 1.4;
+  line-height: 1.5;
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -206,10 +206,23 @@ body {
   display: flex;
   gap: 4px;
   align-items: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 4px;
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.note-item:hover .note-actions {
+  opacity: 1;
 }
 
 .action-btn {
-  padding: 3px;
+  padding: 4px;
   background: transparent;
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 2px);
@@ -218,8 +231,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
 }
 
 .action-btn:hover {
