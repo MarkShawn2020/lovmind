@@ -8,7 +8,8 @@ import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 
 // Check if running in Tauri environment
 const isTauri = () => {
-  return typeof window !== 'undefined' && '__TAURI__' in window;
+  return typeof window !== 'undefined' &&
+         ((window as any).__TAURI__ !== undefined || (window as any).__TAURI_INTERNALS__ !== undefined);
 };
 import confetti from "canvas-confetti";
 import { Clock, Pin, Play, Send, Star, Trash2, X } from "lucide-react";
@@ -500,35 +501,34 @@ function App() {
 
   // Toggle function - Preserve user's window size adjustments
   const handleToggleRecentNotes = useCallback(async () => {
-    if (!isTauri()) {
-      console.log("Window resizing only works in Tauri environment");
-      return;
-    }
-
-    const appWindow = getCurrentWindow();
-
     if (!panelRef.current) {
       console.error('Panel ref not initialized');
       return;
     }
 
-    // Get current size and convert to logical pixels
-    const physicalSize = await appWindow.innerSize();
-    const scaleFactor = await appWindow.scaleFactor();
-    const currentSize = physicalSize.toLogical(scaleFactor);
-
     if (!isExpandedRef.current) {
-      // Expanding: save current height as collapsed height, then expand
+      // Expanding
       isExpandedRef.current = true;
-      collapsedHeightRef.current = currentSize.height;
 
-      // Expand window by adding panel height
-      await appWindow.setSize(new LogicalSize(
-        currentSize.width,
-        currentSize.height + PANEL_HEIGHT
-      ));
+      // Try to resize window if in Tauri
+      if (isTauri()) {
+        try {
+          const appWindow = getCurrentWindow();
+          const physicalSize = await appWindow.innerSize();
+          const scaleFactor = await appWindow.scaleFactor();
+          const currentSize = physicalSize.toLogical(scaleFactor);
+          collapsedHeightRef.current = currentSize.height;
 
-      // Animate panel in
+          await appWindow.setSize(new LogicalSize(
+            currentSize.width,
+            currentSize.height + PANEL_HEIGHT
+          ));
+        } catch (error) {
+          console.warn('Failed to resize window:', error);
+        }
+      }
+
+      // Animate panel in (works in any environment)
       requestAnimationFrame(() => {
         if (panelRef.current) {
           panelRef.current.classList.remove('hidden', 'collapsed');
@@ -538,7 +538,7 @@ function App() {
       });
 
     } else {
-      // Collapsing: restore to saved collapsed height
+      // Collapsing
       isExpandedRef.current = false;
 
       // Animate panel out
@@ -550,13 +550,22 @@ function App() {
 
       // Resize window after animation
       setTimeout(async () => {
-        // Use saved collapsed height if available, otherwise subtract panel height
-        const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
+        if (isTauri()) {
+          try {
+            const appWindow = getCurrentWindow();
+            const physicalSize = await appWindow.innerSize();
+            const scaleFactor = await appWindow.scaleFactor();
+            const currentSize = physicalSize.toLogical(scaleFactor);
+            const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
 
-        await appWindow.setSize(new LogicalSize(
-          currentSize.width,
-          targetHeight
-        ));
+            await appWindow.setSize(new LogicalSize(
+              currentSize.width,
+              targetHeight
+            ));
+          } catch (error) {
+            console.warn('Failed to resize window:', error);
+          }
+        }
 
         if (panelRef.current) {
           panelRef.current.classList.add('hidden');
