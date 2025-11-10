@@ -98,7 +98,8 @@ export function FontSizeToolbarButton() {
         <PopoverTrigger asChild>
           <input
             className={cn(
-              'h-full w-10 shrink-0 bg-transparent px-1 text-center text-sm hover:bg-muted cursor-default'
+              'h-full w-10 shrink-0 bg-transparent px-1 text-center text-sm hover:bg-muted cursor-default select-none',
+              isFocused && 'select-text cursor-text'
             )}
             value={displayValue}
             onBlur={() => {
@@ -106,9 +107,11 @@ export function FontSizeToolbarButton() {
               handleInputChange();
             }}
             onChange={(e) => setInputValue(e.target.value)}
-            onFocus={() => {
+            onFocus={(e) => {
               setIsFocused(true);
               setInputValue(toUnitLess(cursorFontSize));
+              // Select all text when focused
+              e.target.select();
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -117,9 +120,10 @@ export function FontSizeToolbarButton() {
               }
             }}
             onMouseDown={(e) => {
-              // Prevent text selection on mouse down
+              // If not focused, focus it first and prevent default selection behavior
               if (!isFocused) {
                 e.preventDefault();
+                e.currentTarget.focus();
               }
             }}
             readOnly={!isFocused}
