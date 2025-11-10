@@ -42,7 +42,7 @@ const HashtagAutoformatPlugin = createSlatePlugin({
                     unit: 'character',
                   });
 
-                  // Insert hashtag element (isVoid: true handles cursor positioning)
+                  // Insert hashtag element (isVoid: true means cursor can't go inside)
                   editor.tf.insertNodes(
                     {
                       type: HASHTAG_KEY,
@@ -52,8 +52,11 @@ const HashtagAutoformatPlugin = createSlatePlugin({
                     { at: { path, offset: matchStart } }
                   );
 
-                  // Since hashtag is now a void inline element, Slate automatically
-                  // positions cursor after it. Just insert the space normally.
+                  // After insertNodes, cursor is BEFORE the hashtag
+                  // Move cursor to AFTER the hashtag (move 1 position forward)
+                  editor.tf.move({ distance: 1, unit: 'offset' });
+
+                  // Now insert space at the correct position (after hashtag)
                   (insertText as (text: string) => void)(' ');
 
                   return;
