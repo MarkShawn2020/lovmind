@@ -588,12 +588,6 @@ function App() {
             onChange={setContent}
             placeholder="Start writing your note..."
           />
-          
-          <EditorToolbar
-            onToggleNotes={handleToggleRecentNotes}
-            onSubmit={handleSubmit}
-            submitDisabled={!content.trim()}
-          />
         </div>
 
         {/* Panel always rendered but hidden by default */}
@@ -698,6 +692,12 @@ function App() {
               )}
             </div>
           </div>
+
+        <EditorToolbar
+          onToggleNotes={handleToggleRecentNotes}
+          onSubmit={handleSubmit}
+          submitDisabled={!content.trim()}
+        />
       </div>
     </div>
   );
