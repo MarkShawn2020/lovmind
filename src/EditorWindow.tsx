@@ -160,14 +160,26 @@ function EditorWindow() {
     // 点击最近笔记按钮：关闭当前编辑窗口并返回主窗口
     if (isTauri()) {
       try {
+        // 先保存当前内容
+        if (content.trim() && note) {
+          await handleSave();
+        }
+
         // 查找主窗口并聚焦
         const allWindows = await getAllWebviewWindows();
         const mainWindow = allWindows.find(w => w.label === 'main');
         if (mainWindow) {
           await mainWindow.setFocus();
+          // 等待主窗口获得焦点后再关闭当前窗口
+          setTimeout(() => {
+            const currentWindow = getCurrentWebviewWindow();
+            currentWindow.close();
+          }, 100);
+        } else {
+          // 如果找不到主窗口，直接关闭
+          const currentWindow = getCurrentWebviewWindow();
+          await currentWindow.close();
         }
-        // 关闭当前编辑窗口
-        await handleClose();
       } catch (error) {
         console.error("Failed to toggle to main window:", error);
       }
