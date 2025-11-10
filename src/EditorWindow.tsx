@@ -1,15 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { getCurrentWebviewWindow, getAllWebviewWindows } from '@tauri-apps/api/webviewWindow';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { useAtom } from 'jotai';
 import { notesAtom, Note } from './store';
-import { Pin, Play, Star, Trash2, X } from 'lucide-react';
 import './App.css';
-import RenderingWysiwygEditor from './components/RenderingWysiwygEditor';
-import EditorToolbar from './components/EditorToolbar';
+import NoteEditor from './components/NoteEditor';
 
 // Check if running in Tauri environment
 const isTauri = () => {
@@ -21,10 +17,9 @@ function EditorWindow() {
   const [notes, setNotes] = useAtom(notesAtom);
   const [note, setNote] = useState<Note | null>(null);
   const [content, setContent] = useState('');
-  const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split' | 'wysiwyg'>('wysiwyg');
   const [isPanelExpanded, setIsPanelExpanded] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const notesListRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const notesListRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     // 获取URL参数中的noteId
@@ -172,27 +167,12 @@ function EditorWindow() {
   }, []);
 
   const handleDeleteNote = useCallback((noteId: string) => {
-    if (confirm('确定要删除这条笔记吗？')) {
-      setNotes(notes.filter(n => n.id !== noteId));
-      // 如果删除的是当前笔记，清空编辑器
-      if (note?.id === noteId) {
-        setNote(null);
-        setContent('');
-      }
+    // 如果删除的是当前笔记，清空编辑器
+    if (note?.id === noteId) {
+      setNote(null);
+      setContent('');
     }
-  }, [notes, note, setNotes]);
-
-  const handleToggleFavorite = useCallback((noteId: string) => {
-    setNotes(notes.map(n =>
-      n.id === noteId ? { ...n, favorite: !n.favorite } : n
-    ));
-  }, [notes, setNotes]);
-
-  const handleTogglePin = useCallback((noteId: string) => {
-    setNotes(notes.map(n =>
-      n.id === noteId ? { ...n, pinned: !n.pinned } : n
-    ));
-  }, [notes, setNotes]);
+  }, [note]);
 
   if (!note) {
     return (
@@ -206,145 +186,19 @@ function EditorWindow() {
 
   return (
     <div className="app-container">
-      <div className="editor-section">
-        {viewMode === 'wysiwyg' ? (
-          <div className="editor-area">
-            <RenderingWysiwygEditor
-              initialContent={content}
-              onChange={setContent}
-              onSubmit={handleSave}
-              placeholder="Start writing your note..."
-            />
-          </div>
-        ) : (
-          <div className={`editor-container view-${viewMode}`}>
-            {(viewMode === 'edit' || viewMode === 'split') && (
-              <div className="editor-pane">
-                <textarea
-                  className="note-input"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Edit your note in Markdown..."
-                  onKeyDown={(e) => {
-                    if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      handleSave();
-                    }
-                    if (e.key === 'w' && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      handleClose();
-                    }
-                  }}
-                  autoFocus
-                />
-              </div>
-            )}
-            
-            {(viewMode === 'preview' || viewMode === 'split') && (
-              <div className="preview-pane">
-                <div className="markdown-preview">
-                  {content ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {content}
-                    </ReactMarkdown>
-                  ) : (
-                    <p className="preview-empty">Preview will appear here...</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 最近笔记面板 */}
-        <div
-          ref={panelRef}
-          className={`recent-notes-panel ${isPanelExpanded ? 'visible' : 'hidden'}`}
-          style={{
-            maxHeight: isPanelExpanded ? '250px' : '0',
-            transition: 'max-height 0.3s ease-in-out'
-          }}
-        >
-          <div className="notes-list" ref={notesListRef}>
-            {notes.length === 0 ? (
-              <p className="empty-state">No notes yet.</p>
-            ) : (
-              [...notes]
-                .sort((a, b) => {
-                  // Pinned notes come first
-                  if (a.pinned && !b.pinned) return -1;
-                  if (!a.pinned && b.pinned) return 1;
-                  // Within same pin status, sort by creation time descending (newest first)
-                  return Number(b.id) - Number(a.id);
-                })
-                .map((n) => (
-                  <div
-                    key={n.id}
-                    className={`note-item ${n.id === note?.id ? 'active' : ''} ${
-                      n.favorite ? 'favorite' : ''
-                    } ${n.pinned ? 'pinned' : ''}`}
-                    onClick={() => handleSwitchNote(n)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div className="note-content">
-                      <div className="note-header">
-                        <div className="note-title">
-                          {n.pinned && <Pin className="icon-inline pinned" size={14} />}
-                          {n.favorite && <Star className="icon-inline favorited" size={14} />}
-                          {n.title}
-                        </div>
-                        <span className="note-time">{n.time}</span>
-                      </div>
-                      <p className="note-preview">
-                        {n.text.substring(0, 100)}
-                        {n.text.length > 100 ? '...' : ''}
-                      </p>
-                      <div className="note-tags">
-                        {n.tags.map((tag, i) => (
-                          <span key={i} className="tag">
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                      <div
-                        className="note-actions"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          className={`action-btn pin-btn ${n.pinned ? 'active' : ''}`}
-                          onClick={() => handleTogglePin(n.id)}
-                          title={n.pinned ? 'Unpin note' : 'Pin note'}
-                        >
-                          <Pin size={14} />
-                        </button>
-                        <button
-                          className={`action-btn favorite-btn ${n.favorite ? 'active' : ''}`}
-                          onClick={() => handleToggleFavorite(n.id)}
-                          title={n.favorite ? 'Unfavorite note' : 'Favorite note'}
-                        >
-                          <Star size={14} />
-                        </button>
-                        <button
-                          className="action-btn delete-btn"
-                          onClick={() => handleDeleteNote(n.id)}
-                          title="Delete note"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-            )}
-          </div>
-        </div>
-
-        <EditorToolbar
-          onToggleNotes={handleToggleNotes}
-          onSubmit={handleSave}
-          submitDisabled={!content.trim()}
-        />
-      </div>
+      <NoteEditor
+        content={content}
+        onContentChange={setContent}
+        onSubmit={handleSave}
+        placeholder="Start writing your note..."
+        isPanelExpanded={isPanelExpanded}
+        onTogglePanel={handleToggleNotes}
+        panelRef={panelRef}
+        notesListRef={notesListRef}
+        onNoteClick={handleSwitchNote}
+        currentNoteId={note?.id}
+        onDeleteNote={handleDeleteNote}
+      />
     </div>
   );
 }

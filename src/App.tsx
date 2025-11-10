@@ -12,12 +12,10 @@ const isTauri = () => {
          ((window as any).__TAURI__ !== undefined || (window as any).__TAURI_INTERNALS__ !== undefined);
 };
 import confetti from "canvas-confetti";
-import { Pin, Play, Star, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import lovpenLogo from "./assets/lovpen-logo.svg";
-import RenderingWysiwygEditor from "./components/RenderingWysiwygEditor";
-import EditorToolbar from "./components/EditorToolbar";
+import NoteEditor from "./components/NoteEditor";
 import packageJson from "../package.json";
 import { useAtom, useAtomValue } from "jotai";
 import { notesAtom, contentAtom, noteStatsAtom, Note } from "./store";
@@ -555,126 +553,22 @@ function App() {
       </div>
 
 
-      <div className="editor-section">
-        <div className="editor-area">
-          <RenderingWysiwygEditor
-            initialContent={content}
-            onChange={setContent}
-            onSubmit={handleSubmit}
-            placeholder="Start writing your note..."
-          />
-        </div>
-
-        {/* Panel always rendered but hidden by default */}
-        <div ref={panelRef} className="recent-notes-panel hidden">
-            <div className="notes-list" ref={notesListRef}>
-              {notes.length === 0 ? (
-                <p className="empty-state">No notes yet. Start writing above!</p>
-              ) : (
-                [...notes]
-                  .sort((a, b) => {
-                    // Pinned notes come first
-                    if (a.pinned && !b.pinned) return -1;
-                    if (!a.pinned && b.pinned) return 1;
-                    // Within same pin status, sort by creation time descending (newest first)
-                    return Number(b.id) - Number(a.id);
-                  })
-                  .map((note) => (
-                    <div
-                      key={note.id}
-                      className={`note-item ${
-                        resumingNoteId === note.id ? "resuming" : ""
-                      } ${note.favorite ? "favorite" : ""} ${
-                        note.pinned ? "pinned" : ""
-                      }`}
-                      onClick={() => handleOpenInNewWindow(note)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <div className="note-header">
-                        <div className="note-title">
-                          {note.pinned && (
-                            <Pin className="icon-inline pinned" size={14} />
-                          )}
-                          {note.favorite && (
-                            <Star className="icon-inline favorited" size={14} />
-                          )}
-                          {note.title}
-                        </div>
-                        <div className="note-time">{note.time}</div>
-                      </div>
-                      <div className="note-preview">
-                        {note.text.replace(/\n/g, ' ').substring(0, 100)}...
-                      </div>
-                      <div className="note-footer">
-                        <div className="note-tags">
-                          {note.tags.map((tag, i) => (
-                            <span key={i} className="tag">
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                        <div
-                          className="note-actions"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            className={`action-btn pin-btn ${
-                              note.pinned ? "active" : ""
-                            }`}
-                            onClick={() => handlePin(note.id)}
-                            title={note.pinned ? "Unpin note" : "Pin note"}
-                          >
-                            <Pin size={14} />
-                          </button>
-                          <button
-                            className={`action-btn favorite-btn ${
-                              note.favorite ? "active" : ""
-                            }`}
-                            onClick={() => handleFavorite(note.id)}
-                            title={
-                              note.favorite ? "Unfavorite note" : "Favorite note"
-                            }
-                          >
-                            <Star size={14} />
-                          </button>
-                          <button
-                            className="action-btn delete-btn"
-                            onClick={() => handleDelete(note.id)}
-                            title="Delete note"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                          <button
-                            className={`action-btn resume-btn ${
-                              resumingNoteId === note.id ? "cancel" : ""
-                            }`}
-                            onClick={() => handleResume(note)}
-                            title={
-                              resumingNoteId === note.id
-                                ? "Cancel resume"
-                                : "Resume this note"
-                            }
-                          >
-                            {resumingNoteId === note.id ? (
-                              <X size={14} />
-                            ) : (
-                              <Play size={14} />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-              )}
-            </div>
-          </div>
-
-        <EditorToolbar
-          onToggleNotes={handleToggleRecentNotes}
-          onSubmit={handleSubmit}
-          submitDisabled={!content.trim()}
-        />
-      </div>
+      <NoteEditor
+        content={content}
+        onContentChange={setContent}
+        onSubmit={handleSubmit}
+        placeholder="Start writing your note..."
+        isPanelExpanded={isExpandedRef.current}
+        onTogglePanel={handleToggleRecentNotes}
+        panelRef={panelRef}
+        notesListRef={notesListRef}
+        onNoteClick={handleOpenInNewWindow}
+        resumingNoteId={resumingNoteId}
+        onResumeNote={handleResume}
+        onPinNote={handlePin}
+        onFavoriteNote={handleFavorite}
+        onDeleteNote={handleDelete}
+      />
     </div>
   );
 }
