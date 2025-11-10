@@ -32,7 +32,10 @@ const createInitialValue = (text: string = ''): Value => {
 };
 
 const extractTextContent = (value: Value): string => {
-  const extractNodeText = (node: any): string => {
+  // Track list item counters for each indent level
+  const listCounters = new Map<string, number>();
+
+  const extractNodeText = (node: any, context?: { prevListType?: string; prevIndent?: number }): string => {
     // If node has text property, it's a text leaf node
     if (typeof node.text === 'string') {
       let text = node.text;
@@ -46,14 +49,32 @@ const extractTextContent = (value: Value): string => {
 
     // If node has children, it's a block or inline element
     if (node.children && Array.isArray(node.children)) {
-      const childText = node.children.map(extractNodeText).join('');
+      const childText = node.children.map((child: any) => extractNodeText(child, context)).join('');
 
       // Handle different block types with markdown syntax
       if (node.listStyleType) {
         // List item (bullet or numbered)
-        const indent = node.indent ? '  '.repeat(node.indent) : '';
-        const marker = node.listStyleType === 'decimal' ? '1. ' : '- ';
-        return `${indent}${marker}${childText}`;
+        const indent = node.indent || 0;
+        const indentStr = '  '.repeat(indent);
+
+        if (node.listStyleType === 'decimal') {
+          // For numbered lists, track the counter
+          const counterKey = `${indent}-decimal`;
+
+          // Reset counter if we're starting a new list or indent level
+          if (context?.prevListType !== 'decimal' || context?.prevIndent !== indent) {
+            listCounters.set(counterKey, 1);
+          } else {
+            const current = listCounters.get(counterKey) || 1;
+            listCounters.set(counterKey, current + 1);
+          }
+
+          const number = listCounters.get(counterKey) || 1;
+          return `${indentStr}${number}. ${childText}`;
+        } else {
+          // Bullet list
+          return `${indentStr}- ${childText}`;
+        }
       }
 
       // Headings
@@ -74,10 +95,30 @@ const extractTextContent = (value: Value): string => {
     return '';
   };
 
-  return value
-    .map((node: any) => extractNodeText(node))
-    .filter(text => text.length > 0) // Filter out empty strings
-    .join('\n');
+  const results: string[] = [];
+  let prevNode: any = null;
+
+  for (const node of value) {
+    const context = prevNode?.listStyleType ? {
+      prevListType: prevNode.listStyleType,
+      prevIndent: prevNode.indent || 0
+    } : undefined;
+
+    const text = extractNodeText(node, context);
+    if (text.length > 0) {
+      results.push(text);
+    }
+
+    // Reset counter if list type or indent changes
+    if (node.listStyleType !== prevNode?.listStyleType ||
+        (node.indent || 0) !== (prevNode?.indent || 0)) {
+      // Counter will be reset in the next iteration
+    }
+
+    prevNode = node;
+  }
+
+  return results.join('\n');
 };
 
 export default function RenderingWysiwygEditor({
