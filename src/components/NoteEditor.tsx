@@ -98,7 +98,7 @@ function NoteEditor({
                 // Within same pin status, sort by creation time descending (newest first)
                 return Number(b.id) - Number(a.id);
               })
-              .map((note) => (
+              .map((note, index) => (
                 <div
                   key={note.id}
                   className={`note-item ${
@@ -118,7 +118,7 @@ function NoteEditor({
                         {note.favorite && (
                           <Star className="icon-inline favorited" size={14} />
                         )}
-                        {note.title}
+                        {index + 1}. {note.title}
                       </div>
                       <span className="note-time">{dayjs(note.time).fromNow()}</span>
                     </div>
@@ -144,7 +144,7 @@ function NoteEditor({
                         onClick={() => handlePin(note.id)}
                         title={note.pinned ? 'Unpin note' : 'Pin note'}
                       >
-                        <Pin size={14} />
+                        <Pin size={16} />
                       </button>
                       <button
                         className={`action-btn favorite-btn ${
@@ -155,14 +155,14 @@ function NoteEditor({
                           note.favorite ? 'Unfavorite note' : 'Favorite note'
                         }
                       >
-                        <Star size={14} />
+                        <Star size={16} />
                       </button>
                       <button
                         className="action-btn delete-btn"
                         onClick={() => handleDelete(note.id)}
                         title="Delete note"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>

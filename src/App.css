@@ -205,7 +205,7 @@ body {
 .note-actions {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
   opacity: 0;
   transition: opacity 0.2s;
@@ -214,7 +214,7 @@ body {
   right: 0;
   bottom: 0;
   background: rgba(255, 255, 255, 0.95);
-  padding: 12px 6px;
+  padding: 8px 5px;
   border-radius: 0 var(--radius) var(--radius) 0;
   border-left: 1px solid var(--border);
   box-shadow: -2px 0 8px rgba(0,0,0,0.05);
@@ -226,7 +226,7 @@ body {
 }
 
 .action-btn {
-  padding: 6px;
+  padding: 5px;
   background: white;
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 2px);
@@ -235,8 +235,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
 }
 
 .action-btn:hover {
