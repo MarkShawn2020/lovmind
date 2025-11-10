@@ -570,8 +570,8 @@ function App() {
           <RenderingWysiwygEditor
             initialContent={content}
             onChange={setContent}
-            placeholder="Start writing your note..."
             onSubmit={handleSubmit}
+            placeholder="Start writing your note..."
           />
         </div>
 

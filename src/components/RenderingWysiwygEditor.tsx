@@ -1,18 +1,17 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
 
 import { EditorKit } from '@/components/editor/editor-kit';
 import { Editor, EditorContainer } from '@/components/ui/editor';
-import { createSubmitPlugin } from '@/components/editor/plugins/submit-kit';
 
 interface RenderingWysiwygEditorProps {
   initialContent?: string;
   onChange?: (content: string) => void;
-  placeholder?: string;
   onSubmit?: () => void;
+  placeholder?: string;
 }
 
 const createInitialValue = (text: string = ''): Value => {
@@ -126,20 +125,11 @@ const extractTextContent = (value: Value): string => {
 export default function RenderingWysiwygEditor({
   initialContent = '',
   onChange,
-  placeholder = "Type your amazing content here...",
-  onSubmit
+  onSubmit,
+  placeholder = "Type your amazing content here..."
 }: RenderingWysiwygEditorProps) {
-  // Create submit plugin with the onSubmit callback
-  const submitPlugin = useMemo(
-    () => createSubmitPlugin(onSubmit),
-    [onSubmit]
-  );
-
   const editor = usePlateEditor({
-    plugins: [
-      ...EditorKit,
-      submitPlugin, // Add submit plugin to intercept Cmd+Enter before ExitBreakPlugin
-    ],
+    plugins: EditorKit,
     value: createInitialValue(initialContent),
   });
 
@@ -150,6 +140,24 @@ export default function RenderingWysiwygEditor({
       onChange(content);
     }
   };
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + Enter to submit
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        onSubmit?.();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onSubmit]);
+
 
   return (
     <div className="h-full w-full flex flex-col">
