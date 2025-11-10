@@ -275,7 +275,7 @@ function EditorWindow() {
         content={content}
         onContentChange={setContent}
         onSubmit={handleSave}
-        placeholder="Start writing your note..."
+        placeholder="此刻，想到了什么？"
         isPanelExpanded={isPanelExpanded}
         onTogglePanel={handleToggleNotes}
         panelRef={panelRef}

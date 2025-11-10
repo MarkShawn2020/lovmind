@@ -521,7 +521,7 @@ function App() {
         content={content}
         onContentChange={setContent}
         onSubmit={handleSubmit}
-        placeholder="Start writing your note..."
+        placeholder="此刻，想到了什么？"
         isPanelExpanded={isExpandedRef.current}
         onTogglePanel={handleToggleRecentNotes}
         panelRef={panelRef}

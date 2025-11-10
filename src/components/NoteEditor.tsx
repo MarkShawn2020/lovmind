@@ -34,7 +34,7 @@ function NoteEditor({
   content,
   onContentChange,
   onSubmit,
-  placeholder = "Start writing your note...",
+  placeholder = "此刻，想到了什么？",
   isPanelExpanded,
   onTogglePanel,
   panelRef,
@@ -88,7 +88,7 @@ function NoteEditor({
       >
         <div className="notes-list" ref={notesListRef}>
           {notes.length === 0 ? (
-            <p className="empty-state">No notes yet. Start writing above!</p>
+            <p className="empty-state">在这里记下你的想法吧</p>
           ) : (
             (() => {
               const sortedNotes = [...notes].sort((a, b) => {
