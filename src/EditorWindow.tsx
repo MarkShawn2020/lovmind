@@ -157,35 +157,27 @@ function EditorWindow() {
   };
 
   const handleToggleNotes = async () => {
-    // 点击最近笔记按钮：关闭当前编辑窗口并返回主窗口
+    // 点击最近笔记按钮：切换到主窗口（不关闭编辑器）
     if (isTauri()) {
       try {
-        // 先保存当前内容
-        if (content.trim() && note) {
-          await handleSave();
-        }
-
         // 查找主窗口并聚焦
         const allWindows = await getAllWebviewWindows();
         const mainWindow = allWindows.find(w => w.label === 'main');
         if (mainWindow) {
           await mainWindow.setFocus();
-          // 等待主窗口获得焦点后再关闭当前窗口
-          setTimeout(() => {
-            const currentWindow = getCurrentWebviewWindow();
-            currentWindow.close();
-          }, 100);
+          console.log("Switched to main window");
         } else {
-          // 如果找不到主窗口，直接关闭
-          const currentWindow = getCurrentWebviewWindow();
-          await currentWindow.close();
+          console.warn("Main window not found");
         }
       } catch (error) {
-        console.error("Failed to toggle to main window:", error);
+        console.error("Failed to switch to main window:", error);
       }
     } else {
-      // 浏览器环境：关闭当前窗口
-      window.close();
+      // 浏览器环境：尝试聚焦 opener 窗口，如果存在的话
+      if (window.opener && !window.opener.closed) {
+        window.opener.focus();
+      }
+      // 注意：不关闭当前窗口，让用户自己决定
     }
   };
 
