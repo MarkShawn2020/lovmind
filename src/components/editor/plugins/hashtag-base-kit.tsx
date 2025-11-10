@@ -17,7 +17,7 @@ export const BaseHashtagPlugin = createSlatePlugin({
   node: {
     isElement: true,
     isInline: true,
-    isVoid: true,
+    isVoid: false,
   },
 });
 

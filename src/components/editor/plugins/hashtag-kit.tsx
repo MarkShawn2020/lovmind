@@ -45,7 +45,7 @@ const HashtagAutoformatPlugin = createSlatePlugin({
                     unit: 'character',
                   });
 
-                  // Insert hashtag element (now a void element)
+                  // Insert hashtag element
                   editor.tf.insertNodes(
                     {
                       type: HASHTAG_KEY,
@@ -60,10 +60,14 @@ const HashtagAutoformatPlugin = createSlatePlugin({
                     }
                   );
 
-                  // For void inline elements, Slate automatically manages cursor position
                   // Move cursor after the hashtag and insert space
                   editor.tf.move({ distance: 1, unit: 'offset' });
-                  (insertText as (text: string) => void)(' ');
+                  editor.tf.insertText(' ');
+
+                  // Ensure editor retains focus
+                  setTimeout(() => {
+                    editor.tf.focus();
+                  }, 0);
 
                   return;
                 }
