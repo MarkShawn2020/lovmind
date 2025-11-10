@@ -250,7 +250,7 @@ body {
   border-left: 1px solid var(--border);
   box-shadow: -2px 0 8px rgba(0,0,0,0.05);
   justify-content: center;
-  width: 40px;
+  width: 36px;
   overflow: hidden;
 }
 
@@ -259,7 +259,7 @@ body {
 }
 
 .action-btn {
-  padding: 8px 5px;
+  padding: 6px 5px;
   background: transparent;
   border: none;
   border-radius: 0;
