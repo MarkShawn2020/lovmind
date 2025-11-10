@@ -137,28 +137,26 @@ export default function RenderingWysiwygEditor({
   useEffect(() => {
     if (initialContent === '' && editor) {
       const currentValue = editor.children;
+      // Only reset if editor currently has actual text content
+      const hasContent = currentValue.some((node: any) => {
+        if (node.children && Array.isArray(node.children)) {
+          return node.children.some((child: any) => child.text !== '');
+        }
+        return false;
+      });
 
-      // Check if editor needs reset:
-      // 1. Has actual text content, OR
-      // 2. Has multiple blocks (even if empty), OR
-      // 3. Has non-paragraph blocks
-      const needsReset =
-        currentValue.length !== 1 || // Not exactly one block
-        currentValue[0]?.type !== 'p' || // Not a paragraph
-        currentValue.some((node: any) => {
-          if (node.children && Array.isArray(node.children)) {
-            return node.children.some((child: any) => child.text !== '');
-          }
-          return false;
-        });
-
-      if (needsReset) {
+      if (hasContent) {
         editor.tf.setValue([
           {
             type: 'p',
             children: [{ text: '' }],
           },
         ]);
+
+        // Focus editor after reset
+        setTimeout(() => {
+          editor.tf.focus();
+        }, 0);
       }
     }
   }, [initialContent, editor]);
