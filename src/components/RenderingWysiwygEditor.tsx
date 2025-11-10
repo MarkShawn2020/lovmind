@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
 
@@ -132,6 +132,7 @@ export default function RenderingWysiwygEditor({
     plugins: EditorKit,
     value: createInitialValue(initialContent),
   });
+  const editorRef = useRef<HTMLDivElement>(null);
 
   // Reset editor when initialContent becomes empty from a non-empty state
   useEffect(() => {
@@ -153,10 +154,46 @@ export default function RenderingWysiwygEditor({
           },
         ]);
 
-        // Focus editor after reset
+        // Focus editor after reset - delay to ensure all animations complete
+        console.log('Editor reset, scheduling focus...');
         setTimeout(() => {
-          editor.tf.focus();
-        }, 0);
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              try {
+                console.log('Attempting to focus editor...');
+
+                // First, set selection to the start of the editor
+                try {
+                  editor.tf.select({ path: [0, 0], offset: 0 });
+                  console.log('Set selection to start');
+                } catch (e) {
+                  console.warn('Could not set selection:', e);
+                }
+
+                // Try to focus using Plate API
+                editor.tf.focus();
+                console.log('Called editor.tf.focus()');
+
+                // Also try direct DOM focus as fallback
+                if (editorRef.current) {
+                  const editableElement = editorRef.current.querySelector('[data-slate-editor="true"]') as HTMLElement;
+                  if (editableElement) {
+                    editableElement.focus();
+                    console.log('Called editableElement.focus()');
+                  } else {
+                    console.warn('Could not find [data-slate-editor] element');
+                  }
+                } else {
+                  console.warn('editorRef.current is null');
+                }
+
+                console.log('Focus attempt complete, active element:', document.activeElement);
+              } catch (error) {
+                console.error('Failed to focus editor:', error);
+              }
+            });
+          });
+        }, 150);
       }
     }
   }, [initialContent, editor]);
@@ -178,7 +215,7 @@ export default function RenderingWysiwygEditor({
   };
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="h-full w-full flex flex-col" ref={editorRef}>
       <Plate editor={editor} onChange={handleChange}>
         <EditorContainer className="h-full w-full flex flex-col flex-1">
           <Editor
