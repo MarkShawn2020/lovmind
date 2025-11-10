@@ -96,40 +96,47 @@ export function FontSizeToolbarButton() {
 
       <Popover open={isFocused} modal={false}>
         <PopoverTrigger asChild>
-          <input
+          <button
             className={cn(
-              'h-full w-10 shrink-0 bg-transparent px-1 text-center text-sm hover:bg-muted cursor-default select-none',
-              isFocused && 'select-text cursor-text'
+              'h-full w-10 shrink-0 bg-transparent px-1 text-center text-sm hover:bg-muted cursor-pointer select-none border-0 outline-none',
+              isFocused && 'ring-1 ring-primary'
             )}
-            value={displayValue}
-            onBlur={() => {
-              setIsFocused(false);
-              handleInputChange();
-            }}
-            onChange={(e) => setInputValue(e.target.value)}
-            onFocus={(e) => {
-              setIsFocused(true);
-              setInputValue(toUnitLess(cursorFontSize));
-              // Select all text when focused
-              e.target.select();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleInputChange();
-              }
-            }}
-            onMouseDown={(e) => {
-              // If not focused, focus it first and prevent default selection behavior
+            onClick={() => {
               if (!isFocused) {
-                e.preventDefault();
-                e.currentTarget.focus();
+                setIsFocused(true);
               }
             }}
-            readOnly={!isFocused}
-            data-plate-focus="true"
-            type="text"
-          />
+            type="button"
+          >
+            {isFocused ? (
+              <input
+                className="w-full bg-transparent text-center outline-none"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onBlur={() => {
+                  setIsFocused(false);
+                  handleInputChange();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleInputChange();
+                  }
+                  if (e.key === 'Escape') {
+                    setIsFocused(false);
+                    editor.tf.focus();
+                  }
+                }}
+                autoFocus
+                onFocus={(e) => {
+                  e.target.select();
+                }}
+                type="text"
+              />
+            ) : (
+              displayValue
+            )}
+          </button>
         </PopoverTrigger>
         <PopoverContent
           className="w-10 px-px py-1"
