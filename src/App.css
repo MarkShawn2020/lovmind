@@ -204,17 +204,21 @@ body {
 
 .note-actions {
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  gap: 6px;
   align-items: center;
   opacity: 0;
   transition: opacity 0.2s;
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(255, 255, 255, 0.95);
-  padding: 4px;
-  border-radius: var(--radius);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 12px 6px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: 1px solid var(--border);
+  box-shadow: -2px 0 8px rgba(0,0,0,0.05);
+  justify-content: center;
 }
 
 .note-item:hover .note-actions {
@@ -222,8 +226,8 @@ body {
 }
 
 .action-btn {
-  padding: 4px;
-  background: transparent;
+  padding: 6px;
+  background: white;
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 2px);
   cursor: pointer;
@@ -231,12 +235,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
 }
 
 .action-btn:hover {
-  transform: translateY(-1px);
+  transform: scale(1.05);
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 

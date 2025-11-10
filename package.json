@@ -1,7 +1,7 @@
 {
   "name": "lovpen-notes",
   "private": true,
-  "version": "0.26.3",
+  "version": "0.27.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -100,6 +100,7 @@
     "cmdk": "^1.1.1",
     "code-inspector-plugin": "https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.2.12.tgz",
     "date-fns": "^4.1.0",
+    "dayjs": "^1.11.19",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.23.12",
     "html2canvas-pro": "^1.5.11",

@@ -4,6 +4,12 @@ import { useAtom } from 'jotai';
 import { notesAtom, Note } from '../store';
 import RenderingWysiwygEditor, { RenderingWysiwygEditorRef } from './RenderingWysiwygEditor';
 import EditorToolbar from './EditorToolbar';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/zh-cn';
+
+dayjs.extend(relativeTime);
+dayjs.locale('zh-cn');
 
 interface NoteEditorProps {
   content: string;
@@ -114,7 +120,7 @@ function NoteEditor({
                         )}
                         {note.title}
                       </div>
-                      <span className="note-time">{note.time}</span>
+                      <span className="note-time">{dayjs(note.time).fromNow()}</span>
                     </div>
                     <p className="note-preview">
                       {note.text.replace(/\n/g, ' ').substring(0, 100)}
