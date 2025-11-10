@@ -256,12 +256,6 @@ function EditorWindow() {
           </div>
         )}
 
-        <EditorToolbar
-          onToggleNotes={handleToggleNotes}
-          onSubmit={handleSave}
-          submitDisabled={!content.trim()}
-        />
-
         {/* 最近笔记面板 */}
         <div
           ref={panelRef}
@@ -344,6 +338,12 @@ function EditorWindow() {
             )}
           </div>
         </div>
+
+        <EditorToolbar
+          onToggleNotes={handleToggleNotes}
+          onSubmit={handleSave}
+          submitDisabled={!content.trim()}
+        />
       </div>
     </div>
   );
