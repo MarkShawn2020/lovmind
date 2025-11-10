@@ -71,13 +71,13 @@ export default function RenderingWysiwygEditor({
   };
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="h-full w-full flex flex-col justify-end">
       <Plate editor={editor} onChange={handleChange}>
-        <EditorContainer className="h-full w-full flex flex-col flex-1">
+        <EditorContainer className="w-full flex flex-col flex-shrink-0">
           <Editor
             placeholder={placeholder}
             variant="none"
-            className="h-full w-full flex-1 px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
+            className="w-full flex-1 px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
           />
         </EditorContainer>
       </Plate>

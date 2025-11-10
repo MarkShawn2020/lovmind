@@ -676,7 +676,7 @@ body {
   display: flex;
   flex-direction: column;
   flex: 0 1 auto;
-  min-height: 200px;
+  min-height: 150px;
   background: var(--card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
@@ -695,8 +695,8 @@ body {
 /* 确保编辑器有实质的可点击区域 */
 .wysiwyg-container [data-slate-editor="true"] {
   padding: var(--spacing-s) !important;
-  padding-bottom: 200px !important; /* 底部填充创建可点击区域，但不过大 */
-  min-height: 100% !important; /* 填满容器 */
+  padding-bottom: 150px !important; /* 底部填充创建可点击区域 */
+  min-height: auto !important;
   cursor: text !important;
   box-sizing: border-box !important;
   font-family: var(--font-sans) !important;
