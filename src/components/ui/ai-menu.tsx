@@ -8,7 +8,7 @@ import {
   useEditorChat,
   useLastAssistantMessage,
 } from '@platejs/ai/react';
-import { BlockSelectionPlugin, useIsSelecting } from '@platejs/selection/react';
+import { useIsSelecting } from '@platejs/selection/react';
 import { Command as CommandPrimitive } from 'cmdk';
 import {
   Album,
@@ -108,12 +108,6 @@ export function AIMenu() {
     },
     onOpenCursor: () => {
       const [ancestor] = editor.api.block({ highest: true })!;
-
-      if (!editor.api.isAt({ end: true }) && !editor.api.isEmpty(ancestor)) {
-        editor
-          .getApi(BlockSelectionPlugin)
-          .blockSelection.set(ancestor.id as string);
-      }
 
       show(editor.api.toDOMNode(ancestor)!);
     },
