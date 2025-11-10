@@ -308,7 +308,6 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   position: relative;
   overflow: hidden;
   min-height: 0;
@@ -670,13 +669,12 @@ body {
 
 /* WYSIWYG Container */
 .wysiwyg-container {
-  max-height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
+  height: 100%;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  flex: 0 1 auto;
-  min-height: 150px;
+  flex: 1;
+  min-height: 0;
   background: var(--card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
@@ -695,8 +693,8 @@ body {
 /* 确保编辑器有实质的可点击区域 */
 .wysiwyg-container [data-slate-editor="true"] {
   padding: var(--spacing-s) !important;
-  padding-bottom: 150px !important; /* 底部填充创建可点击区域 */
-  min-height: auto !important;
+  padding-bottom: 50vh !important; /* 大幅底部填充创建可点击区域 */
+  min-height: 400px !important; /* 最小高度保证 */
   cursor: text !important;
   box-sizing: border-box !important;
   font-family: var(--font-sans) !important;

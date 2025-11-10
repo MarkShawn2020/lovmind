@@ -92,6 +92,7 @@ function App() {
   const [isClosing, setIsClosing] = useState(false);
   const notesListRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const editorAreaRef = useRef<HTMLDivElement>(null);
   const isExpandedRef = useRef(false);
   // Store the collapsed height to restore when collapsing
   const collapsedHeightRef = useRef<number | null>(null);
@@ -506,6 +507,20 @@ function App() {
       return;
     }
 
+    // Find the scrollable editor container
+    const editorContainer = editorAreaRef.current?.querySelector('[data-slate-editor="true"]')?.parentElement;
+
+    // Record scroll position before toggling
+    let wasAtBottom = false;
+    let scrollRatio = 0;
+
+    if (editorContainer) {
+      const { scrollTop, scrollHeight, clientHeight } = editorContainer;
+      // Consider "at bottom" if within 10px of bottom
+      wasAtBottom = scrollHeight - scrollTop - clientHeight < 10;
+      scrollRatio = scrollHeight > 0 ? scrollTop / (scrollHeight - clientHeight) : 0;
+    }
+
     if (!isExpandedRef.current) {
       // Expanding - show panel within existing window space
       isExpandedRef.current = true;
@@ -516,6 +531,16 @@ function App() {
           panelRef.current.classList.add('visible');
         }
         document.querySelector('.recent-notes-toggle')?.classList.add('active');
+
+        // After expansion, restore scroll position
+        setTimeout(() => {
+          if (editorContainer) {
+            if (wasAtBottom) {
+              // Scroll to new bottom
+              editorContainer.scrollTop = editorContainer.scrollHeight;
+            }
+          }
+        }, 320); // After animation completes
       });
 
     } else {
@@ -532,6 +557,11 @@ function App() {
         if (panelRef.current) {
           panelRef.current.classList.add('hidden');
           panelRef.current.classList.remove('collapsed');
+        }
+
+        // After collapse, restore scroll position
+        if (editorContainer && wasAtBottom) {
+          editorContainer.scrollTop = editorContainer.scrollHeight;
         }
       }, 300);
     }
@@ -582,7 +612,7 @@ function App() {
 
 
       <div className="editor-section">
-        <div className="editor-area">
+        <div className="editor-area" ref={editorAreaRef}>
           <RenderingWysiwygEditor
             initialContent={content}
             onChange={setContent}
