@@ -506,63 +506,77 @@ function App() {
       return;
     }
 
-    // Find the editor scroll container
-    const editorContainer = document.querySelector('[data-plate-container]') as HTMLElement;
+    // Find the editor scroll container - try multiple selectors
+    const editorContainer = (
+      document.querySelector('[data-plate-container]') ||
+      document.querySelector('.wysiwyg-container') ||
+      document.querySelector('[data-slate-editor]')
+    ) as HTMLElement;
+
+    if (!editorContainer) {
+      console.warn('Could not find editor scroll container');
+    }
 
     // Capture scroll state before resize
     let wasAtBottom = false;
-    let scrollFromBottom = 0;
 
     if (editorContainer) {
       const { scrollTop, scrollHeight, clientHeight } = editorContainer;
       // Consider "at bottom" if within 50px of bottom
       wasAtBottom = scrollTop + clientHeight >= scrollHeight - 50;
-      scrollFromBottom = scrollHeight - scrollTop - clientHeight;
     }
+
+    // Helper to restore scroll to bottom
+    const restoreBottomScroll = () => {
+      if (editorContainer && wasAtBottom) {
+        const { scrollHeight, clientHeight } = editorContainer;
+        editorContainer.scrollTop = Math.max(0, scrollHeight - clientHeight);
+      }
+    };
 
     if (!isExpandedRef.current) {
       // Expanding - show panel within existing window space
       isExpandedRef.current = true;
 
-      requestAnimationFrame(() => {
-        if (panelRef.current) {
-          panelRef.current.classList.remove('hidden', 'collapsed');
-          panelRef.current.classList.add('visible');
+      // Listen for transition end, then adjust scroll
+      const handleTransitionEnd = (e: TransitionEvent) => {
+        if (e.propertyName === 'height') {
+          restoreBottomScroll();
+          panelRef.current?.removeEventListener('transitionend', handleTransitionEnd as EventListener);
         }
-        document.querySelector('.recent-notes-toggle')?.classList.add('active');
-      });
+      };
 
-      // Restore scroll position after animation completes
-      setTimeout(() => {
-        if (editorContainer && wasAtBottom) {
-          // Keep bottom anchored: scroll to new bottom
-          const { scrollHeight, clientHeight } = editorContainer;
-          editorContainer.scrollTop = scrollHeight - clientHeight;
-        }
-      }, 350); // 300ms animation + 50ms buffer
+      panelRef.current.addEventListener('transitionend', handleTransitionEnd as EventListener);
+
+      // Start the animation
+      if (panelRef.current) {
+        panelRef.current.classList.remove('hidden', 'collapsed');
+        panelRef.current.classList.add('visible');
+      }
+      document.querySelector('.recent-notes-toggle')?.classList.add('active');
 
     } else {
       // Collapsing - hide panel
       isExpandedRef.current = false;
+
+      const handleTransitionEnd = (e: TransitionEvent) => {
+        if (e.propertyName === 'height') {
+          restoreBottomScroll();
+          if (panelRef.current) {
+            panelRef.current.classList.add('hidden');
+            panelRef.current.classList.remove('collapsed');
+          }
+          panelRef.current?.removeEventListener('transitionend', handleTransitionEnd as EventListener);
+        }
+      };
+
+      panelRef.current.addEventListener('transitionend', handleTransitionEnd as EventListener);
 
       if (panelRef.current) {
         panelRef.current.classList.remove('visible');
         panelRef.current.classList.add('collapsed');
       }
       document.querySelector('.recent-notes-toggle')?.classList.remove('active');
-
-      setTimeout(() => {
-        if (panelRef.current) {
-          panelRef.current.classList.add('hidden');
-          panelRef.current.classList.remove('collapsed');
-        }
-
-        // Restore scroll position after panel collapses
-        if (editorContainer && wasAtBottom) {
-          const { scrollHeight, clientHeight } = editorContainer;
-          editorContainer.scrollTop = scrollHeight - clientHeight;
-        }
-      }, 350);
     }
   }, []);
 
