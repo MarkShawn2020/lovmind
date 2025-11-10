@@ -151,7 +151,7 @@ function NoteEditor({
                         onClick={() => handlePin(note.id)}
                         title={note.pinned ? 'Unpin note' : 'Pin note'}
                       >
-                        <Pin size={16} />
+                        <Pin size={18} />
                       </button>
                       <button
                         className={`action-btn favorite-btn ${
@@ -162,14 +162,14 @@ function NoteEditor({
                           note.favorite ? 'Unfavorite note' : 'Favorite note'
                         }
                       >
-                        <Star size={16} />
+                        <Star size={18} />
                       </button>
                       <button
                         className="action-btn delete-btn"
                         onClick={() => handleDelete(note.id)}
                         title="Delete note"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>
