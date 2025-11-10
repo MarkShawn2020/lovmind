@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { Pin, Play, Star, Trash2, X } from 'lucide-react';
+import { Pin, Star, Trash2 } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { notesAtom, Note } from '../store';
 import RenderingWysiwygEditor, { RenderingWysiwygEditorRef } from './RenderingWysiwygEditor';
@@ -18,8 +18,6 @@ interface NoteEditorProps {
   // 可选的额外功能
   onNoteClick?: (note: Note) => void;
   currentNoteId?: string | null; // 用于高亮当前编辑的笔记
-  resumingNoteId?: string | null; // 用于主窗口的 resume 功能
-  onResumeNote?: (note: Note) => void;
   // 可选的自定义操作回调（用于添加额外逻辑，如 Tauri 同步）
   onPinNote?: (noteId: string) => void;
   onFavoriteNote?: (noteId: string) => void;
@@ -38,8 +36,6 @@ function NoteEditor({
   editorRef,
   onNoteClick,
   currentNoteId,
-  resumingNoteId,
-  onResumeNote,
   onPinNote,
   onFavoriteNote,
   onDeleteNote,
@@ -101,8 +97,6 @@ function NoteEditor({
                   key={note.id}
                   className={`note-item ${
                     currentNoteId === note.id ? 'active' : ''
-                  } ${
-                    resumingNoteId === note.id ? 'resuming' : ''
                   } ${note.favorite ? 'favorite' : ''} ${
                     note.pinned ? 'pinned' : ''
                   }`}
@@ -164,25 +158,6 @@ function NoteEditor({
                       >
                         <Trash2 size={14} />
                       </button>
-                      {onResumeNote && (
-                        <button
-                          className={`action-btn resume-btn ${
-                            resumingNoteId === note.id ? 'cancel' : ''
-                          }`}
-                          onClick={() => onResumeNote(note)}
-                          title={
-                            resumingNoteId === note.id
-                              ? 'Cancel resume'
-                              : 'Resume this note'
-                          }
-                        >
-                          {resumingNoteId === note.id ? (
-                            <X size={14} />
-                          ) : (
-                            <Play size={14} />
-                          )}
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>

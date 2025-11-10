@@ -24,7 +24,6 @@ import { RenderingWysiwygEditorRef } from "./components/RenderingWysiwygEditor";
 function App() {
   const [content, setContent] = useAtom(contentAtom);
   const [notes, setNotes] = useAtom(notesAtom);
-  const [resumingNoteId, setResumingNoteId] = useState<string | null>(null);
   const notesListRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
@@ -214,18 +213,7 @@ function App() {
         tags,
       };
 
-      // 如果正在resume一个note，删除它
-      let updatedNotes = notes;
-      if (resumingNoteId) {
-        updatedNotes = notes.filter((note) => note.id !== resumingNoteId);
-        setResumingNoteId(null);
-        // 从后端也删除resumed note
-        if (isTauri()) {
-          await invoke("remove_temp_note", { id: resumingNoteId });
-        }
-      }
-
-      setNotes([...updatedNotes, newNote]);
+      setNotes([...notes, newNote]);
 
       // Reset editor and focus - unified handling for both button and keyboard submit
       setContent("");
@@ -258,13 +246,7 @@ function App() {
         });
         newNote.title = generatedTitle;
         newNote.tags = generatedTags;
-        setNotes((prev) => {
-          // 重新计算，因为可能已经删除了resumed note
-          const baseNotes = resumingNoteId
-            ? prev.filter((note) => note.id !== resumingNoteId)
-            : prev;
-          return [...baseNotes.slice(0, -1), newNote];
-        });
+        setNotes((prev) => [...prev.slice(0, -1), newNote]);
         // 更新后端存储的note
         await invoke("store_temp_note", { note: newNote });
       } catch (error) {
@@ -278,10 +260,6 @@ function App() {
     // 从后端删除
     if (isTauri()) {
       await invoke("remove_temp_note", { id: noteId });
-    }
-    // 如果删除的是正在resume的note，清理状态
-    if (resumingNoteId === noteId) {
-      setResumingNoteId(null);
     }
   };
 
@@ -310,26 +288,6 @@ function App() {
       if (updatedNote) {
         await invoke("store_temp_note", { note: updatedNote });
       }
-    }
-  };
-
-  const handleResume = (note: Note) => {
-    // 如果已经在resume这个note，取消它
-    if (resumingNoteId === note.id) {
-      setResumingNoteId(null);
-      // 移除编辑器中的resumed内容（从开头移除）
-      const separator = "\n\n---\n\n";
-      const resumedContent = note.text + separator;
-      if (content.startsWith(resumedContent)) {
-        setContent(content.slice(resumedContent.length));
-      } else if (content === note.text) {
-        setContent("");
-      }
-    } else {
-      // 开始resume这个note - 将resumed内容放在前面
-      setResumingNoteId(note.id);
-      const separator = content.trim() ? "\n\n---\n\n" : "";
-      setContent(note.text + separator + content);
     }
   };
 
@@ -570,8 +528,6 @@ function App() {
         notesListRef={notesListRef}
         editorRef={editorRef}
         onNoteClick={handleOpenInNewWindow}
-        resumingNoteId={resumingNoteId}
-        onResumeNote={handleResume}
         onPinNote={handlePin}
         onFavoriteNote={handleFavorite}
         onDeleteNote={handleDelete}
