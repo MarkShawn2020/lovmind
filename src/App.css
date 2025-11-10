@@ -314,11 +314,8 @@ body {
 }
 
 .editor-toolbar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
   height: 48px;
+  flex-shrink: 0;
   background: var(--card);
   border-top: 1px solid var(--border);
   display: flex;
@@ -423,30 +420,33 @@ body {
 }
 
 .recent-notes-panel {
-  height: 250px;
   flex-shrink: 0;
   background: var(--muted);
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* GPU acceleration for smooth animations */
-  transform: translate3d(0, 0, 0); /* Start on screen by default */
-  will-change: transform;
-  backface-visibility: hidden;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.recent-notes-panel.hidden {
-  display: none;
+  /* Smooth height animation for internal squeeze effect */
+  height: 0;
+  opacity: 0;
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: height, opacity;
 }
 
 .recent-notes-panel.visible {
-  transform: translate3d(0, 0, 0);
+  height: 250px;
+  opacity: 1;
 }
 
 .recent-notes-panel.collapsed {
-  transform: translate3d(0, 100%, 0);
+  height: 0;
+  opacity: 0;
+}
+
+.recent-notes-panel.hidden {
+  height: 0;
+  opacity: 0;
 }
 
 
@@ -679,7 +679,6 @@ body {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   margin: var(--spacing-s);
-  margin-bottom: 48px; /* Space for toolbar */
 }
 
 .wysiwyg-container .editor-pane {

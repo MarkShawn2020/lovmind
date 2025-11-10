@@ -499,36 +499,17 @@ function App() {
     }
   };
 
-  // Toggle function - Preserve user's window size adjustments
-  const handleToggleRecentNotes = useCallback(async () => {
+  // Toggle function - Squeeze view internally without resizing window
+  const handleToggleRecentNotes = useCallback(() => {
     if (!panelRef.current) {
       console.error('Panel ref not initialized');
       return;
     }
 
     if (!isExpandedRef.current) {
-      // Expanding
+      // Expanding - show panel within existing window space
       isExpandedRef.current = true;
 
-      // Try to resize window if in Tauri
-      if (isTauri()) {
-        try {
-          const appWindow = getCurrentWindow();
-          const physicalSize = await appWindow.innerSize();
-          const scaleFactor = await appWindow.scaleFactor();
-          const currentSize = physicalSize.toLogical(scaleFactor);
-          collapsedHeightRef.current = currentSize.height;
-
-          await appWindow.setSize(new LogicalSize(
-            currentSize.width,
-            currentSize.height + PANEL_HEIGHT
-          ));
-        } catch (error) {
-          console.warn('Failed to resize window:', error);
-        }
-      }
-
-      // Animate panel in (works in any environment)
       requestAnimationFrame(() => {
         if (panelRef.current) {
           panelRef.current.classList.remove('hidden', 'collapsed');
@@ -538,42 +519,23 @@ function App() {
       });
 
     } else {
-      // Collapsing
+      // Collapsing - hide panel
       isExpandedRef.current = false;
 
-      // Animate panel out
       if (panelRef.current) {
         panelRef.current.classList.remove('visible');
         panelRef.current.classList.add('collapsed');
       }
       document.querySelector('.recent-notes-toggle')?.classList.remove('active');
 
-      // Resize window after animation
-      setTimeout(async () => {
-        if (isTauri()) {
-          try {
-            const appWindow = getCurrentWindow();
-            const physicalSize = await appWindow.innerSize();
-            const scaleFactor = await appWindow.scaleFactor();
-            const currentSize = physicalSize.toLogical(scaleFactor);
-            const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
-
-            await appWindow.setSize(new LogicalSize(
-              currentSize.width,
-              targetHeight
-            ));
-          } catch (error) {
-            console.warn('Failed to resize window:', error);
-          }
-        }
-
+      setTimeout(() => {
         if (panelRef.current) {
           panelRef.current.classList.add('hidden');
           panelRef.current.classList.remove('collapsed');
         }
       }, 300);
     }
-  }, [PANEL_HEIGHT]);
+  }, []);
 
   return (
     <div className="app-container">
