@@ -90,6 +90,7 @@ function App() {
   const [resumingNoteId, setResumingNoteId] = useState<string | null>(null);
   const [showRecentNotes, setShowRecentNotes] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [editorResetKey, setEditorResetKey] = useState(0);
   const notesListRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const isExpandedRef = useRef(false);
@@ -301,6 +302,7 @@ function App() {
 
       setNotes([...updatedNotes, newNote]);
       setContent("");
+      setEditorResetKey(prev => prev + 1);
 
       // 触发confetti动画
       confetti({
@@ -630,6 +632,7 @@ function App() {
             initialContent={content}
             onChange={setContent}
             placeholder="Start writing your note..."
+            resetKey={editorResetKey}
           />
         </div>
 

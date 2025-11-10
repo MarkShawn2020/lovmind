@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
 
@@ -11,6 +11,7 @@ interface RenderingWysiwygEditorProps {
   initialContent?: string;
   onChange?: (content: string) => void;
   placeholder?: string;
+  resetKey?: string | number;
 }
 
 const createInitialValue = (text: string = ''): Value => {
@@ -47,20 +48,13 @@ const extractTextContent = (value: Value): string => {
 export default function RenderingWysiwygEditor({
   initialContent = '',
   onChange,
-  placeholder = "Type your amazing content here..."
+  placeholder = "Type your amazing content here...",
+  resetKey
 }: RenderingWysiwygEditorProps) {
   const editor = usePlateEditor({
     plugins: EditorKit,
     value: createInitialValue(initialContent),
   });
-
-  // Reset editor when initialContent becomes empty
-  useEffect(() => {
-    if (editor && initialContent === '') {
-      const newValue = createInitialValue('');
-      editor.children = newValue;
-    }
-  }, [initialContent, editor]);
 
   // Handle content changes
   const handleChange = ({ value }: { value: Value }) => {
@@ -71,7 +65,7 @@ export default function RenderingWysiwygEditor({
   };
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="h-full w-full flex flex-col" key={resetKey}>
       <Plate editor={editor} onChange={handleChange}>
         <EditorContainer className="h-full w-full flex flex-col flex-1">
           <Editor
