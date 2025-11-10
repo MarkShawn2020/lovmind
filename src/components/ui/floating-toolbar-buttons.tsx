@@ -4,7 +4,6 @@ import * as React from 'react';
 
 import {
   BoldIcon,
-  Code2Icon,
   ItalicIcon,
   StrikethroughIcon,
   UnderlineIcon,
@@ -14,12 +13,9 @@ import { KEYS } from 'platejs';
 import { useEditorReadOnly } from 'platejs/react';
 
 import { AIToolbarButton } from './ai-toolbar-button';
-import { CommentToolbarButton } from './comment-toolbar-button';
-import { InlineEquationToolbarButton } from './equation-toolbar-button';
-import { LinkToolbarButton } from './link-toolbar-button';
+import { InsertToolbarButton } from './insert-toolbar-button';
 import { MarkToolbarButton } from './mark-toolbar-button';
 import { MoreToolbarButton } from './more-toolbar-button';
-import { SuggestionToolbarButton } from './suggestion-toolbar-button';
 import { ToolbarGroup } from './toolbar';
 import { TurnIntoToolbarButton } from './turn-into-toolbar-button';
 
@@ -61,23 +57,14 @@ export function FloatingToolbarButtons() {
               <StrikethroughIcon />
             </MarkToolbarButton>
 
-            <MarkToolbarButton nodeType={KEYS.code} tooltip="Code (⌘+E)">
-              <Code2Icon />
-            </MarkToolbarButton>
+            <InsertToolbarButton />
+          </ToolbarGroup>
 
-            <InlineEquationToolbarButton />
-
-            <LinkToolbarButton />
+          <ToolbarGroup>
+            <MoreToolbarButton />
           </ToolbarGroup>
         </>
       )}
-
-      <ToolbarGroup>
-        <CommentToolbarButton />
-        <SuggestionToolbarButton />
-
-        {!readOnly && <MoreToolbarButton />}
-      </ToolbarGroup>
     </>
   );
 }

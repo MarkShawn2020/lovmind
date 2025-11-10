@@ -70,7 +70,7 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
           </ToolbarGroup>
 
           <ToolbarGroup>
-            <TurnIntoToolbarButton />
+            <TurnIntoToolbarButton compact={false} />
           </ToolbarGroup>
 
           <ToolbarGroup>

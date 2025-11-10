@@ -125,7 +125,7 @@ export const turnIntoItems = [
   },
 ];
 
-export function TurnIntoToolbarButton(props: DropdownMenuProps) {
+export function TurnIntoToolbarButton({ compact = true, ...props }: DropdownMenuProps & { compact?: boolean }) {
   const editor = useEditorRef();
   const [open, setOpen] = React.useState(false);
 
@@ -144,11 +144,17 @@ export function TurnIntoToolbarButton(props: DropdownMenuProps) {
     <DropdownMenu open={open} onOpenChange={setOpen} modal={false} {...props}>
       <DropdownMenuTrigger asChild>
         <ToolbarButton
+          className={compact ? '' : 'min-w-[125px]'}
           pressed={open}
           tooltip="Turn into"
           isDropdown
         >
-          {selectedItem.icon}
+          {compact ? selectedItem.icon : (
+            <>
+              {selectedItem.icon}
+              <span className="ml-1">{selectedItem.label}</span>
+            </>
+          )}
         </ToolbarButton>
       </DropdownMenuTrigger>
 
