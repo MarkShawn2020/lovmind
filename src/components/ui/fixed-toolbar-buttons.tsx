@@ -173,7 +173,7 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
                     <MoreToolbarButton />
                   </ToolbarGroup>
 
-                  <ToolbarGroup>
+                  <ToolbarGroup className="!flex">
                     <ExportToolbarButton>
                       <ArrowUpToLineIcon />
                       Export
