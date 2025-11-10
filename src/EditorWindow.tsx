@@ -7,6 +7,12 @@ import { invoke } from '@tauri-apps/api/core';
 import './App.css';
 import RenderingWysiwygEditor from './components/RenderingWysiwygEditor';
 
+// Check if running in Tauri environment
+const isTauri = () => {
+  return typeof window !== 'undefined' &&
+         ((window as any).__TAURI__ !== undefined || (window as any).__TAURI_INTERNALS__ !== undefined);
+};
+
 interface Note {
   id: string;
   text: string;
@@ -26,20 +32,33 @@ function EditorWindow() {
     // 获取URL参数中的noteId
     const params = new URLSearchParams(window.location.search);
     const noteId = params.get('noteId');
-    
+
     if (!noteId) {
       console.error('No noteId in URL parameters');
       return;
     }
-    
+
     console.log('Editor window loading note with ID:', noteId);
-    
-    // 从后端获取存储的note数据
+
+    // 从存储中获取note数据
     const loadNote = async () => {
       try {
-        const noteData = await invoke<Note | null>('get_temp_note', { id: noteId });
-        console.log('Retrieved note from backend:', noteData);
-        
+        let noteData: Note | null = null;
+
+        if (isTauri()) {
+          // Tauri 环境：从 Rust 后端获取
+          noteData = await invoke<Note | null>('get_temp_note', { id: noteId });
+          console.log('Retrieved note from Tauri backend:', noteData);
+        } else {
+          // 浏览器环境：从 localStorage 获取
+          const storedNotes = localStorage.getItem('lovpen-notes');
+          if (storedNotes) {
+            const notesMap = JSON.parse(storedNotes);
+            noteData = notesMap[noteId] || null;
+            console.log('Retrieved note from localStorage:', noteData);
+          }
+        }
+
         if (noteData) {
           setNote(noteData);
           setContent(noteData.text);
@@ -50,7 +69,7 @@ function EditorWindow() {
         console.error('Failed to load note:', error);
       }
     };
-    
+
     loadNote();
   }, []);
 
@@ -64,37 +83,63 @@ function EditorWindow() {
         time: new Date().toLocaleString()
       };
 
-      // 更新后端存储 - 必须先存储，再广播
-      console.log('Storing updated note to backend:', updatedNote);
-      try {
-        await invoke('store_temp_note', { note: updatedNote });
-        console.log('Successfully stored note to backend');
-      } catch (error) {
-        console.error('Failed to store note to backend:', error);
-        return;
+      if (isTauri()) {
+        // Tauri 环境：保存到 Rust 后端
+        console.log('Storing updated note to Tauri backend:', updatedNote);
+        try {
+          await invoke('store_temp_note', { note: updatedNote });
+          console.log('Successfully stored note to backend');
+        } catch (error) {
+          console.error('Failed to store note to backend:', error);
+          return;
+        }
+
+        // 通过后端广播更新事件到所有窗口
+        console.log('Broadcasting note update to all windows...');
+        try {
+          await invoke('broadcast_note_update', { note: updatedNote });
+          console.log('Successfully broadcasted note update for:', updatedNote.id);
+        } catch (error) {
+          console.error('Failed to broadcast note update:', error);
+          // 即使广播失败，本地更新仍应继续
+        }
+
+        // 更新窗口标题
+        try {
+          const currentWindow = getCurrentWebviewWindow();
+          await currentWindow.setTitle(`Edit: ${updatedNote.title}`);
+        } catch (error) {
+          console.error('Failed to update window title:', error);
+        }
+      } else {
+        // 浏览器环境：保存到 localStorage
+        console.log('Storing updated note to localStorage:', updatedNote);
+        try {
+          const storedNotes = localStorage.getItem('lovpen-notes');
+          const notesMap = storedNotes ? JSON.parse(storedNotes) : {};
+          notesMap[updatedNote.id] = updatedNote;
+          localStorage.setItem('lovpen-notes', JSON.stringify(notesMap));
+
+          // 使用 BroadcastChannel 通知其他窗口
+          try {
+            const channel = new BroadcastChannel('lovpen-notes-channel');
+            channel.postMessage({ type: 'note-updated', note: updatedNote });
+            channel.close();
+          } catch (error) {
+            console.error('Failed to broadcast via BroadcastChannel:', error);
+          }
+
+          // 更新页面标题
+          document.title = `Edit: ${updatedNote.title}`;
+        } catch (error) {
+          console.error('Failed to store note to localStorage:', error);
+          return;
+        }
       }
-      
-      // 通过后端广播更新事件到所有窗口
-      console.log('Broadcasting note update to all windows...');
-      try {
-        await invoke('broadcast_note_update', { note: updatedNote });
-        console.log('Successfully broadcasted note update for:', updatedNote.id);
-      } catch (error) {
-        console.error('Failed to broadcast note update:', error);
-        // 即使广播失败，本地更新仍应继续
-      }
-      
+
       // 更新本地状态
       setNote(updatedNote);
-      
-      // 更新窗口标题
-      try {
-        const currentWindow = getCurrentWebviewWindow();
-        await currentWindow.setTitle(`Edit: ${updatedNote.title}`);
-      } catch (error) {
-        console.error('Failed to update window title:', error);
-      }
-      
+
       // 显示保存成功的视觉反馈
       const button = document.querySelector('.submit-btn') as HTMLButtonElement;
       if (button) {
@@ -108,11 +153,17 @@ function EditorWindow() {
   };
 
   const handleClose = async () => {
-    const currentWindow = getCurrentWebviewWindow();
-    await currentWindow.close();
+    if (isTauri()) {
+      const currentWindow = getCurrentWebviewWindow();
+      await currentWindow.close();
+    } else {
+      window.close();
+    }
   };
 
   const handleHeaderMouseDown = async () => {
+    if (!isTauri()) return;
+
     try {
       const appWindow = getCurrentWindow();
       await appWindow.startDragging();

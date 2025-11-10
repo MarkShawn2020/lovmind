@@ -168,6 +168,42 @@ function App() {
     };
   }, []);
 
+  // 在浏览器环境下，监听 BroadcastChannel 的笔记更新
+  useEffect(() => {
+    if (isTauri()) {
+      // Tauri 环境下使用上面的事件监听器
+      return;
+    }
+
+    // 浏览器环境下使用 BroadcastChannel
+    const channel = new BroadcastChannel('lovpen-notes-channel');
+
+    channel.onmessage = (event) => {
+      if (event.data.type === 'note-updated') {
+        const updatedNote = event.data.note as Note;
+        console.log('Browser: received note update via BroadcastChannel:', updatedNote);
+
+        setNotes((prevNotes) => {
+          const existingNoteIndex = prevNotes.findIndex((n) => n.id === updatedNote.id);
+
+          if (existingNoteIndex !== -1) {
+            // 更新已存在的note
+            const newNotes = [...prevNotes];
+            newNotes[existingNoteIndex] = updatedNote;
+            return newNotes;
+          } else {
+            // 如果note不存在，添加到列表
+            return [...prevNotes, updatedNote];
+          }
+        });
+      }
+    };
+
+    return () => {
+      channel.close();
+    };
+  }, []);
+
   // 当笔记更新时，滚动到底部（仅当没有pinned notes时）
   useEffect(() => {
     if (notesListRef.current) {
@@ -347,7 +383,22 @@ function App() {
 
   const handleOpenInNewWindow = async (note: Note) => {
     if (!isTauri()) {
-      console.log("Opening in new window only works in Tauri environment");
+      // 在浏览器环境下，使用 window.open 打开新网页
+      console.log("Opening in browser environment:", note.id);
+
+      // 将笔记数据存储到 localStorage，供编辑器页面读取
+      try {
+        const existingNotes = localStorage.getItem('lovpen-notes');
+        const notesMap = existingNotes ? JSON.parse(existingNotes) : {};
+        notesMap[note.id] = note;
+        localStorage.setItem('lovpen-notes', JSON.stringify(notesMap));
+      } catch (error) {
+        console.error("Failed to store note to localStorage:", error);
+      }
+
+      // 打开新窗口
+      const url = `/editor.html?noteId=${note.id}`;
+      window.open(url, `note-editor-${note.id}`, 'width=600,height=500');
       return;
     }
 
