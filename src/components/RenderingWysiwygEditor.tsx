@@ -1,11 +1,22 @@
+'use client';
 
+import React, { useEffect } from 'react';
+import type { Value } from 'platejs';
 
-import { EditorKit } from '@/components/editor/editor-kit';
-import { Editor, EditorContainer } from '@/components/ui/editor';
-import { Plate, usePlateEditor, useEditorValue } from 'platejs/react';
-import { useEffect, useRef } from 'react';
-import { ReactEditor } from 'slate-react';
-import { Transforms, Editor as SlateEditor } from 'slate';
+import {
+  BoldPlugin,
+  ItalicPlugin,
+  UnderlinePlugin,
+  H1Plugin,
+  H2Plugin,
+  H3Plugin,
+} from '@platejs/basic-nodes/react';
+import {
+  Plate,
+  PlateContent,
+  usePlateEditor,
+  ParagraphPlugin,
+} from 'platejs/react';
 
 interface RenderingWysiwygEditorProps {
   initialContent?: string;
@@ -13,93 +24,81 @@ interface RenderingWysiwygEditorProps {
   placeholder?: string;
 }
 
-export default function RenderingWysiwygEditor({ 
-  initialContent = '', 
-  onChange,
-  placeholder = "Type your amazing content here..." 
-}: RenderingWysiwygEditorProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const editor = usePlateEditor({
-    plugins: EditorKit,
-    value: initialContent ? [
+const createInitialValue = (text: string = ''): Value => {
+  if (!text) {
+    return [
       {
         type: 'p',
-        children: [{ text: initialContent }],
+        children: [{ text: '' }],
       },
-    ] : undefined,
+    ];
+  }
+
+  // Split by newlines and create paragraphs
+  const lines = text.split('\n');
+  return lines.map(line => ({
+    type: 'p',
+    children: [{ text: line }],
+  }));
+};
+
+const extractTextContent = (value: Value): string => {
+  return value
+    .map((node: any) => {
+      if (node.children) {
+        return node.children
+          .map((child: any) => child.text || '')
+          .join('');
+      }
+      return '';
+    })
+    .join('\n');
+};
+
+export default function RenderingWysiwygEditor({
+  initialContent = '',
+  onChange,
+  placeholder = "Type your amazing content here..."
+}: RenderingWysiwygEditorProps) {
+  const editor = usePlateEditor({
+    plugins: [
+      ParagraphPlugin,
+      H1Plugin,
+      H2Plugin,
+      H3Plugin,
+      BoldPlugin,
+      ItalicPlugin,
+      UnderlinePlugin,
+    ],
+    value: createInitialValue(initialContent),
   });
 
   // Reset editor when initialContent becomes empty
   useEffect(() => {
     if (editor && initialContent === '') {
-      // Clear the editor content
-      editor.children = [
-        {
-          type: 'p',
-          children: [{ text: '' }],
-        },
-      ];
-      if (typeof editor.onChange === 'function') {
-        editor.onChange();
-      }
+      const newValue = createInitialValue('');
+      editor.children = newValue;
     }
   }, [initialContent, editor]);
 
   // Handle content changes
-  useEffect(() => {
-    if (onChange && editor) {
-      const handleChange = () => {
-        const content = editor.children
-          .map((node: any) => 
-            node.children?.map((child: any) => child.text).join('') || ''
-          )
-          .join('\n');
-        onChange(content);
-      };
-
-      // Listen for editor changes
-      editor.onChange = handleChange;
-    }
-  }, [editor, onChange]);
-
-  // Handle clicks on the editor container to focus at the end
-  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Check if the click is on the container itself or empty space
-    const target = e.target as HTMLElement;
-    
-    // Check if we clicked on empty space (no content element)
-    const isEmptyAreaClick = !target.closest('[data-slate-node]') && 
-                             !target.closest('[data-slate-editor]');
-    
-    if (isEmptyAreaClick && editor) {
-      // Focus the editor
-      ReactEditor.focus(editor as any);
-      
-      // Move cursor to the end of the last block
-      const lastPath = [editor.children.length - 1];
-      const end = SlateEditor.end(editor as any, lastPath);
-      
-      Transforms.select(editor as any, {
-        anchor: end,
-        focus: end
-      });
+  const handleChange = ({ value }: { value: Value }) => {
+    if (onChange) {
+      const content = extractTextContent(value);
+      onChange(content);
     }
   };
 
   return (
-    <div 
-      ref={containerRef}
-      className="h-full w-full flex flex-col"
-      onClick={handleContainerClick}
-    >
-      <Plate editor={editor}>
-          <EditorContainer className="h-full w-full flex flex-col flex-1">
-            <Editor 
-              placeholder={placeholder}
-              variant="none"
-              className="h-full w-full flex-1 px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
-            />
-          </EditorContainer>
+    <div className="h-full w-full flex flex-col">
+      <Plate editor={editor} onChange={handleChange}>
+        <PlateContent
+          className="h-full w-full flex-1 px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25 focus-visible:outline-none"
+          placeholder={placeholder}
+          style={{
+            minHeight: '100%',
+          }}
+        />
       </Plate>
     </div>
   );
