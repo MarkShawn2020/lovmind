@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
+import { useAtom } from 'jotai';
+import { notesAtom, Note } from './store';
 import './App.css';
 import RenderingWysiwygEditor from './components/RenderingWysiwygEditor';
 
@@ -13,17 +15,8 @@ const isTauri = () => {
          ((window as any).__TAURI__ !== undefined || (window as any).__TAURI_INTERNALS__ !== undefined);
 };
 
-interface Note {
-  id: string;
-  text: string;
-  title: string;
-  time: string;
-  tags: string[];
-  favorite?: boolean;
-  pinned?: boolean;
-}
-
 function EditorWindow() {
+  const [notes, setNotes] = useAtom(notesAtom);
   const [note, setNote] = useState<Note | null>(null);
   const [content, setContent] = useState('');
   const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split' | 'wysiwyg'>('split');
@@ -50,13 +43,9 @@ function EditorWindow() {
           noteData = await invoke<Note | null>('get_temp_note', { id: noteId });
           console.log('Retrieved note from Tauri backend:', noteData);
         } else {
-          // 浏览器环境：从 localStorage 获取
-          const storedNotes = localStorage.getItem('lovpen-notes');
-          if (storedNotes) {
-            const notesMap = JSON.parse(storedNotes);
-            noteData = notesMap[noteId] || null;
-            console.log('Retrieved note from localStorage:', noteData);
-          }
+          // 浏览器环境：从 Jotai atom 获取（自动从 localStorage 加载）
+          noteData = notes.find(n => n.id === noteId) || null;
+          console.log('Retrieved note from Jotai atom:', noteData);
         }
 
         if (noteData) {
@@ -71,7 +60,7 @@ function EditorWindow() {
     };
 
     loadNote();
-  }, []);
+  }, [notes]);
 
   const handleSave = async () => {
     if (note && content.trim()) {
@@ -112,29 +101,23 @@ function EditorWindow() {
           console.error('Failed to update window title:', error);
         }
       } else {
-        // 浏览器环境：保存到 localStorage
-        console.log('Storing updated note to localStorage:', updatedNote);
+        // 浏览器环境：更新 Jotai atom（自动持久化到 localStorage）
+        console.log('Browser: Updating note in Jotai atom:', updatedNote);
+        setNotes((prevNotes) =>
+          prevNotes.map(n => n.id === updatedNote.id ? updatedNote : n)
+        );
+
+        // 使用 BroadcastChannel 通知其他窗口
         try {
-          const storedNotes = localStorage.getItem('lovpen-notes');
-          const notesMap = storedNotes ? JSON.parse(storedNotes) : {};
-          notesMap[updatedNote.id] = updatedNote;
-          localStorage.setItem('lovpen-notes', JSON.stringify(notesMap));
-
-          // 使用 BroadcastChannel 通知其他窗口
-          try {
-            const channel = new BroadcastChannel('lovpen-notes-channel');
-            channel.postMessage({ type: 'note-updated', note: updatedNote });
-            channel.close();
-          } catch (error) {
-            console.error('Failed to broadcast via BroadcastChannel:', error);
-          }
-
-          // 更新页面标题
-          document.title = `Edit: ${updatedNote.title}`;
+          const channel = new BroadcastChannel('lovpen-notes-channel');
+          channel.postMessage({ type: 'note-updated', note: updatedNote });
+          channel.close();
         } catch (error) {
-          console.error('Failed to store note to localStorage:', error);
-          return;
+          console.error('Failed to broadcast via BroadcastChannel:', error);
         }
+
+        // 更新页面标题
+        document.title = `Edit: ${updatedNote.title}`;
       }
 
       // 更新本地状态
