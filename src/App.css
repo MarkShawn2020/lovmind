@@ -299,7 +299,7 @@ body {
   flex: 1;
   background: var(--background);
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse; /* Reverse layout: toolbar stable at bottom */
   overflow: hidden;
   position: relative;
 }
@@ -422,7 +422,7 @@ body {
 .recent-notes-panel {
   flex-shrink: 0;
   background: var(--muted);
-  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -670,8 +670,7 @@ body {
 /* WYSIWYG Container */
 .wysiwyg-container {
   height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   flex: 1;

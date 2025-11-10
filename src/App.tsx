@@ -582,13 +582,12 @@ function App() {
 
 
       <div className="editor-section">
-        <div className="editor-area">
-          <RenderingWysiwygEditor
-            initialContent={content}
-            onChange={setContent}
-            placeholder="Start writing your note..."
-          />
-        </div>
+        {/* Toolbar at bottom (first in reverse layout) */}
+        <EditorToolbar
+          onToggleNotes={handleToggleRecentNotes}
+          onSubmit={handleSubmit}
+          submitDisabled={!content.trim()}
+        />
 
         {/* Panel always rendered but hidden by default */}
         <div ref={panelRef} className="recent-notes-panel hidden">
@@ -693,11 +692,14 @@ function App() {
             </div>
           </div>
 
-        <EditorToolbar
-          onToggleNotes={handleToggleRecentNotes}
-          onSubmit={handleSubmit}
-          submitDisabled={!content.trim()}
-        />
+        {/* Editor at top (last in reverse layout) */}
+        <div className="editor-area">
+          <RenderingWysiwygEditor
+            initialContent={content}
+            onChange={setContent}
+            placeholder="Start writing your note..."
+          />
+        </div>
       </div>
     </div>
   );
