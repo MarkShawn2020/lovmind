@@ -2,21 +2,10 @@
 
 import React, { useEffect } from 'react';
 import type { Value } from 'platejs';
+import { Plate, usePlateEditor } from 'platejs/react';
 
-import {
-  BoldPlugin,
-  ItalicPlugin,
-  UnderlinePlugin,
-  H1Plugin,
-  H2Plugin,
-  H3Plugin,
-} from '@platejs/basic-nodes/react';
-import {
-  Plate,
-  PlateContent,
-  usePlateEditor,
-  ParagraphPlugin,
-} from 'platejs/react';
+import { EditorKit } from '@/components/editor/editor-kit';
+import { Editor, EditorContainer } from '@/components/ui/editor';
 
 interface RenderingWysiwygEditorProps {
   initialContent?: string;
@@ -61,15 +50,7 @@ export default function RenderingWysiwygEditor({
   placeholder = "Type your amazing content here..."
 }: RenderingWysiwygEditorProps) {
   const editor = usePlateEditor({
-    plugins: [
-      ParagraphPlugin,
-      H1Plugin,
-      H2Plugin,
-      H3Plugin,
-      BoldPlugin,
-      ItalicPlugin,
-      UnderlinePlugin,
-    ],
+    plugins: EditorKit,
     value: createInitialValue(initialContent),
   });
 
@@ -92,13 +73,13 @@ export default function RenderingWysiwygEditor({
   return (
     <div className="h-full w-full flex flex-col">
       <Plate editor={editor} onChange={handleChange}>
-        <PlateContent
-          className="h-full w-full flex-1 px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25 focus-visible:outline-none"
-          placeholder={placeholder}
-          style={{
-            minHeight: '100%',
-          }}
-        />
+        <EditorContainer className="h-full w-full flex flex-col flex-1">
+          <Editor
+            placeholder={placeholder}
+            variant="none"
+            className="h-full w-full flex-1 px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
+          />
+        </EditorContainer>
       </Plate>
     </div>
   );
