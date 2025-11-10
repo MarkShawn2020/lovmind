@@ -78,6 +78,8 @@ export default function RenderingWysiwygEditor({
 
     console.log('[Focus Debug] Editor element found:', editorElement);
 
+    let lastMouseDownInsideEditor = false;
+
     const handleFocus = (e: FocusEvent) => {
       console.log('[Focus Debug] ✅ Editor FOCUSED', {
         target: e.target,
@@ -93,11 +95,32 @@ export default function RenderingWysiwygEditor({
         relatedTarget: e.relatedTarget,
         timestamp: new Date().toISOString(),
         selection: editor.tf.selection,
+        lastMouseDownInsideEditor,
       });
+
+      // If blur happened without a relatedTarget (focus completely lost)
+      // and the last mousedown was inside the editor, restore focus
+      if (!e.relatedTarget && lastMouseDownInsideEditor) {
+        console.log('[Focus Debug] 🔧 Auto-restoring focus (blur with null relatedTarget after internal click)');
+        // Use requestAnimationFrame to avoid interfering with ongoing event handling
+        requestAnimationFrame(() => {
+          if (document.activeElement !== editorElement) {
+            editor.tf.focus();
+            console.log('[Focus Debug] ✅ Focus restored');
+          }
+        });
+      }
+
+      // Reset the flag after handling blur
+      // Use a timeout to allow the blur handler to complete first
+      setTimeout(() => {
+        lastMouseDownInsideEditor = false;
+      }, 0);
     };
 
     const handleMouseDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+      lastMouseDownInsideEditor = true;
       console.log('[Focus Debug] 🖱️ MOUSEDOWN on editor area', {
         target: target.tagName,
         classList: Array.from(target.classList),
@@ -128,10 +151,17 @@ export default function RenderingWysiwygEditor({
     // Also listen on document for global events
     const handleDocumentMouseDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+      const isInside = editorElement.contains(target);
+
+      // Reset flag if clicking outside editor
+      if (!isInside) {
+        lastMouseDownInsideEditor = false;
+      }
+
       console.log('[Focus Debug] 🌐 Global MOUSEDOWN', {
         target: target.tagName,
         classList: Array.from(target.classList),
-        isInsideEditor: editorElement.contains(target),
+        isInsideEditor: isInside,
         timestamp: new Date().toISOString(),
       });
     };
