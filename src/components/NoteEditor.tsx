@@ -112,9 +112,9 @@ function NoteEditor({
                   <div className="note-content">
                     <div className="note-header">
                       <div className="note-title">
-                        {index < 3 && (
+                        {index >= sortedNotes.length - 3 && (
                           <Crown
-                            className={`icon-inline rank-badge rank-${index + 1}`}
+                            className={`icon-inline rank-badge rank-${sortedNotes.length - index}`}
                             size={16}
                             fill="currentColor"
                           />
