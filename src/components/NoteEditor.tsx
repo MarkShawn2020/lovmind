@@ -98,35 +98,48 @@ function NoteEditor({
                 // Within same pin status, sort by creation time descending (newest first)
                 return Number(b.id) - Number(a.id);
               });
-              return sortedNotes.map((note, index) => (
-                <div
-                  key={note.id}
-                  className={`note-item ${
-                    currentNoteId === note.id ? 'active' : ''
-                  } ${note.favorite ? 'favorite' : ''} ${
-                    note.pinned ? 'pinned' : ''
-                  }`}
-                  onClick={() => onNoteClick?.(note)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="note-content">
-                    <div className="note-header">
-                      <div className="note-title">
-                        {index >= sortedNotes.length - 3 && (
-                          <Crown
-                            className={`icon-inline rank-badge rank-${sortedNotes.length - index}`}
-                            size={16}
-                            fill="currentColor"
-                          />
-                        )}
-                        {note.pinned && (
-                          <Pin className="icon-inline pinned" size={14} />
-                        )}
-                        {note.favorite && (
-                          <Star className="icon-inline favorited" size={14} />
-                        )}
-                        {sortedNotes.length - index}. {note.title}
-                      </div>
+
+              // Create a map of note ID to fixed rank (based on creation time)
+              const noteRanks = new Map<string, number>();
+              [...notes]
+                .sort((a, b) => Number(b.id) - Number(a.id)) // Sort by creation time descending
+                .forEach((note, index) => {
+                  noteRanks.set(note.id, notes.length - index); // Assign fixed rank
+                });
+
+              return sortedNotes.map((note) => {
+                const rank = noteRanks.get(note.id)!;
+                const isTopThree = rank >= notes.length - 2; // Top 3 earliest notes
+
+                return (
+                  <div
+                    key={note.id}
+                    className={`note-item ${
+                      currentNoteId === note.id ? 'active' : ''
+                    } ${note.favorite ? 'favorite' : ''} ${
+                      note.pinned ? 'pinned' : ''
+                    }`}
+                    onClick={() => onNoteClick?.(note)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="note-content">
+                      <div className="note-header">
+                        <div className="note-title">
+                          {isTopThree && (
+                            <Crown
+                              className={`icon-inline rank-badge rank-${rank}`}
+                              size={16}
+                              fill="currentColor"
+                            />
+                          )}
+                          {note.pinned && (
+                            <Pin className="icon-inline pinned" size={14} />
+                          )}
+                          {note.favorite && (
+                            <Star className="icon-inline favorited" size={14} />
+                          )}
+                          {rank}. {note.title}
+                        </div>
                       <span className="note-time">{dayjs(note.time).fromNow()}</span>
                     </div>
                     <p className="note-preview">
@@ -174,7 +187,8 @@ function NoteEditor({
                     </div>
                   </div>
                 </div>
-              ));
+                );
+              });
             })()
           )}
         </div>
