@@ -670,7 +670,8 @@ body {
 /* WYSIWYG Container */
 .wysiwyg-container {
   height: 100%;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -693,8 +694,8 @@ body {
 /* 确保编辑器有实质的可点击区域 */
 .wysiwyg-container [data-slate-editor="true"] {
   padding: var(--spacing-s) !important;
-  padding-bottom: 50vh !important; /* 大幅底部填充创建可点击区域 */
-  min-height: 400px !important; /* 最小高度保证 */
+  padding-bottom: 200px !important; /* 底部填充创建可点击区域，但不过大 */
+  min-height: 100% !important; /* 填满容器 */
   cursor: text !important;
   box-sizing: border-box !important;
   font-family: var(--font-sans) !important;
