@@ -34,7 +34,7 @@ function NoteEditor({
   content,
   onContentChange,
   onSubmit,
-  placeholder = "此刻，想到了什么？",
+  placeholder = "此时此刻，你在想什么呢？",
   isPanelExpanded,
   onTogglePanel,
   panelRef,
