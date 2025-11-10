@@ -299,7 +299,7 @@ body {
   flex: 1;
   background: var(--background);
   display: flex;
-  flex-direction: column-reverse; /* Reverse layout: toolbar stable at bottom */
+  flex-direction: column;
   overflow: hidden;
   position: relative;
 }
@@ -422,7 +422,7 @@ body {
 .recent-notes-panel {
   flex-shrink: 0;
   background: var(--muted);
-  border-bottom: 1px solid var(--border);
+  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;

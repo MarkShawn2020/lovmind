@@ -506,6 +506,20 @@ function App() {
       return;
     }
 
+    // Find the editor scroll container
+    const editorContainer = document.querySelector('[data-plate-container]') as HTMLElement;
+
+    // Capture scroll state before resize
+    let wasAtBottom = false;
+    let scrollFromBottom = 0;
+
+    if (editorContainer) {
+      const { scrollTop, scrollHeight, clientHeight } = editorContainer;
+      // Consider "at bottom" if within 50px of bottom
+      wasAtBottom = scrollTop + clientHeight >= scrollHeight - 50;
+      scrollFromBottom = scrollHeight - scrollTop - clientHeight;
+    }
+
     if (!isExpandedRef.current) {
       // Expanding - show panel within existing window space
       isExpandedRef.current = true;
@@ -517,6 +531,15 @@ function App() {
         }
         document.querySelector('.recent-notes-toggle')?.classList.add('active');
       });
+
+      // Restore scroll position after animation completes
+      setTimeout(() => {
+        if (editorContainer && wasAtBottom) {
+          // Keep bottom anchored: scroll to new bottom
+          const { scrollHeight, clientHeight } = editorContainer;
+          editorContainer.scrollTop = scrollHeight - clientHeight;
+        }
+      }, 350); // 300ms animation + 50ms buffer
 
     } else {
       // Collapsing - hide panel
@@ -533,7 +556,13 @@ function App() {
           panelRef.current.classList.add('hidden');
           panelRef.current.classList.remove('collapsed');
         }
-      }, 300);
+
+        // Restore scroll position after panel collapses
+        if (editorContainer && wasAtBottom) {
+          const { scrollHeight, clientHeight } = editorContainer;
+          editorContainer.scrollTop = scrollHeight - clientHeight;
+        }
+      }, 350);
     }
   }, []);
 
@@ -582,12 +611,13 @@ function App() {
 
 
       <div className="editor-section">
-        {/* Toolbar at bottom (first in reverse layout) */}
-        <EditorToolbar
-          onToggleNotes={handleToggleRecentNotes}
-          onSubmit={handleSubmit}
-          submitDisabled={!content.trim()}
-        />
+        <div className="editor-area">
+          <RenderingWysiwygEditor
+            initialContent={content}
+            onChange={setContent}
+            placeholder="Start writing your note..."
+          />
+        </div>
 
         {/* Panel always rendered but hidden by default */}
         <div ref={panelRef} className="recent-notes-panel hidden">
@@ -692,14 +722,11 @@ function App() {
             </div>
           </div>
 
-        {/* Editor at top (last in reverse layout) */}
-        <div className="editor-area">
-          <RenderingWysiwygEditor
-            initialContent={content}
-            onChange={setContent}
-            placeholder="Start writing your note..."
-          />
-        </div>
+        <EditorToolbar
+          onToggleNotes={handleToggleRecentNotes}
+          onSubmit={handleSubmit}
+          submitDisabled={!content.trim()}
+        />
       </div>
     </div>
   );
