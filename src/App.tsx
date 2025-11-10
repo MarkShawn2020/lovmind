@@ -385,8 +385,9 @@ function App() {
         await invoke("store_temp_note", { note: noteToOpen });
       }
 
-      // 在开发环境中使用完整的开发服务器URL
-      const isDev = window.location.hostname === "localhost";
+      // 在开发环境中使用完整的开发服务器URL，生产环境使用相对路径
+      // 注意：Tauri 生产环境的 protocol 是 "tauri:"，开发环境是 "http:"
+      const isDev = window.location.protocol === "http:";
       const url = isDev
         ? `http://localhost:1420/?window=editor&noteId=${note.id}`
         : `index.html?window=editor&noteId=${note.id}`;
