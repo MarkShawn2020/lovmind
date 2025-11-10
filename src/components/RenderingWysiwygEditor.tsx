@@ -11,6 +11,7 @@ interface RenderingWysiwygEditorProps {
   initialContent?: string;
   onChange?: (content: string) => void;
   placeholder?: string;
+  onSubmit?: () => void;
 }
 
 const createInitialValue = (text: string = ''): Value => {
@@ -124,7 +125,8 @@ const extractTextContent = (value: Value): string => {
 export default function RenderingWysiwygEditor({
   initialContent = '',
   onChange,
-  placeholder = "Type your amazing content here..."
+  placeholder = "Type your amazing content here...",
+  onSubmit
 }: RenderingWysiwygEditorProps) {
   const editor = usePlateEditor({
     plugins: EditorKit,
@@ -139,11 +141,19 @@ export default function RenderingWysiwygEditor({
     }
   };
 
+  // Handle keyboard shortcuts
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    // Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux)
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      event.preventDefault();
+      onSubmit?.();
+    }
+  };
 
   return (
     <div className="h-full w-full flex flex-col">
       <Plate editor={editor} onChange={handleChange}>
-        <EditorContainer className="h-full w-full flex flex-col flex-1">
+        <EditorContainer className="h-full w-full flex flex-col flex-1" onKeyDown={handleKeyDown}>
           <Editor
             placeholder={placeholder}
             variant="none"
