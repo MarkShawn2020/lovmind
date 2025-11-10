@@ -611,7 +611,7 @@ function App() {
                         <div className="note-time">{note.time}</div>
                       </div>
                       <div className="note-preview">
-                        {note.text.substring(0, 100)}...
+                        {note.text.replace(/\n/g, ' ').substring(0, 100)}...
                       </div>
                       <div className="note-footer">
                         <div className="note-tags">
