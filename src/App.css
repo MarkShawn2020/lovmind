@@ -901,3 +901,15 @@ body {
     color: white;
   }
 }
+
+/* Active note indicator in editor window */
+.note-item.active {
+  background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+  border-color: #667eea;
+  border-width: 2px;
+}
+
+.note-item.active .note-title {
+  color: #667eea;
+  font-weight: 600;
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getCurrentWebviewWindow, getAllWebviewWindows } from '@tauri-apps/api/webviewWindow';
@@ -6,6 +6,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { useAtom } from 'jotai';
 import { notesAtom, Note } from './store';
+import { Pin, Play, Star, Trash2, X } from 'lucide-react';
 import './App.css';
 import RenderingWysiwygEditor from './components/RenderingWysiwygEditor';
 import EditorToolbar from './components/EditorToolbar';
@@ -21,6 +22,9 @@ function EditorWindow() {
   const [note, setNote] = useState<Note | null>(null);
   const [content, setContent] = useState('');
   const [viewMode, setViewMode] = useState<'edit' | 'preview' | 'split' | 'wysiwyg'>('wysiwyg');
+  const [isPanelExpanded, setIsPanelExpanded] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const notesListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // 获取URL参数中的noteId
@@ -156,55 +160,39 @@ function EditorWindow() {
     }
   };
 
-  const handleToggleNotes = async () => {
-    console.log('[DEBUG] handleToggleNotes called');
-    console.log('[DEBUG] isTauri():', isTauri());
-    console.log('[DEBUG] window.__TAURI__:', typeof (window as any).__TAURI__);
-    console.log('[DEBUG] window.__TAURI_INTERNALS__:', typeof (window as any).__TAURI_INTERNALS__);
+  const handleToggleNotes = useCallback(() => {
+    setIsPanelExpanded(prev => !prev);
+  }, []);
 
-    // 点击最近笔记按钮：切换到主窗口（不关闭编辑器）
-    if (isTauri()) {
-      try {
-        console.log('[DEBUG] Fetching all windows...');
-        const allWindows = await getAllWebviewWindows();
-        console.log('[DEBUG] All windows count:', allWindows.length);
-        console.log('[DEBUG] All window labels:', allWindows.map(w => w.label));
+  const handleSwitchNote = useCallback((targetNote: Note) => {
+    // 切换到另一个笔记
+    setNote(targetNote);
+    setContent(targetNote.text);
+    setIsPanelExpanded(false); // 切换后收起面板
+  }, []);
 
-        const mainWindow = allWindows.find(w => w.label === 'main');
-        console.log('[DEBUG] Main window found:', !!mainWindow);
-
-        if (mainWindow) {
-          console.log('[DEBUG] Attempting to focus main window...');
-          await mainWindow.setFocus();
-          console.log('[DEBUG] ✅ Successfully switched to main window');
-
-          // 用户可见的反馈
-          const btn = document.querySelector('.recent-notes-toggle');
-          if (btn) {
-            btn.classList.add('success-flash');
-            setTimeout(() => btn.classList.remove('success-flash'), 300);
-          }
-        } else {
-          const errorMsg = `Main window not found. Available windows: ${allWindows.map(w => w.label).join(', ')}`;
-          console.error('[ERROR]', errorMsg);
-          alert(errorMsg);
-        }
-      } catch (error) {
-        console.error('[ERROR] Failed to switch to main window:', error);
-        alert(`Failed to switch windows: ${error}`);
+  const handleDeleteNote = useCallback((noteId: string) => {
+    if (confirm('确定要删除这条笔记吗？')) {
+      setNotes(notes.filter(n => n.id !== noteId));
+      // 如果删除的是当前笔记，清空编辑器
+      if (note?.id === noteId) {
+        setNote(null);
+        setContent('');
       }
-    } else {
-      console.log('[DEBUG] Browser environment detected');
-      // 浏览器环境：尝试聚焦 opener 窗口，如果存在的话
-      if (window.opener && !window.opener.closed) {
-        console.log('[DEBUG] Focusing opener window');
-        window.opener.focus();
-      } else {
-        console.log('[DEBUG] No opener window available');
-      }
-      // 注意：不关闭当前窗口，让用户自己决定
     }
-  };
+  }, [notes, note, setNotes]);
+
+  const handleToggleFavorite = useCallback((noteId: string) => {
+    setNotes(notes.map(n =>
+      n.id === noteId ? { ...n, favorite: !n.favorite } : n
+    ));
+  }, [notes, setNotes]);
+
+  const handleTogglePin = useCallback((noteId: string) => {
+    setNotes(notes.map(n =>
+      n.id === noteId ? { ...n, pinned: !n.pinned } : n
+    ));
+  }, [notes, setNotes]);
 
   if (!note) {
     return (
@@ -273,6 +261,89 @@ function EditorWindow() {
           onSubmit={handleSave}
           submitDisabled={!content.trim()}
         />
+
+        {/* 最近笔记面板 */}
+        <div
+          ref={panelRef}
+          className={`recent-notes-panel ${isPanelExpanded ? 'visible' : 'hidden'}`}
+          style={{
+            maxHeight: isPanelExpanded ? '250px' : '0',
+            transition: 'max-height 0.3s ease-in-out'
+          }}
+        >
+          <div className="notes-list" ref={notesListRef}>
+            {notes.length === 0 ? (
+              <p className="empty-state">No notes yet.</p>
+            ) : (
+              [...notes]
+                .sort((a, b) => {
+                  // Pinned notes come first
+                  if (a.pinned && !b.pinned) return -1;
+                  if (!a.pinned && b.pinned) return 1;
+                  // Within same pin status, sort by creation time descending (newest first)
+                  return Number(b.id) - Number(a.id);
+                })
+                .map((n) => (
+                  <div
+                    key={n.id}
+                    className={`note-item ${n.id === note?.id ? 'active' : ''} ${
+                      n.favorite ? 'favorite' : ''
+                    } ${n.pinned ? 'pinned' : ''}`}
+                    onClick={() => handleSwitchNote(n)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="note-content">
+                      <div className="note-header">
+                        <div className="note-title">
+                          {n.pinned && <Pin className="icon-inline pinned" size={14} />}
+                          {n.favorite && <Star className="icon-inline favorited" size={14} />}
+                          {n.title}
+                        </div>
+                        <span className="note-time">{n.time}</span>
+                      </div>
+                      <p className="note-preview">
+                        {n.text.substring(0, 100)}
+                        {n.text.length > 100 ? '...' : ''}
+                      </p>
+                      <div className="note-tags">
+                        {n.tags.map((tag, i) => (
+                          <span key={i} className="tag">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                      <div
+                        className="note-actions"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          className={`action-btn pin-btn ${n.pinned ? 'active' : ''}`}
+                          onClick={() => handleTogglePin(n.id)}
+                          title={n.pinned ? 'Unpin note' : 'Pin note'}
+                        >
+                          <Pin size={14} />
+                        </button>
+                        <button
+                          className={`action-btn favorite-btn ${n.favorite ? 'active' : ''}`}
+                          onClick={() => handleToggleFavorite(n.id)}
+                          title={n.favorite ? 'Unfavorite note' : 'Favorite note'}
+                        >
+                          <Star size={14} />
+                        </button>
+                        <button
+                          className="action-btn delete-btn"
+                          onClick={() => handleDeleteNote(n.id)}
+                          title="Delete note"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
