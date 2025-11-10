@@ -4,73 +4,109 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Tauri v2 + React + TypeScript application called "lovpen-notes". It uses:
-- **Frontend**: React 19 with TypeScript, built with Vite
-- **Backend**: Rust with Tauri v2 framework  
+LovPen Notes is a floating notes app with global hotkey access, built as a Tauri v2 + React + TypeScript desktop application. It features:
+- **Global Hotkey**: `⌘N` (Mac) / `Ctrl+N` (Windows/Linux) to toggle the app from anywhere
+- **Floating Window**: Always-on-top, frameless window with transparency support
+- **Rich Text Editor**: Powered by Plate.js (Slate-based) with WYSIWYG editing
+- **Multi-Window Architecture**: Main window + separate editor windows for each note
+- **Stack**: React 19, TypeScript, Tauri v2, Rust backend
 - **Package Manager**: pnpm
-- **Build System**: Vite for frontend, Cargo for Rust backend
 
 ## Essential Commands
 
 ### Development
 ```bash
-# Start the Tauri app in development mode
-pnpm tauri dev
-
-# Start only the frontend dev server (Vite)
-pnpm dev
-
-# Build the application for production
-pnpm tauri build
+pnpm tauri dev        # Start Tauri app (runs frontend + backend)
+pnpm dev             # Start only frontend dev server (Vite on :1420)
+pnpm typecheck       # Type check TypeScript without building
+pnpm build           # Type check + build frontend for production
+pnpm tauri build     # Build complete application binary
+pnpm build:dmg       # Build macOS .dmg installer only
 ```
 
-### Building and Type Checking
+### Version Management
 ```bash
-# Type check TypeScript and build frontend
-pnpm build
-
-# Build only the Rust backend
-cd src-tauri && cargo build
-
-# Run Rust tests
-cd src-tauri && cargo test
+pnpm version:patch   # Bump version and sync to Cargo.toml
+pnpm version:minor   # Bump minor version
+pnpm version:major   # Bump major version
+pnpm release         # Run semantic-release
 ```
 
-## Project Architecture
+### Rust Backend
+```bash
+cd src-tauri && cargo build   # Build Rust backend
+cd src-tauri && cargo test    # Run Rust tests
+cd src-tauri && cargo fmt     # Format Rust code
+```
+
+## Architecture
+
+### Multi-Window System
+The app uses **two window types**:
+1. **Main Window** (`index.html` → `App.tsx`): Floating quick-capture UI
+   - Always-on-top, frameless, transparent
+   - Shows input area + recent notes list
+   - Toggled via `⌘N` global shortcut
+2. **Editor Windows** (`editor.html` → `editor.tsx`): Full note editing
+   - Dynamically created via `new WebviewWindow()`
+   - Each note opens in its own window
+   - Uses Plate.js rich text editor
 
 ### Frontend Structure
-- **src/**: React TypeScript application
-  - `main.tsx`: Application entry point
-  - `App.tsx`: Main React component
-  - Frontend runs on http://localhost:1420 in dev mode
+- **src/App.tsx**: Main floating window component (quick capture + notes list)
+- **src/editor.tsx**: Standalone editor window component
+- **src/components/RenderingWysiwygEditor.tsx**: Plate.js editor integration
+- **src/components/editor/plugins/**: Plate.js plugin configurations (markdown, lists, code blocks, etc.)
+- **src/components/ui/**: Plate.js node renderers and Radix UI components
 
-### Backend Structure  
-- **src-tauri/**: Rust Tauri backend
-  - `src/lib.rs`: Main Tauri application logic and command handlers
-  - `src/main.rs`: Binary entry point
-  - `Cargo.toml`: Rust dependencies
-  - `tauri.conf.json`: Tauri configuration
+### Backend Structure (Rust)
+- **src-tauri/src/lib.rs**: Tauri setup, global shortcut registration, and command handlers
+- **src-tauri/src/note_store.rs**: In-memory note storage using `Mutex<HashMap>` for inter-window communication
+  - `TEMP_NOTE_STORE`: Global static store for sharing notes between windows
+  - Commands: `store_temp_note`, `get_temp_note`, `get_all_temp_notes`, etc.
+- **src-tauri/tauri.conf.json**: Window configuration (size: 420×640, alwaysOnTop, frameless)
 
-### Communication Between Frontend and Backend
-- Frontend invokes Rust commands using `@tauri-apps/api/core`'s `invoke()` function
-- Commands are defined in `src-tauri/src/lib.rs` with `#[tauri::command]` attribute
-- Commands must be registered in the `invoke_handler` in `lib.rs`
+### Inter-Window Communication
+Notes are synchronized between windows using:
+1. **Rust Global Store**: `TEMP_NOTE_STORE` (Mutex-protected HashMap)
+2. **Tauri Events**: `broadcast_note_update` emits `global-note-updated` events
+3. **Event Listeners**: Windows listen via `listen("global-note-updated", ...)`
 
-## Key Configuration Files
-- **tsconfig.json**: TypeScript strict mode enabled with bundler module resolution
-- **tauri.conf.json**: Defines app identifier, window settings, and build configuration
-- **vite.config.ts**: Frontend build configuration
+### Frontend-Backend Communication
+- Frontend calls Rust via `invoke("command_name", { args })` from `@tauri-apps/api/core`
+- All Tauri commands are marked with `#[tauri::command]` and registered in `lib.rs:128-143`
+- Available commands: `toggle_window`, `create_note`, `store_temp_note`, `get_all_temp_notes`, `broadcast_note_update`, etc.
 
-## Development Tools
+## Key Configuration
 
-### Code Inspector
-The project includes `code-inspector-plugin` for enhanced debugging experience:
-- **Purpose**: Click DOM elements in the browser to automatically open the IDE at the exact source code location
-- **Activation**: Press `Option + Shift` (Mac) or `Alt + Shift` (Windows) then click any element
-- **Configuration**: Located in `vite.config.ts`, enabled only in development mode
-- **Supported Editors**: VSCode, Cursor, Windsurf, WebStorm, and others
+### Window Behavior (tauri.conf.json)
+- Main window: 420×640, always-on-top, frameless, transparent
+- `macOSPrivateApi: true` enables advanced window features on macOS
+- Global shortcut registered in `lib.rs:149` using `tauri-plugin-global-shortcut`
 
-## Development Notes
-- The app identifier is `dev.neurora.lovpen-notes`
-- Default window size is 800x600
-- The Tauri opener plugin is included for file/URL opening capabilities
+### Multi-Page Build (vite.config.ts)
+```typescript
+rollupOptions: {
+  input: {
+    main: 'index.html',    // Main window
+    editor: 'editor.html'  // Editor windows
+  }
+}
+```
+
+### Code Inspector (Development Tool)
+- **Plugin**: `@neurora/code-inspector-plugin` in `vite.config.ts`
+- **Usage**: Press `Option + Shift` (Mac) or `Alt + Shift` (Windows), then click any element to open its source in the IDE
+- **Enabled**: Development mode only
+
+## Semantic Versioning & Git
+- Uses **semantic-release** with conventional commits
+- **Commitizen** configured for standardized commit messages
+- Version syncing: `scripts/sync-version.js` keeps package.json and Cargo.toml versions in sync
+- **Husky** hooks enforce commit message format
+
+## Important Technical Details
+- App identifier: `dev.neurora.lovpen-notes`
+- Frontend dev server: `http://localhost:1420`
+- Tauri plugins: `global-shortcut`, `opener`, `store`
+- Rust dependencies: `serde`, `chrono`, `uuid`, `once_cell` for global state
