@@ -48,6 +48,31 @@ const initStore = async () => {
 // Initialize store on module load
 initStore();
 
+// Helper function to migrate old object-format notes to array format
+const migrateNotesData = (rawData: string): string => {
+  try {
+    const parsed = JSON.parse(rawData);
+
+    // If it's already an array, return as-is
+    if (Array.isArray(parsed)) {
+      return rawData;
+    }
+
+    // If it's an object (old format: { [id]: note }), convert to array
+    if (parsed && typeof parsed === 'object') {
+      const notesArray = Object.values(parsed);
+      console.log('Migrating notes from object format to array format:', notesArray.length, 'notes');
+      return JSON.stringify(notesArray);
+    }
+
+    // If it's something else, return empty array
+    return '[]';
+  } catch (error) {
+    console.error('Failed to migrate notes data:', error);
+    return '[]';
+  }
+};
+
 // Custom storage implementation using memory cache + async Tauri Store
 const createTauriStorage = <T>() => {
   return createJSONStorage<T>(() => ({
@@ -59,7 +84,22 @@ const createTauriStorage = <T>() => {
 
       // Fallback to localStorage if not in cache
       if (!isTauri()) {
-        return localStorage.getItem(key);
+        const rawValue = localStorage.getItem(key);
+
+        // Special handling for notes atom to migrate old format
+        if (key === 'lovpen-notes' && rawValue) {
+          const migratedValue = migrateNotesData(rawValue);
+
+          // Update localStorage with migrated data if it changed
+          if (migratedValue !== rawValue) {
+            localStorage.setItem(key, migratedValue);
+            console.log('Notes data migrated and saved to localStorage');
+          }
+
+          return migratedValue;
+        }
+
+        return rawValue;
       }
 
       return null;
@@ -125,6 +165,21 @@ export const contentAtom = atomWithStorage<string>(
 // Derived atom for note statistics
 export const noteStatsAtom = atom((get) => {
   const notes = get(notesAtom);
+
+  // Safety check: ensure notes is an array
+  if (!Array.isArray(notes)) {
+    console.error('noteStatsAtom: notes is not an array:', typeof notes, notes);
+    return {
+      total: 0,
+      today: 0,
+      favorites: 0,
+      pinned: 0,
+      weekCount: 0,
+      avgLength: 0,
+      streak: 0
+    };
+  }
+
   const now = new Date();
   const today = now.toDateString();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
