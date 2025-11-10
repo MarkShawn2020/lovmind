@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
 
@@ -141,23 +141,13 @@ export default function RenderingWysiwygEditor({
     }
   };
 
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + Enter to submit
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault();
-        onSubmit?.();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [onSubmit]);
-
+  // Handle keyboard shortcuts (Cmd+Enter to submit)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      onSubmit?.();
+    }
+  };
 
   return (
     <div className="h-full w-full flex flex-col">
@@ -167,6 +157,7 @@ export default function RenderingWysiwygEditor({
             placeholder={placeholder}
             variant="none"
             className="h-full w-full flex-1 px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
+            onKeyDown={handleKeyDown}
           />
         </EditorContainer>
       </Plate>
