@@ -79,6 +79,7 @@ export default function RenderingWysiwygEditor({
     console.log('[Focus Debug] Editor element found:', editorElement);
 
     let lastMouseDownInsideEditor = false;
+    let lastMouseDownEvent: { clientX: number; clientY: number } | null = null;
 
     const handleFocus = (e: FocusEvent) => {
       console.log('[Focus Debug] ✅ Editor FOCUSED', {
@@ -100,13 +101,39 @@ export default function RenderingWysiwygEditor({
 
       // If blur happened without a relatedTarget (focus completely lost)
       // and the last mousedown was inside the editor, restore focus
-      if (!e.relatedTarget && lastMouseDownInsideEditor) {
+      if (!e.relatedTarget && lastMouseDownInsideEditor && lastMouseDownEvent) {
         console.log('[Focus Debug] 🔧 Auto-restoring focus (blur with null relatedTarget after internal click)');
+        const { clientX, clientY } = lastMouseDownEvent;
+
         // Use requestAnimationFrame to avoid interfering with ongoing event handling
         requestAnimationFrame(() => {
           if (document.activeElement !== editorElement) {
-            editor.tf.focus();
-            console.log('[Focus Debug] ✅ Focus restored');
+            // Try to set selection at the mouse position
+            try {
+              // First, focus the editor
+              editor.tf.focus();
+
+              // Then try to set the selection at the click position
+              const domRange = document.caretRangeFromPoint?.(clientX, clientY);
+
+              if (domRange) {
+                // Use native Selection API to set the range
+                const selection = window.getSelection();
+                if (selection) {
+                  selection.removeAllRanges();
+                  selection.addRange(domRange);
+                  console.log('[Focus Debug] ✅ Focus and selection restored at click position', { clientX, clientY });
+                } else {
+                  console.log('[Focus Debug] ✅ Focus restored (no Selection API)');
+                }
+              } else {
+                console.log('[Focus Debug] ✅ Focus restored (no range from point)');
+              }
+            } catch (error) {
+              console.warn('[Focus Debug] Error restoring selection at position:', error);
+              // Fallback is already done (editor.tf.focus())
+              console.log('[Focus Debug] ✅ Focus restored (fallback: error)');
+            }
           }
         });
       }
@@ -115,12 +142,15 @@ export default function RenderingWysiwygEditor({
       // Use a timeout to allow the blur handler to complete first
       setTimeout(() => {
         lastMouseDownInsideEditor = false;
+        lastMouseDownEvent = null;
       }, 0);
     };
 
     const handleMouseDown = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       lastMouseDownInsideEditor = true;
+      lastMouseDownEvent = { clientX: e.clientX, clientY: e.clientY };
+
       console.log('[Focus Debug] 🖱️ MOUSEDOWN on editor area', {
         target: target.tagName,
         classList: Array.from(target.classList),
@@ -128,6 +158,8 @@ export default function RenderingWysiwygEditor({
         hasPreventDeselect: target.hasAttribute('data-plate-prevent-deselect'),
         isSlateElement: target.hasAttribute('data-slate-node'),
         path: target.getAttribute('data-path'),
+        clientX: e.clientX,
+        clientY: e.clientY,
         timestamp: new Date().toISOString(),
       });
     };
