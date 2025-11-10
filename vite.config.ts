@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 import path from "path";
-import { codeInspectorPlugin } from "@neurora/code-inspector-plugin";
+import { codeInspectorPlugin } from "code-inspector-plugin";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
@@ -13,6 +13,10 @@ export default defineConfig(async () => ({
     // Code inspector must be placed before @vitejs/plugin-react
     process.env.NODE_ENV !== 'production' && codeInspectorPlugin({
       bundler: 'vite',
+      behavior: {
+        defaultAction: 'copy',  // Copy mode for AI workflow
+      },
+      showSwitch: true,         // Show toggle button
     }),
     react(),
   ].filter(Boolean),
