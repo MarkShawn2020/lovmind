@@ -886,3 +886,18 @@ body {
     transform: translateX(-50%) translateY(0);
   }
 }
+/* Success feedback animation for toolbar buttons */
+.success-flash {
+  animation: successFlash 0.3s ease;
+}
+
+@keyframes successFlash {
+  0%, 100% {
+    background: var(--background);
+  }
+  50% {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+  }
+}

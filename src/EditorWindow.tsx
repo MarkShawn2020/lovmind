@@ -157,25 +157,50 @@ function EditorWindow() {
   };
 
   const handleToggleNotes = async () => {
+    console.log('[DEBUG] handleToggleNotes called');
+    console.log('[DEBUG] isTauri():', isTauri());
+    console.log('[DEBUG] window.__TAURI__:', typeof (window as any).__TAURI__);
+    console.log('[DEBUG] window.__TAURI_INTERNALS__:', typeof (window as any).__TAURI_INTERNALS__);
+
     // 点击最近笔记按钮：切换到主窗口（不关闭编辑器）
     if (isTauri()) {
       try {
-        // 查找主窗口并聚焦
+        console.log('[DEBUG] Fetching all windows...');
         const allWindows = await getAllWebviewWindows();
+        console.log('[DEBUG] All windows count:', allWindows.length);
+        console.log('[DEBUG] All window labels:', allWindows.map(w => w.label));
+
         const mainWindow = allWindows.find(w => w.label === 'main');
+        console.log('[DEBUG] Main window found:', !!mainWindow);
+
         if (mainWindow) {
+          console.log('[DEBUG] Attempting to focus main window...');
           await mainWindow.setFocus();
-          console.log("Switched to main window");
+          console.log('[DEBUG] ✅ Successfully switched to main window');
+
+          // 用户可见的反馈
+          const btn = document.querySelector('.recent-notes-toggle');
+          if (btn) {
+            btn.classList.add('success-flash');
+            setTimeout(() => btn.classList.remove('success-flash'), 300);
+          }
         } else {
-          console.warn("Main window not found");
+          const errorMsg = `Main window not found. Available windows: ${allWindows.map(w => w.label).join(', ')}`;
+          console.error('[ERROR]', errorMsg);
+          alert(errorMsg);
         }
       } catch (error) {
-        console.error("Failed to switch to main window:", error);
+        console.error('[ERROR] Failed to switch to main window:', error);
+        alert(`Failed to switch windows: ${error}`);
       }
     } else {
+      console.log('[DEBUG] Browser environment detected');
       // 浏览器环境：尝试聚焦 opener 窗口，如果存在的话
       if (window.opener && !window.opener.closed) {
+        console.log('[DEBUG] Focusing opener window');
         window.opener.focus();
+      } else {
+        console.log('[DEBUG] No opener window available');
       }
       // 注意：不关闭当前窗口，让用户自己决定
     }
