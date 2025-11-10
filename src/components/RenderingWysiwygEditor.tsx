@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
 
@@ -132,6 +132,18 @@ export default function RenderingWysiwygEditor({
     plugins: EditorKit,
     value: createInitialValue(initialContent),
   });
+
+  // Reset editor when initialContent becomes empty
+  useEffect(() => {
+    if (initialContent === '' && editor) {
+      editor.tf.setValue([
+        {
+          type: 'p',
+          children: [{ text: '' }],
+        },
+      ]);
+    }
+  }, [initialContent, editor]);
 
   // Handle content changes
   const handleChange = ({ value }: { value: Value }) => {
