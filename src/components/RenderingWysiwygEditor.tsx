@@ -21,7 +21,8 @@ export interface RenderingWysiwygEditorRef {
 }
 
 const createInitialValue = (text: string = ''): Value => {
-  if (!text) {
+  // Ensure text is a string
+  if (!text || typeof text !== 'string') {
     return [
       {
         type: 'p',
@@ -146,9 +147,12 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     onSubmit,
     placeholder = "Type your amazing content here..."
   }, ref) {
+    // Ensure initialContent is a string
+    const safeInitialContent = typeof initialContent === 'string' ? initialContent : '';
+
     const editor = usePlateEditor({
       plugins: EditorKit,
-      value: createInitialValue(initialContent),
+      value: createInitialValue(safeInitialContent),
     });
 
     // Expose resetAndFocus method to parent
