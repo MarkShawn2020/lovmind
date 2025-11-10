@@ -16,6 +16,15 @@ export const BlockSelectionKit = [
           KEYS.td,
         ]).includes(element.type);
       },
+      // Prevent the plugin from blurring the editor on clicks
+      areaOptions: {
+        behaviour: {
+          // Don't start selection on every click - only on drag
+          startThreshold: 10,
+        },
+        // Don't blur editor when clicking inside editable areas
+        boundaries: '[data-slate-editor]',
+      },
     },
     render: {
       belowRootNodes: (props) => {

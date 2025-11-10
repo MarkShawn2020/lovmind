@@ -74,8 +74,7 @@ export const EditorKit = [
   ...SlashKit,
   ...AutoformatKit,
   ...CursorOverlayKit,
-  // Temporarily disabled to test if it's causing blur issues
-  // ...BlockMenuKit,
+  ...BlockMenuKit,
   ...DndKit,
   ...EmojiKit,
   ...ExitBreakKit,

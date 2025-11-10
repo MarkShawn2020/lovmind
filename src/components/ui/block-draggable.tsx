@@ -223,20 +223,6 @@ function Gutter({
       )}
       contentEditable={false}
       data-plate-prevent-deselect
-      onMouseDown={(e) => {
-        console.log('[Focus Debug] 🎯 Gutter MOUSEDOWN', {
-          target: e.target,
-          currentTarget: e.currentTarget,
-          hasPreventDeselect: e.currentTarget.hasAttribute('data-plate-prevent-deselect'),
-          contentEditable: (e.currentTarget as HTMLElement).contentEditable,
-        });
-      }}
-      onClick={(e) => {
-        console.log('[Focus Debug] 🎯 Gutter CLICK', {
-          target: e.target,
-          currentTarget: e.currentTarget,
-        });
-      }}
     >
       {children}
     </div>
@@ -264,16 +250,9 @@ const DragHandle = React.memo(function DragHandle({
           className="flex size-full items-center justify-center"
           onClick={(e) => {
             e.preventDefault();
-            console.log('[Focus Debug] 🎯 DragHandle CLICK - calling blockSelection.focus()');
             editor.getApi(BlockSelectionPlugin).blockSelection.focus();
           }}
           onMouseDown={(e) => {
-            console.log('[Focus Debug] 🎯 DragHandle MOUSEDOWN', {
-              button: e.button,
-              shiftKey: e.shiftKey,
-              target: e.target,
-            });
-
             resetPreview();
 
             if (e.button !== 0 || e.shiftKey) return;
@@ -299,7 +278,6 @@ const DragHandle = React.memo(function DragHandle({
             ).map(([node]) => node);
 
             if (blockSelection.length === 0) {
-              console.log('[Focus Debug] 🎯 DragHandle calling editor.tf.blur() and collapse()');
               editor.tf.blur();
               editor.tf.collapse();
             }
