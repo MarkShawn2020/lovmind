@@ -35,6 +35,9 @@ const HashtagAutoformatPlugin = createSlatePlugin({
                   const tagValue = hashtagMatch[1];
                   const matchStart = offset - hashtagMatch[0].length;
 
+                  // Store the current selection for later restoration
+                  const currentSelection = editor.selection;
+
                   // Delete the #tag text
                   editor.tf.delete({
                     at: {
@@ -60,14 +63,20 @@ const HashtagAutoformatPlugin = createSlatePlugin({
                     }
                   );
 
-                  // Move cursor after the hashtag and insert space
-                  editor.tf.move({ distance: 1, unit: 'offset' });
-                  editor.tf.insertText(' ');
+                  // Insert a text node with a space after the hashtag
+                  // This creates a valid cursor position
+                  editor.tf.insertText(' ', {
+                    at: {
+                      path,
+                      offset: matchStart + 1,
+                    },
+                  });
 
-                  // Ensure editor retains focus
-                  setTimeout(() => {
-                    editor.tf.focus();
-                  }, 0);
+                  // Set cursor to be after the space we just inserted
+                  editor.tf.select({
+                    path,
+                    offset: matchStart + 2,
+                  });
 
                   return;
                 }
