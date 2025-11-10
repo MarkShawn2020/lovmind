@@ -6,6 +6,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { useAtom } from 'jotai';
 import { notesAtom, Note } from './store';
+import { Send } from 'lucide-react';
 import './App.css';
 import RenderingWysiwygEditor from './components/RenderingWysiwygEditor';
 
@@ -167,41 +168,7 @@ function EditorWindow() {
 
   return (
     <div className="app-container">
-      <div 
-        className="app-header" 
-        onMouseDown={handleHeaderMouseDown}
-        style={{ cursor: 'move' }}
-      >
-        <h1>✏️ Edit: {note?.title || 'Untitled'}</h1>
-        <div className="view-modes">
-          <button 
-            className={viewMode === 'edit' ? 'active' : ''}
-            onClick={() => setViewMode('edit')}
-          >
-            Edit
-          </button>
-          <button 
-            className={viewMode === 'split' ? 'active' : ''}
-            onClick={() => setViewMode('split')}
-          >
-            Split
-          </button>
-          <button 
-            className={viewMode === 'preview' ? 'active' : ''}
-            onClick={() => setViewMode('preview')}
-          >
-            Preview
-          </button>
-          <button 
-            className={viewMode === 'wysiwyg' ? 'active' : ''}
-            onClick={() => setViewMode('wysiwyg')}
-          >
-            WYSIWYG
-          </button>
-        </div>
-      </div>
-      
-      <div className="editor-section" style={{ marginTop: '0' }}>
+      <div className="editor-section">
         {viewMode === 'wysiwyg' ? (
           <div className="editor-area">
             <RenderingWysiwygEditor
@@ -250,26 +217,22 @@ function EditorWindow() {
             )}
           </div>
         )}
-        
-        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-          <button 
-            className="submit-btn"
-            onClick={handleSave}
-            disabled={!content.trim()}
-            style={{ flex: 1 }}
-          >
-            Save (⌘+S)
-          </button>
-          <button 
-            className="submit-btn"
-            onClick={handleClose}
-            style={{ 
-              flex: 1,
-              background: 'linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%)'
-            }}
-          >
-            Close (⌘+W)
-          </button>
+
+
+        <div className="editor-toolbar">
+          <div className="toolbar-left">
+            {/* 左侧暂时为空，可以添加其他功能按钮 */}
+          </div>
+          <div className="toolbar-right">
+            <button
+              className="send-btn"
+              onClick={handleSave}
+              disabled={!content.trim()}
+              title="Save (⌘+S)"
+            >
+              <Send size={18} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
