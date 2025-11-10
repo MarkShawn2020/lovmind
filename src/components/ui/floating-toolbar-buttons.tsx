@@ -13,7 +13,6 @@ import { KEYS } from 'platejs';
 import { useEditorReadOnly } from 'platejs/react';
 
 import { AIToolbarButton } from './ai-toolbar-button';
-import { InsertToolbarButton } from './insert-toolbar-button';
 import { MarkToolbarButton } from './mark-toolbar-button';
 import { MoreToolbarButton } from './more-toolbar-button';
 import { ToolbarGroup } from './toolbar';
@@ -56,8 +55,6 @@ export function FloatingToolbarButtons() {
             >
               <StrikethroughIcon />
             </MarkToolbarButton>
-
-            <InsertToolbarButton />
           </ToolbarGroup>
 
           <ToolbarGroup>
