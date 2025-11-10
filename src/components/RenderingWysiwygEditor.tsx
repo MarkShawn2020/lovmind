@@ -137,10 +137,13 @@ export default function RenderingWysiwygEditor({
   useEffect(() => {
     if (initialContent === '' && editor) {
       const currentValue = editor.children;
-      // Only reset if editor currently has content (not just a single empty paragraph)
-      const hasContent = currentValue.length > 1 ||
-        (currentValue.length === 1 &&
-         currentValue[0].children?.some((child: any) => child.text !== ''));
+      // Only reset if editor currently has actual text content
+      const hasContent = currentValue.some((node: any) => {
+        if (node.children && Array.isArray(node.children)) {
+          return node.children.some((child: any) => child.text !== '');
+        }
+        return false;
+      });
 
       if (hasContent) {
         editor.tf.setValue([
