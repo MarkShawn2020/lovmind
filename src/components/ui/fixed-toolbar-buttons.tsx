@@ -70,11 +70,7 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
           </ToolbarGroup>
 
           <ToolbarGroup>
-            <ExportToolbarButton>
-              <ArrowUpToLineIcon />
-            </ExportToolbarButton>
-
-            <ImportToolbarButton />
+            <TurnIntoToolbarButton />
           </ToolbarGroup>
 
           <ToolbarGroup>
@@ -97,6 +93,14 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
               >
                 <div className="flex flex-wrap gap-1">
                   <ToolbarGroup>
+                    <ExportToolbarButton>
+                      <ArrowUpToLineIcon />
+                    </ExportToolbarButton>
+
+                    <ImportToolbarButton />
+                  </ToolbarGroup>
+
+                  <ToolbarGroup>
                     <AIToolbarButton tooltip="AI commands">
                       <WandSparklesIcon />
                     </AIToolbarButton>
@@ -104,7 +108,6 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
 
                   <ToolbarGroup>
                     <InsertToolbarButton />
-                    <TurnIntoToolbarButton />
                     <FontSizeToolbarButton />
                   </ToolbarGroup>
 
