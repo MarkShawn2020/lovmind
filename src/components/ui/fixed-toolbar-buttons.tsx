@@ -62,6 +62,11 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
       {!readOnly && (
         <>
           <ToolbarGroup>
+            <UndoToolbarButton />
+            <RedoToolbarButton />
+          </ToolbarGroup>
+
+          <ToolbarGroup>
             <AIToolbarButton tooltip="Ask AI">
               <WandSparklesIcon />
               Ask AI
@@ -91,14 +96,6 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
                 sideOffset={8}
               >
                 <div className="flex flex-wrap gap-1">
-                  <ToolbarGroup>
-                    <ExportToolbarButton>
-                      <ArrowUpToLineIcon />
-                    </ExportToolbarButton>
-
-                    <ImportToolbarButton />
-                  </ToolbarGroup>
-
                   <ToolbarGroup>
                     <InsertToolbarButton />
                     <FontSizeToolbarButton />
@@ -174,19 +171,20 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
                   <ToolbarGroup>
                     <MoreToolbarButton />
                   </ToolbarGroup>
+
+                  <ToolbarGroup>
+                    <ExportToolbarButton>
+                      <ArrowUpToLineIcon />
+                    </ExportToolbarButton>
+
+                    <ImportToolbarButton />
+                  </ToolbarGroup>
                 </div>
               </PopoverContent>
             </Popover>
           </ToolbarGroup>
         </>
       )}
-
-      <div className="grow" />
-
-      <ToolbarGroup>
-        <UndoToolbarButton />
-        <RedoToolbarButton />
-      </ToolbarGroup>
     </div>
   );
 }
