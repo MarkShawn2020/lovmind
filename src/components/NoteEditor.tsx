@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { Pin, Star, Trash2 } from 'lucide-react';
+import { Pin, Star, Trash2, Crown } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { notesAtom, Note } from '../store';
 import RenderingWysiwygEditor, { RenderingWysiwygEditorRef } from './RenderingWysiwygEditor';
@@ -112,6 +112,13 @@ function NoteEditor({
                   <div className="note-content">
                     <div className="note-header">
                       <div className="note-title">
+                        {index < 3 && (
+                          <Crown
+                            className={`icon-inline rank-badge rank-${index + 1}`}
+                            size={16}
+                            fill="currentColor"
+                          />
+                        )}
                         {note.pinned && (
                           <Pin className="icon-inline pinned" size={14} />
                         )}

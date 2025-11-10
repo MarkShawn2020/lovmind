@@ -164,6 +164,34 @@ body {
   fill: var(--highlight);
 }
 
+.icon-inline.rank-badge {
+  animation: crown-shine 2s ease-in-out infinite;
+}
+
+.icon-inline.rank-badge.rank-1 {
+  color: #FFD700;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.6));
+}
+
+.icon-inline.rank-badge.rank-2 {
+  color: #C0C0C0;
+  filter: drop-shadow(0 0 3px rgba(192, 192, 192, 0.6));
+}
+
+.icon-inline.rank-badge.rank-3 {
+  color: #CD7F32;
+  filter: drop-shadow(0 0 3px rgba(205, 127, 50, 0.6));
+}
+
+@keyframes crown-shine {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
 .note-time {
   font-size: 0.625rem;
   color: var(--muted-foreground);
