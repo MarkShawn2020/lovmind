@@ -16,9 +16,10 @@ export function HashtagElement(props: PlateElementProps<THashtagElement>) {
     <PlateElement
       {...props}
       className={cn(
-        'inline-block rounded-md bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 align-baseline text-sm font-medium text-blue-700 dark:text-blue-300',
-        !readOnly && 'cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/50',
-        selected && focused && 'ring-2 ring-blue-500'
+        'inline-block rounded px-1 align-baseline text-sm font-normal',
+        'bg-brand/10 text-brand/90 dark:bg-brand/15 dark:text-brand/80',
+        !readOnly && 'cursor-pointer hover:bg-brand/15 dark:hover:bg-brand/20',
+        selected && focused && 'ring-1 ring-brand/40'
       )}
       attributes={{
         ...props.attributes,

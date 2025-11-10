@@ -27,8 +27,9 @@ const HashtagAutoformatPlugin = createSlatePlugin({
                 const offset = point.offset;
                 const textBeforeCursor = textContent.slice(0, offset);
 
-                // Match hashtag pattern at the end
-                const hashtagMatch = /#(\w+)$/.exec(textBeforeCursor);
+                // Match hashtag pattern at the end (supports Unicode characters including Chinese)
+                // Using \p{L} for Unicode letters, \p{N} for numbers, and \p{M} for combining marks
+                const hashtagMatch = /#([\p{L}\p{N}_]+)$/u.exec(textBeforeCursor);
 
                 if (hashtagMatch) {
                   const tagValue = hashtagMatch[1];
@@ -62,6 +63,12 @@ const HashtagAutoformatPlugin = createSlatePlugin({
                   // Move cursor after the hashtag and insert space
                   editor.tf.move({ distance: 1, unit: 'offset' });
                   editor.tf.insertText(' ');
+
+                  // Ensure editor retains focus
+                  setTimeout(() => {
+                    editor.tf.focus();
+                  }, 0);
+
                   return;
                 }
               }
