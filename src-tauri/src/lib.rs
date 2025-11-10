@@ -86,10 +86,30 @@ async fn get_note_history(_note_id: String) -> Result<Vec<NoteVersion>, String> 
 }
 
 #[tauri::command]
-async fn generate_title_and_tags(_content: String) -> Result<(String, Vec<String>), String> {
+async fn generate_title_and_tags(content: String) -> Result<(String, Vec<String>), String> {
     // TODO: Integrate with LLM API
-    // For now, return placeholder data
-    Ok(("Untitled Note".to_string(), vec!["general".to_string()]))
+    // For now, extract title from first line (matching web behavior)
+    let first_line = content
+        .lines()
+        .next()
+        .unwrap_or("")
+        .chars()
+        .take(50)
+        .collect::<String>();
+
+    let title = if first_line.is_empty() {
+        "Untitled Note".to_string()
+    } else {
+        first_line
+    };
+
+    let tags = if content.contains('#') {
+        vec!["markdown".to_string()]
+    } else {
+        vec!["text".to_string()]
+    };
+
+    Ok((title, tags))
 }
 
 #[tauri::command]
