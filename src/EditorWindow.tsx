@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import {
+  getCurrentWebviewWindow,
+  getAllWebviewWindows,
+  WebviewWindow,
+} from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { useAtom } from 'jotai';
@@ -159,12 +163,92 @@ function EditorWindow() {
     setIsPanelExpanded(prev => !prev);
   }, []);
 
-  const handleSwitchNote = useCallback((targetNote: Note) => {
-    // 切换到另一个笔记
-    setNote(targetNote);
-    setContent(targetNote.text);
-    setIsPanelExpanded(false); // 切换后收起面板
-  }, []);
+  const handleOpenInNewWindow = useCallback(async (targetNote: Note) => {
+    if (!isTauri()) {
+      // 在浏览器环境下，使用 window.open 打开新网页
+      console.log("Opening in browser environment:", targetNote.id);
+      const url = `/?window=editor&noteId=${targetNote.id}`;
+      window.open(url, `note-editor-${targetNote.id}`, 'width=600,height=500');
+      return;
+    }
+
+    try {
+      // 检查是否已经有打开的窗口
+      const windowLabel = `note-editor-${targetNote.id}`;
+      const existingWindows = await getAllWebviewWindows();
+      const existingWindow = existingWindows.find(
+        (w) => w.label === windowLabel
+      );
+
+      if (existingWindow) {
+        // 如果窗口已存在，聚焦到该窗口
+        await existingWindow.setFocus();
+        console.log("Focusing existing window for note:", targetNote.id);
+        return;
+      }
+
+      // 先检查后端是否已有该note的数据（可能是之前保存的）
+      let noteToOpen: Note;
+      try {
+        const backendNote = await invoke<Note | null>("get_temp_note", {
+          id: targetNote.id,
+        });
+        if (backendNote) {
+          console.log("Found existing note in backend:", targetNote.id);
+          noteToOpen = backendNote;
+          // 同步更新当前窗口的状态
+          setNotes((prevNotes) =>
+            prevNotes.map((n) => (n.id === targetNote.id ? backendNote : n))
+          );
+        } else {
+          // 如果后端没有，使用当前的note数据
+          noteToOpen = notes.find((n) => n.id === targetNote.id) || targetNote;
+          await invoke("store_temp_note", { note: noteToOpen });
+          console.log("Stored new note to backend:", targetNote.id);
+        }
+      } catch (error) {
+        console.error("Error checking backend storage:", error);
+        // 如果出错，使用当前数据
+        noteToOpen = notes.find((n) => n.id === targetNote.id) || targetNote;
+        await invoke("store_temp_note", { note: noteToOpen });
+      }
+
+      // 在开发环境中使用完整的开发服务器URL
+      const isDev = window.location.hostname === "localhost";
+      const url = isDev
+        ? `http://localhost:1420/?window=editor&noteId=${targetNote.id}`
+        : `/?window=editor&noteId=${targetNote.id}`;
+
+      console.log("Opening window with URL:", url);
+
+      // 创建新窗口编辑note
+      const webview = new WebviewWindow(windowLabel, {
+        url: url,
+        title: `Edit: ${noteToOpen.title}`,
+        width: 600,
+        height: 500,
+        resizable: true,
+        center: true,
+        alwaysOnTop: true,
+        focus: true,
+        skipTaskbar: false,
+      });
+
+      // 确保窗口获得焦点
+      await webview.once("tauri://created", async () => {
+        await webview.setFocus();
+        console.log("Editor window created and focused for note:", targetNote.id);
+      });
+
+      // 监听窗口关闭事件
+      await webview.once("tauri://destroyed", async () => {
+        console.log("Editor window closed for note:", targetNote.id);
+      });
+    } catch (error) {
+      console.error("Failed to open editor window:", error);
+      alert(`Failed to open editor window: ${error}`);
+    }
+  }, [notes, setNotes]);
 
   const handleDeleteNote = useCallback((noteId: string) => {
     // 如果删除的是当前笔记，清空编辑器
@@ -195,8 +279,7 @@ function EditorWindow() {
         onTogglePanel={handleToggleNotes}
         panelRef={panelRef}
         notesListRef={notesListRef}
-        onNoteClick={handleSwitchNote}
-        currentNoteId={note?.id}
+        onNoteClick={handleOpenInNewWindow}
         onDeleteNote={handleDeleteNote}
       />
     </div>
