@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "LovPen Notes",
+        "title": "Lovpen Notes",
         "width": 420,
         "height": 640,
         "resizable": true,

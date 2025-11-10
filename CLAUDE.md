@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-LovPen Notes is a floating notes app with global hotkey access, built as a Tauri v2 + React + TypeScript desktop application. It features:
+Lovpen Notes is a floating notes app with global hotkey access, built as a Tauri v2 + React + TypeScript desktop application. It features:
 - **Global Hotkey**: `⌘N` (Mac) / `Ctrl+N` (Windows/Linux) to toggle the app from anywhere
 - **Floating Window**: Always-on-top, frameless window with transparency support
 - **Rich Text Editor**: Powered by Plate.js (Slate-based) with WYSIWYG editing

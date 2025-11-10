@@ -1,4 +1,4 @@
-# LovPen Notes
+# Lovpen Notes
 
 A lightning-fast floating notes app for capturing thoughts instantly. Built with Tauri for native performance.
 

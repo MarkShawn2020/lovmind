@@ -588,13 +588,13 @@ function App() {
         style={{ cursor: 'move' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <img 
-            src={lovpenLogo} 
-            alt="LovPen" 
+          <img
+            src={lovpenLogo}
+            alt="Lovpen"
             className="app-logo"
             style={{ height: '20px', width: 'auto' }}
           />
-          <h1>LovPen Notes</h1>
+          <h1>Lovpen Notes</h1>
           <span 
             className="version-badge" 
             style={{ 
