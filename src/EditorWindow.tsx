@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { getCurrentWebviewWindow, getAllWebviewWindows } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { useAtom } from 'jotai';
 import { notesAtom, Note } from './store';
-import { Send } from 'lucide-react';
 import './App.css';
 import RenderingWysiwygEditor from './components/RenderingWysiwygEditor';
+import EditorToolbar from './components/EditorToolbar';
 
 // Check if running in Tauri environment
 const isTauri = () => {
@@ -156,6 +156,27 @@ function EditorWindow() {
     }
   };
 
+  const handleToggleNotes = async () => {
+    // 点击最近笔记按钮：关闭当前编辑窗口并返回主窗口
+    if (isTauri()) {
+      try {
+        // 查找主窗口并聚焦
+        const allWindows = await getAllWebviewWindows();
+        const mainWindow = allWindows.find(w => w.label === 'main');
+        if (mainWindow) {
+          await mainWindow.setFocus();
+        }
+        // 关闭当前编辑窗口
+        await handleClose();
+      } catch (error) {
+        console.error("Failed to toggle to main window:", error);
+      }
+    } else {
+      // 浏览器环境：关闭当前窗口
+      window.close();
+    }
+  };
+
   if (!note) {
     return (
       <div className="app-container">
@@ -218,22 +239,11 @@ function EditorWindow() {
           </div>
         )}
 
-
-        <div className="editor-toolbar">
-          <div className="toolbar-left">
-            {/* 左侧暂时为空，可以添加其他功能按钮 */}
-          </div>
-          <div className="toolbar-right">
-            <button
-              className="send-btn"
-              onClick={handleSave}
-              disabled={!content.trim()}
-              title="Save (⌘+S)"
-            >
-              <Send size={18} />
-            </button>
-          </div>
-        </div>
+        <EditorToolbar
+          onToggleNotes={handleToggleNotes}
+          onSubmit={handleSave}
+          submitDisabled={!content.trim()}
+        />
       </div>
     </div>
   );

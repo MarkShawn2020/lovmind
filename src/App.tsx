@@ -12,66 +12,15 @@ const isTauri = () => {
          ((window as any).__TAURI__ !== undefined || (window as any).__TAURI_INTERNALS__ !== undefined);
 };
 import confetti from "canvas-confetti";
-import { Clock, Pin, Play, Send, Star, Trash2, X } from "lucide-react";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { Pin, Play, Star, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import lovpenLogo from "./assets/lovpen-logo.svg";
 import RenderingWysiwygEditor from "./components/RenderingWysiwygEditor";
+import EditorToolbar from "./components/EditorToolbar";
 import packageJson from "../package.json";
 import { useAtom, useAtomValue } from "jotai";
 import { notesAtom, contentAtom, noteStatsAtom, Note } from "./store";
-
-// Memoized toolbar button to prevent re-renders
-const RecentNotesButton = memo(({ 
-  onClick 
-}: { 
-  onClick: () => void;
-}) => (
-  <button
-    className="toolbar-btn recent-notes-toggle"
-    onClick={onClick}
-    title="Toggle Recent Notes"
-  >
-    <Clock size={18} />
-  </button>
-));
-
-const SendButton = memo(({ 
-  disabled, 
-  onClick 
-}: { 
-  disabled: boolean; 
-  onClick: () => void;
-}) => (
-  <button
-    className="send-btn"
-    onClick={onClick}
-    disabled={disabled}
-    title="Submit (⌘+Enter)"
-  >
-    <Send size={18} />
-  </button>
-));
-
-// Memoized toolbar to prevent any re-renders
-const EditorToolbar = memo(({ 
-  onToggleNotes,
-  onSubmit,
-  submitDisabled
-}: {
-  onToggleNotes: () => void;
-  onSubmit: () => void;
-  submitDisabled: boolean;
-}) => (
-  <div className="editor-toolbar">
-    <div className="toolbar-left">
-      <RecentNotesButton onClick={onToggleNotes} />
-    </div>
-    <div className="toolbar-right">
-      <SendButton disabled={submitDisabled} onClick={onSubmit} />
-    </div>
-  </div>
-));
 
 function App() {
   const [content, setContent] = useAtom(contentAtom);
