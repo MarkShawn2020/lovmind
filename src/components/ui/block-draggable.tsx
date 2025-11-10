@@ -222,6 +222,7 @@ function Gutter({
         className
       )}
       contentEditable={false}
+      data-plate-prevent-deselect
     >
       {children}
     </div>
