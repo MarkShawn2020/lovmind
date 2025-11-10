@@ -13,6 +13,7 @@ import {
   StrikethroughIcon,
   UnderlineIcon,
   WandSparklesIcon,
+  ChevronDownIcon,
 } from 'lucide-react';
 import { KEYS } from 'platejs';
 import { useEditorReadOnly } from 'platejs/react';
@@ -48,6 +49,8 @@ import { TableToolbarButton } from './table-toolbar-button';
 import { ToggleToolbarButton } from './toggle-toolbar-button';
 import { ToolbarGroup } from './toolbar';
 import { TurnIntoToolbarButton } from './turn-into-toolbar-button';
+import { Popover, PopoverContent, PopoverTrigger } from './popover';
+import { ToolbarButton } from './toolbar';
 
 interface FixedToolbarButtonsProps {
   wrap?: boolean;
@@ -55,6 +58,7 @@ interface FixedToolbarButtonsProps {
 
 export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) {
   const readOnly = useEditorReadOnly();
+  const [isToolbarOpen, setIsToolbarOpen] = React.useState(false);
 
   return (
     <div className={cn("flex w-full", wrap && "flex-wrap")}>
@@ -66,12 +70,6 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
           </ToolbarGroup>
 
           <ToolbarGroup>
-            <AIToolbarButton tooltip="AI commands">
-              <WandSparklesIcon />
-            </AIToolbarButton>
-          </ToolbarGroup>
-
-          <ToolbarGroup>
             <ExportToolbarButton>
               <ArrowUpToLineIcon />
             </ExportToolbarButton>
@@ -80,80 +78,109 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
           </ToolbarGroup>
 
           <ToolbarGroup>
-            <InsertToolbarButton />
-            <TurnIntoToolbarButton />
-            <FontSizeToolbarButton />
-          </ToolbarGroup>
+            <Popover open={isToolbarOpen} onOpenChange={setIsToolbarOpen}>
+              <PopoverTrigger asChild>
+                <ToolbarButton
+                  tooltip="更多工具"
+                  pressed={isToolbarOpen}
+                >
+                  <ChevronDownIcon className={cn(
+                    "transition-transform",
+                    isToolbarOpen && "rotate-180"
+                  )} />
+                </ToolbarButton>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                className="w-auto max-w-2xl p-2"
+                sideOffset={8}
+              >
+                <div className="flex flex-wrap gap-1">
+                  <ToolbarGroup>
+                    <AIToolbarButton tooltip="AI commands">
+                      <WandSparklesIcon />
+                    </AIToolbarButton>
+                  </ToolbarGroup>
 
-          <ToolbarGroup>
-            <MarkToolbarButton nodeType={KEYS.bold} tooltip="Bold (⌘+B)">
-              <BoldIcon />
-            </MarkToolbarButton>
+                  <ToolbarGroup>
+                    <InsertToolbarButton />
+                    <TurnIntoToolbarButton />
+                    <FontSizeToolbarButton />
+                  </ToolbarGroup>
 
-            <MarkToolbarButton nodeType={KEYS.italic} tooltip="Italic (⌘+I)">
-              <ItalicIcon />
-            </MarkToolbarButton>
+                  <ToolbarGroup>
+                    <MarkToolbarButton nodeType={KEYS.bold} tooltip="Bold (⌘+B)">
+                      <BoldIcon />
+                    </MarkToolbarButton>
 
-            <MarkToolbarButton
-              nodeType={KEYS.underline}
-              tooltip="Underline (⌘+U)"
-            >
-              <UnderlineIcon />
-            </MarkToolbarButton>
+                    <MarkToolbarButton nodeType={KEYS.italic} tooltip="Italic (⌘+I)">
+                      <ItalicIcon />
+                    </MarkToolbarButton>
 
-            <MarkToolbarButton
-              nodeType={KEYS.strikethrough}
-              tooltip="Strikethrough (⌘+⇧+M)"
-            >
-              <StrikethroughIcon />
-            </MarkToolbarButton>
+                    <MarkToolbarButton
+                      nodeType={KEYS.underline}
+                      tooltip="Underline (⌘+U)"
+                    >
+                      <UnderlineIcon />
+                    </MarkToolbarButton>
 
-            <MarkToolbarButton nodeType={KEYS.code} tooltip="Code (⌘+E)">
-              <Code2Icon />
-            </MarkToolbarButton>
+                    <MarkToolbarButton
+                      nodeType={KEYS.strikethrough}
+                      tooltip="Strikethrough (⌘+⇧+M)"
+                    >
+                      <StrikethroughIcon />
+                    </MarkToolbarButton>
 
-            <FontColorToolbarButton nodeType={KEYS.color} tooltip="Text color">
-              <BaselineIcon />
-            </FontColorToolbarButton>
+                    <MarkToolbarButton nodeType={KEYS.code} tooltip="Code (⌘+E)">
+                      <Code2Icon />
+                    </MarkToolbarButton>
 
-            <FontColorToolbarButton
-              nodeType={KEYS.backgroundColor}
-              tooltip="Background color"
-            >
-              <PaintBucketIcon />
-            </FontColorToolbarButton>
-          </ToolbarGroup>
+                    <FontColorToolbarButton nodeType={KEYS.color} tooltip="Text color">
+                      <BaselineIcon />
+                    </FontColorToolbarButton>
 
-          <ToolbarGroup>
-            <AlignToolbarButton />
+                    <FontColorToolbarButton
+                      nodeType={KEYS.backgroundColor}
+                      tooltip="Background color"
+                    >
+                      <PaintBucketIcon />
+                    </FontColorToolbarButton>
+                  </ToolbarGroup>
 
-            <NumberedListToolbarButton />
-            <BulletedListToolbarButton />
-            <TodoListToolbarButton />
-            <ToggleToolbarButton />
-          </ToolbarGroup>
+                  <ToolbarGroup>
+                    <AlignToolbarButton />
 
-          <ToolbarGroup>
-            <LinkToolbarButton />
-            <TableToolbarButton />
-            <EmojiToolbarButton />
-          </ToolbarGroup>
+                    <NumberedListToolbarButton />
+                    <BulletedListToolbarButton />
+                    <TodoListToolbarButton />
+                    <ToggleToolbarButton />
+                  </ToolbarGroup>
 
-          <ToolbarGroup>
-            <MediaToolbarButton nodeType={KEYS.img} />
-            <MediaToolbarButton nodeType={KEYS.video} />
-            <MediaToolbarButton nodeType={KEYS.audio} />
-            <MediaToolbarButton nodeType={KEYS.file} />
-          </ToolbarGroup>
+                  <ToolbarGroup>
+                    <LinkToolbarButton />
+                    <TableToolbarButton />
+                    <EmojiToolbarButton />
+                  </ToolbarGroup>
 
-          <ToolbarGroup>
-            <LineHeightToolbarButton />
-            <OutdentToolbarButton />
-            <IndentToolbarButton />
-          </ToolbarGroup>
+                  <ToolbarGroup>
+                    <MediaToolbarButton nodeType={KEYS.img} />
+                    <MediaToolbarButton nodeType={KEYS.video} />
+                    <MediaToolbarButton nodeType={KEYS.audio} />
+                    <MediaToolbarButton nodeType={KEYS.file} />
+                  </ToolbarGroup>
 
-          <ToolbarGroup>
-            <MoreToolbarButton />
+                  <ToolbarGroup>
+                    <LineHeightToolbarButton />
+                    <OutdentToolbarButton />
+                    <IndentToolbarButton />
+                  </ToolbarGroup>
+
+                  <ToolbarGroup>
+                    <MoreToolbarButton />
+                  </ToolbarGroup>
+                </div>
+              </PopoverContent>
+            </Popover>
           </ToolbarGroup>
         </>
       )}
