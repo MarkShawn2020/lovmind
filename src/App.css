@@ -422,11 +422,11 @@ body {
 .recent-notes-panel {
   flex-shrink: 0;
   background: var(--muted);
-  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* Smooth height animation for internal squeeze effect */
+  /* Smooth height animation for internal squeeze effect - expands from top */
   height: 0;
   opacity: 0;
   transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
