@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tauri::{Emitter, Manager, WindowEvent};
+use tauri::{Emitter, Manager, WindowEvent, menu::{MenuBuilder, MenuItemBuilder, CheckMenuItemBuilder}};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use uuid::Uuid;
 
@@ -139,6 +139,26 @@ async fn broadcast_note_update(app: tauri::AppHandle, note: note_store::TempNote
     Ok(())
 }
 
+#[tauri::command]
+async fn is_ai_enabled(app: tauri::AppHandle) -> Result<bool, String> {
+    let store = app.store("settings.json").map_err(|e| e.to_string())?;
+    let enabled = store.get("ai_enabled")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    Ok(enabled)
+}
+
+#[tauri::command]
+async fn set_ai_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    let store = app.store("settings.json").map_err(|e| e.to_string())?;
+    store.set("ai_enabled", serde_json::json!(enabled));
+    store.save().map_err(|e| e.to_string())?;
+
+    // Broadcast to all windows
+    app.emit("ai-enabled-changed", enabled).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -160,12 +180,39 @@ pub fn run() {
             clear_temp_notes,
             open_devtools,
             broadcast_note_update,
+            is_ai_enabled,
+            set_ai_enabled,
         ])
         .setup(|app| {
+            // Create menu with AI toggle
+            let store = app.store("settings.json").unwrap();
+            let ai_enabled = store.get("ai_enabled")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+
+            let ai_toggle = CheckMenuItemBuilder::new("Enable AI Features")
+                .id("ai_toggle")
+                .checked(ai_enabled)
+                .build(app)?;
+
+            let app_handle = app.handle().clone();
+            ai_toggle.on_check_menu_item_event(move |_app, event| {
+                let app_clone = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    let _ = set_ai_enabled(app_clone, event.checked).await;
+                });
+            });
+
+            let menu = MenuBuilder::new(app)
+                .item(&ai_toggle)
+                .build()?;
+
+            app.set_menu(menu)?;
+
             // Register global shortcut for Cmd+N
             let window = app.get_webview_window("main").unwrap();
             let window_clone = window.clone();
-            
+
             let shortcut = Shortcut::new(Some(Modifiers::SUPER), Code::KeyN);
             
             app.global_shortcut().on_shortcuts(vec![shortcut.clone()], move |_app, shortcut, event| {
