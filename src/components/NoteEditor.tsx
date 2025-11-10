@@ -90,15 +90,15 @@ function NoteEditor({
           {notes.length === 0 ? (
             <p className="empty-state">No notes yet. Start writing above!</p>
           ) : (
-            [...notes]
-              .sort((a, b) => {
+            (() => {
+              const sortedNotes = [...notes].sort((a, b) => {
                 // Pinned notes come first
                 if (a.pinned && !b.pinned) return -1;
                 if (!a.pinned && b.pinned) return 1;
                 // Within same pin status, sort by creation time descending (newest first)
                 return Number(b.id) - Number(a.id);
-              })
-              .map((note, index) => (
+              });
+              return sortedNotes.map((note, index) => (
                 <div
                   key={note.id}
                   className={`note-item ${
@@ -125,7 +125,7 @@ function NoteEditor({
                         {note.favorite && (
                           <Star className="icon-inline favorited" size={14} />
                         )}
-                        {index + 1}. {note.title}
+                        {sortedNotes.length - index}. {note.title}
                       </div>
                       <span className="note-time">{dayjs(note.time).fromNow()}</span>
                     </div>
@@ -174,7 +174,8 @@ function NoteEditor({
                     </div>
                   </div>
                 </div>
-              ))
+              ));
+            })()
           )}
         </div>
       </div>
