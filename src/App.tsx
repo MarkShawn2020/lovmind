@@ -19,6 +19,7 @@ import NoteEditor from "./components/NoteEditor";
 import packageJson from "../package.json";
 import { useAtom, useAtomValue } from "jotai";
 import { notesAtom, contentAtom, noteStatsAtom, Note } from "./store";
+import { RenderingWysiwygEditorRef } from "./components/RenderingWysiwygEditor";
 
 function App() {
   const [content, setContent] = useAtom(contentAtom);
@@ -26,6 +27,7 @@ function App() {
   const [resumingNoteId, setResumingNoteId] = useState<string | null>(null);
   const notesListRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
   const isExpandedRef = useRef(false);
   // Store the collapsed height to restore when collapsing
   const collapsedHeightRef = useRef<number | null>(null);
@@ -224,7 +226,10 @@ function App() {
       }
 
       setNotes([...updatedNotes, newNote]);
+
+      // Reset editor and focus - unified handling for both button and keyboard submit
       setContent("");
+      editorRef.current?.resetAndFocus();
 
       // 触发confetti动画
       confetti({
@@ -562,6 +567,7 @@ function App() {
         onTogglePanel={handleToggleRecentNotes}
         panelRef={panelRef}
         notesListRef={notesListRef}
+        editorRef={editorRef}
         onNoteClick={handleOpenInNewWindow}
         resumingNoteId={resumingNoteId}
         onResumeNote={handleResume}

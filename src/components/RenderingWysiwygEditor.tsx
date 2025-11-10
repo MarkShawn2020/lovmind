@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
 
@@ -12,6 +12,10 @@ interface RenderingWysiwygEditorProps {
   onChange?: (content: string) => void;
   onSubmit?: () => void;
   placeholder?: string;
+}
+
+export interface RenderingWysiwygEditorRef {
+  resetAndFocus: () => void;
 }
 
 const createInitialValue = (text: string = ''): Value => {
@@ -122,31 +126,22 @@ const extractTextContent = (value: Value): string => {
   return results.join('\n');
 };
 
-export default function RenderingWysiwygEditor({
-  initialContent = '',
-  onChange,
-  onSubmit,
-  placeholder = "Type your amazing content here..."
-}: RenderingWysiwygEditorProps) {
-  const editor = usePlateEditor({
-    plugins: EditorKit,
-    value: createInitialValue(initialContent),
-  });
-  const editorRef = useRef<HTMLDivElement>(null);
+const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWysiwygEditorProps>(
+  function RenderingWysiwygEditor({
+    initialContent = '',
+    onChange,
+    onSubmit,
+    placeholder = "Type your amazing content here..."
+  }, ref) {
+    const editor = usePlateEditor({
+      plugins: EditorKit,
+      value: createInitialValue(initialContent),
+    });
 
-  // Reset editor when initialContent becomes empty from a non-empty state
-  useEffect(() => {
-    if (initialContent === '' && editor) {
-      const currentValue = editor.children;
-      // Only reset if editor currently has actual text content
-      const hasContent = currentValue.some((node: any) => {
-        if (node.children && Array.isArray(node.children)) {
-          return node.children.some((child: any) => child.text !== '');
-        }
-        return false;
-      });
-
-      if (hasContent) {
+    // Expose resetAndFocus method to parent
+    useImperativeHandle(ref, () => ({
+      resetAndFocus: () => {
+        // Reset editor content
         editor.tf.setValue([
           {
             type: 'p',
@@ -154,78 +149,43 @@ export default function RenderingWysiwygEditor({
           },
         ]);
 
-        // Focus editor after reset - delay to ensure all animations complete
-        console.log('Editor reset, scheduling focus...');
-        setTimeout(() => {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              try {
-                console.log('Attempting to focus editor...');
-
-                // First, set selection to the start of the editor
-                try {
-                  editor.tf.select({ path: [0, 0], offset: 0 });
-                  console.log('Set selection to start');
-                } catch (e) {
-                  console.warn('Could not set selection:', e);
-                }
-
-                // Try to focus using Plate API
-                editor.tf.focus();
-                console.log('Called editor.tf.focus()');
-
-                // Also try direct DOM focus as fallback
-                if (editorRef.current) {
-                  const editableElement = editorRef.current.querySelector('[data-slate-editor="true"]') as HTMLElement;
-                  if (editableElement) {
-                    editableElement.focus();
-                    console.log('Called editableElement.focus()');
-                  } else {
-                    console.warn('Could not find [data-slate-editor] element');
-                  }
-                } else {
-                  console.warn('editorRef.current is null');
-                }
-
-                console.log('Focus attempt complete, active element:', document.activeElement);
-              } catch (error) {
-                console.error('Failed to focus editor:', error);
-              }
-            });
-          });
-        }, 150);
+        // Set selection to start and focus
+        editor.tf.select({ path: [0, 0], offset: 0 });
+        editor.tf.focus();
       }
-    }
-  }, [initialContent, editor]);
+    }), [editor]);
 
-  // Handle content changes
-  const handleChange = ({ value }: { value: Value }) => {
-    if (onChange) {
-      const content = extractTextContent(value);
-      onChange(content);
-    }
-  };
+    // Handle content changes
+    const handleChange = ({ value }: { value: Value }) => {
+      if (onChange) {
+        const content = extractTextContent(value);
+        onChange(content);
+      }
+    };
 
-  // Handle keyboard shortcuts (Cmd+Enter to submit)
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-      e.preventDefault();
-      onSubmit?.();
-    }
-  };
+    // Handle keyboard shortcuts (Cmd+Enter to submit)
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        onSubmit?.();
+      }
+    };
 
-  return (
-    <div className="h-full w-full flex flex-col" ref={editorRef}>
-      <Plate editor={editor} onChange={handleChange}>
-        <EditorContainer className="h-full w-full flex flex-col flex-1">
-          <Editor
-            placeholder={placeholder}
-            variant="none"
-            className="h-full w-full flex-1 px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
-            onKeyDown={handleKeyDown}
-          />
-        </EditorContainer>
-      </Plate>
-    </div>
-  );
-}
+    return (
+      <div className="h-full w-full flex flex-col">
+        <Plate editor={editor} onChange={handleChange}>
+          <EditorContainer className="h-full w-full flex flex-col flex-1">
+            <Editor
+              placeholder={placeholder}
+              variant="none"
+              className="h-full w-full flex-1 px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
+              onKeyDown={handleKeyDown}
+            />
+          </EditorContainer>
+        </Plate>
+      </div>
+    );
+  }
+);
+
+export default RenderingWysiwygEditor;

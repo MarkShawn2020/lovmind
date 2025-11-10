@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import { Pin, Play, Star, Trash2, X } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { notesAtom, Note } from '../store';
-import RenderingWysiwygEditor from './RenderingWysiwygEditor';
+import RenderingWysiwygEditor, { RenderingWysiwygEditorRef } from './RenderingWysiwygEditor';
 import EditorToolbar from './EditorToolbar';
 
 interface NoteEditorProps {
@@ -14,6 +14,7 @@ interface NoteEditorProps {
   onTogglePanel: () => void;
   panelRef: React.RefObject<HTMLDivElement | null>;
   notesListRef: React.RefObject<HTMLDivElement | null>;
+  editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
   // 可选的额外功能
   onNoteClick?: (note: Note) => void;
   currentNoteId?: string | null; // 用于高亮当前编辑的笔记
@@ -34,6 +35,7 @@ function NoteEditor({
   onTogglePanel,
   panelRef,
   notesListRef,
+  editorRef,
   onNoteClick,
   currentNoteId,
   resumingNoteId,
@@ -69,6 +71,7 @@ function NoteEditor({
     <div className="editor-section">
       <div className="editor-area">
         <RenderingWysiwygEditor
+          ref={editorRef}
           initialContent={content}
           onChange={onContentChange}
           onSubmit={onSubmit}
