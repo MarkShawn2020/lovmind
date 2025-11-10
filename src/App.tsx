@@ -389,7 +389,7 @@ function App() {
       const isDev = window.location.hostname === "localhost";
       const url = isDev
         ? `http://localhost:1420/?window=editor&noteId=${note.id}`
-        : `/?window=editor&noteId=${note.id}`;
+        : `index.html?window=editor&noteId=${note.id}`;
 
       console.log("Opening window with URL:", url);
 

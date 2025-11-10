@@ -217,7 +217,7 @@ function EditorWindow() {
       const isDev = window.location.hostname === "localhost";
       const url = isDev
         ? `http://localhost:1420/?window=editor&noteId=${targetNote.id}`
-        : `/?window=editor&noteId=${targetNote.id}`;
+        : `index.html?window=editor&noteId=${targetNote.id}`;
 
       console.log("Opening window with URL:", url);
 
