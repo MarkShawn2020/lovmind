@@ -13,6 +13,7 @@ import {
   UnderlineIcon,
   WandSparklesIcon,
   MoreHorizontalIcon,
+  MoreVerticalIcon,
 } from 'lucide-react';
 import { KEYS } from 'platejs';
 import { useEditorReadOnly } from 'platejs/react';
@@ -84,7 +85,7 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
                   tooltip="更多工具"
                   pressed={isToolbarOpen}
                 >
-                  <MoreHorizontalIcon />
+                  {isToolbarOpen ? <MoreVerticalIcon /> : <MoreHorizontalIcon />}
                 </ToolbarButton>
               </PopoverTrigger>
               <PopoverContent
