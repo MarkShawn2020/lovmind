@@ -1,7 +1,4 @@
 #!/bin/sh
 
-# Post-commit hook intentionally left minimal
-# Version management is handled by package.json only
-# No auto-version updates to avoid triggering dev server reloads
-
+# Post-commit hook: nothing to do, version already updated in pre-commit
 exit 0
