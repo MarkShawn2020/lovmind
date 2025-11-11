@@ -979,7 +979,7 @@ function NoteEditor({
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
-                    <span><strong>100% 本地</strong> - 数据永不离开你的设备</span>
+                    <span><strong>数据本地存储</strong> - 当前为特发版，跨端云同步版本即将推出</span>
                   </li>
                 </ul>
               </div>
