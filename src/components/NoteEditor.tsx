@@ -79,6 +79,7 @@ function NoteEditor({
   const editorRef = externalEditorRef || internalEditorRef;
   const isExpandedRef = useRef(false);
   const collapsedHeightRef = useRef<number | undefined>(undefined);
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Handle window dragging
   const handleHeaderMouseDown = async () => {
@@ -284,6 +285,14 @@ function NoteEditor({
       // Expanding: show panel content first (instantly), then animate window expansion over 300ms
       isExpandedRef.current = true;
 
+      // Step 0: Lock editor container height to prevent layout shift
+      if (editorContainerRef.current) {
+        const currentHeight = editorContainerRef.current.offsetHeight;
+        editorContainerRef.current.style.height = `${currentHeight}px`;
+        editorContainerRef.current.style.flexGrow = '0';
+        editorContainerRef.current.style.flexShrink = '0';
+      }
+
       // Step 1: Show panel content instantly (remove hidden, set full height immediately)
       if (panelRef.current) {
         panelRef.current.classList.remove('hidden');
@@ -323,6 +332,13 @@ function NoteEditor({
 
             if (progress < 1) {
               requestAnimationFrame(animate);
+            } else {
+              // Animation complete: unlock editor container height
+              if (editorContainerRef.current) {
+                editorContainerRef.current.style.height = '';
+                editorContainerRef.current.style.flexGrow = '';
+                editorContainerRef.current.style.flexShrink = '';
+              }
             }
           };
 
@@ -335,6 +351,14 @@ function NoteEditor({
     } else {
       // Collapsing: first animate panel up, then shrink window
       isExpandedRef.current = false;
+
+      // Lock editor container height before collapsing
+      if (editorContainerRef.current) {
+        const currentHeight = editorContainerRef.current.offsetHeight;
+        editorContainerRef.current.style.height = `${currentHeight}px`;
+        editorContainerRef.current.style.flexGrow = '0';
+        editorContainerRef.current.style.flexShrink = '0';
+      }
 
       // Animate panel sliding up (h-[250px] -> h-0)
       setIsPanelExpanded(false);
@@ -358,6 +382,13 @@ function NoteEditor({
               currentSize.width,
               targetHeight
             ));
+
+            // Unlock editor container height after window resize
+            if (editorContainerRef.current) {
+              editorContainerRef.current.style.height = '';
+              editorContainerRef.current.style.flexGrow = '';
+              editorContainerRef.current.style.flexShrink = '';
+            }
           } catch (error) {
             console.warn('Failed to resize window:', error);
           }
@@ -474,7 +505,7 @@ function NoteEditor({
       {/* Editor Section */}
       <div className="editor-section">
         {/* Fixed editor + toolbar container - height never changes */}
-        <div className="flex-1 flex-shrink-0 flex flex-col overflow-hidden min-h-0">
+        <div ref={editorContainerRef} className="flex-1 flex-shrink-0 flex flex-col overflow-hidden min-h-0">
           <div className="editor-area">
             <RenderingWysiwygEditor
               ref={editorRef}
