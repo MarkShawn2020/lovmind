@@ -35,7 +35,15 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           setAvatar(savedProfile.avatar || null);
         }
       } catch (error) {
-        console.error('Failed to load profile:', error);
+        console.warn('Failed to load profile from Tauri, falling back to localStorage:', error);
+        // Fallback to localStorage if Tauri command not available
+        const saved = localStorage.getItem('user_profile');
+        if (saved) {
+          const savedProfile = JSON.parse(saved) as UserProfile;
+          setProfile(savedProfile);
+          setNickname(savedProfile.nickname || '');
+          setAvatar(savedProfile.avatar || null);
+        }
       }
     } else {
       // Web fallback
@@ -61,7 +69,11 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         setProfile(newProfile);
         onClose();
       } catch (error) {
-        console.error('Failed to save profile:', error);
+        console.warn('Failed to save profile to Tauri, falling back to localStorage:', error);
+        // Fallback to localStorage if Tauri command not available
+        localStorage.setItem('user_profile', JSON.stringify(newProfile));
+        setProfile(newProfile);
+        onClose();
       }
     } else {
       // Web fallback

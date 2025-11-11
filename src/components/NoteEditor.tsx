@@ -104,7 +104,12 @@ function NoteEditor({
             setUserProfile(profile);
           }
         } catch (error) {
-          console.error('Failed to load profile:', error);
+          console.warn('Failed to load profile from Tauri, falling back to localStorage:', error);
+          // Fallback to localStorage if Tauri command not available
+          const saved = localStorage.getItem('user_profile');
+          if (saved) {
+            setUserProfile(JSON.parse(saved));
+          }
         }
       } else {
         const saved = localStorage.getItem('user_profile');
@@ -127,7 +132,12 @@ function NoteEditor({
               setUserProfile(profile);
             }
           } catch (error) {
-            console.error('Failed to load profile:', error);
+            console.warn('Failed to load profile from Tauri, falling back to localStorage:', error);
+            // Fallback to localStorage if Tauri command not available
+            const saved = localStorage.getItem('user_profile');
+            if (saved) {
+              setUserProfile(JSON.parse(saved));
+            }
           }
         } else {
           const saved = localStorage.getItem('user_profile');
