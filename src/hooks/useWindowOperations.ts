@@ -8,6 +8,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { load } from '@tauri-apps/plugin-store';
 import { Note } from '../store';
 import { isTauri } from '../utils/tauri';
+import { WINDOW_CONFIG } from '../constants/window';
 
 /**
  * Custom hook for window operations
@@ -91,14 +92,14 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
         console.log('Opening window with URL:', url);
 
         // Load window size from store
-        let windowWidth = 320;
-        let windowHeight = 500;
+        let windowWidth = WINDOW_CONFIG.EDITOR.WIDTH;
+        let windowHeight = WINDOW_CONFIG.EDITOR.HEIGHT;
         try {
           const store = await load('settings.json');
           const savedWidth = await store.get<number>('editor_window_width');
           const savedHeight = await store.get<number>('editor_window_height');
-          if (savedWidth && savedWidth >= 320) windowWidth = savedWidth;
-          if (savedHeight && savedHeight >= 300) windowHeight = savedHeight;
+          if (savedWidth && savedWidth >= WINDOW_CONFIG.EDITOR.MIN_WIDTH) windowWidth = savedWidth;
+          if (savedHeight && savedHeight >= WINDOW_CONFIG.EDITOR.MIN_HEIGHT) windowHeight = savedHeight;
         } catch (error) {
           console.log('Could not load window size from store, using defaults');
         }
@@ -109,8 +110,8 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
           title: `Edit: ${noteToOpen.title}`,
           width: windowWidth,
           height: windowHeight,
-          minWidth: 320,
-          minHeight: 300,
+          minWidth: WINDOW_CONFIG.EDITOR.MIN_WIDTH,
+          minHeight: WINDOW_CONFIG.EDITOR.MIN_HEIGHT,
           resizable: true,
           center: true,
           alwaysOnTop: false,

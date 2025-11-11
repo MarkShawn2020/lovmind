@@ -17,6 +17,8 @@
         "title": "Lovpen Notes",
         "width": 420,
         "height": 640,
+        "minWidth": 320,
+        "minHeight": 300,
         "resizable": true,
         "alwaysOnTop": false,
         "decorations": false,
