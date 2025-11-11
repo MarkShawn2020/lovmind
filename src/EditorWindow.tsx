@@ -182,6 +182,28 @@ function EditorWindow() {
     }
   };
 
+  // Debug function to check current state
+  const debugState = () => {
+    console.log('=== DEBUG STATE ===');
+    console.log('note:', note);
+    console.log('content:', content);
+    console.log('richContent:', richContent);
+    console.log('currentTags:', currentTags);
+    console.log('==================');
+  };
+
+  // Add keyboard shortcut for debug: Cmd+D
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+        e.preventDefault();
+        debugState();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [note, content, richContent, currentTags]);
+
   const handleHeaderMouseDown = async () => {
     if (!isTauri()) return;
 
