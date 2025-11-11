@@ -312,11 +312,11 @@ function NoteEditor({
       });
 
     } else {
-      // Collapsing: shrink window first (panel content stays visible), then hide panel
+      // Collapsing: shrink window first, then trigger panel CSS transition
       isExpandedRef.current = false;
       document.querySelector('.recent-notes-toggle')?.classList.remove('active');
 
-      // Step 1: Start shrinking window (panel remains visible at full height)
+      // Step 1: Shrink window immediately
       if (isTauri()) {
         const appWindow = getCurrentWindow();
         appWindow.innerSize().then(physicalSize => {
@@ -334,14 +334,18 @@ function NoteEditor({
         });
       }
 
-      // Step 2: After window shrinks, hide the panel
-      // During shrinking, panel overflows window bounds but is clipped by overflow:hidden
-      setTimeout(() => {
+      // Step 2: Immediately after window shrinks, start panel CSS transition
+      // Panel transitions from h-[250px] to h-0, overflow is clipped by window
+      requestAnimationFrame(() => {
         setIsPanelExpanded(false);
-        if (panelRef.current) {
-          panelRef.current.classList.add('hidden');
-        }
-      }, 300); // Wait for window resize animation to complete
+
+        // After CSS transition completes, add hidden class
+        setTimeout(() => {
+          if (panelRef.current) {
+            panelRef.current.classList.add('hidden');
+          }
+        }, 300);
+      });
     }
   }, []);
 
