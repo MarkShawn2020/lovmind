@@ -463,8 +463,8 @@ function NoteEditor({
 
       {/* Editor Section */}
       <div className="editor-section">
-        {/* Fixed editor + toolbar container */}
-        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        {/* Fixed editor + toolbar container - height never changes */}
+        <div className="flex-1 flex-shrink-0 flex flex-col overflow-hidden min-h-0">
           <div className="editor-area">
             <RenderingWysiwygEditor
               ref={editorRef}
