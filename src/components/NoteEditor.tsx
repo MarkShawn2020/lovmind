@@ -384,23 +384,15 @@ function NoteEditor({
           className="app-header cursor-move"
           onMouseDown={handleHeaderMouseDown}
         >
-          <div className="flex items-center gap-2">
-            <h1 className="text-sm">{currentNote?.title || 'Untitled Note'}</h1>
-          </div>
-          <div className="header-stats flex items-center gap-2">
-            {currentNote && (
-              <span className="header-stat-badge text-xs">
-                {dayjs(currentNote.time).fromNow()}
-              </span>
-            )}
+          <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1">
+            {currentNote?.title || 'Untitled Note'}
           </div>
           <button
             className={`toolbar-btn always-on-top-toggle ${isWindowAlwaysOnTop ? 'active' : ''}`}
             onClick={handleToggleAlwaysOnTop}
             title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
-            style={{ width: '28px', height: '28px', marginLeft: '8px' }}
           >
-            <Maximize2 size={14} />
+            <Pin size={16} />
           </button>
         </div>
       )}
