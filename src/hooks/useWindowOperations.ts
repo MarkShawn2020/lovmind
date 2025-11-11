@@ -157,19 +157,23 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
         // Save window bounds (position + size) to store
         const saveBounds = async () => {
           try {
+            const scaleFactor = await webview.scaleFactor();
             const position = await webview.outerPosition();
             const size = await webview.outerSize();
+
+            // Convert physical pixels to logical pixels
             const bounds: WindowBounds = {
-              x: position.x,
-              y: position.y,
-              width: size.width,
-              height: size.height,
+              x: Math.round(position.x / scaleFactor),
+              y: Math.round(position.y / scaleFactor),
+              width: Math.round(size.width / scaleFactor),
+              height: Math.round(size.height / scaleFactor),
             };
+
             const store = await load('settings.json');
             const boundsKey = `editor_window_bounds_${note.id}`;
             await store.set(boundsKey, bounds);
             await store.save();
-            console.log('Saved window bounds for note:', note.id, bounds);
+            console.log('Saved window bounds for note:', note.id, bounds, 'scaleFactor:', scaleFactor);
           } catch (error) {
             console.error('Failed to save window bounds:', error);
           }
