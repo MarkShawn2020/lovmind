@@ -47,7 +47,11 @@ export default defineConfig(async () => ({
       : undefined,
     watch: {
       // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      ignored: [
+        "**/src-tauri/**",
+        "**/package.json",
+        "**/CHANGELOG.md",
+      ],
     },
   },
   // 单入口配置，通过 URL 参数控制渲染
