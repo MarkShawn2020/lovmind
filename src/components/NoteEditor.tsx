@@ -324,7 +324,7 @@ function NoteEditor({
                 </svg>
               </div>
               <div className="empty-state-content w-full max-w-[280px] mx-auto flex flex-col items-center justify-center">
-                <div className="empty-state-title">
+                <div className="empty-state-title self-center">
                   <Sparkles size={16} className="icon-sparkle" />
                   开启灵感之旅
                 </div>
