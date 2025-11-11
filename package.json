@@ -10,6 +10,11 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "build:dmg": "tauri build --bundles dmg",
+    "build:mac-universal": "tauri build --target universal-apple-darwin",
+    "build:mac-intel": "tauri build --target x86_64-apple-darwin",
+    "build:mac-arm": "tauri build --target aarch64-apple-darwin",
+    "build:win-x64": "tauri build --target x86_64-pc-windows-msvc",
+    "build:win-arm": "tauri build --target aarch64-pc-windows-msvc",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run",
     "prepare": "husky"
