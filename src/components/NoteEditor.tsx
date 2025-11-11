@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Pin, Star, Trash2, Crown, Sparkles } from 'lucide-react';
+import { Pin, Star, Trash2, Crown, Sparkles, Maximize2 } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
@@ -255,13 +255,17 @@ function NoteEditor({
   }, [mode, currentNote, togglePin]);
 
   // Handle always on top toggle for edit mode
-  const handleToggleAlwaysOnTop = useCallback(async () => {
+  const handleToggleAlwaysOnTop = useCallback(async (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Prevent window drag
+    }
     if (mode === 'edit' && isTauri()) {
       try {
-        const currentWindow = getCurrentWebviewWindow();
+        const currentWindow = getCurrentWindow();
         const newState = !isWindowAlwaysOnTop;
         await currentWindow.setAlwaysOnTop(newState);
         setIsWindowAlwaysOnTop(newState);
+        console.log('Window always on top set to:', newState);
       } catch (error) {
         console.error('Failed to toggle always on top:', error);
       }
@@ -374,13 +378,21 @@ function NoteEditor({
           <div className="flex items-center gap-2">
             <h1 className="text-sm">{currentNote?.title || 'Untitled Note'}</h1>
           </div>
-          {currentNote && (
-            <div className="header-stats">
+          <div className="header-stats flex items-center gap-2">
+            {currentNote && (
               <span className="header-stat-badge text-xs">
                 {dayjs(currentNote.time).fromNow()}
               </span>
-            </div>
-          )}
+            )}
+            <button
+              className={`toolbar-btn always-on-top-toggle ${isWindowAlwaysOnTop ? 'active' : ''}`}
+              onClick={handleToggleAlwaysOnTop}
+              title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
+              style={{ width: '28px', height: '28px' }}
+            >
+              <Maximize2 size={14} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -538,8 +550,6 @@ function NoteEditor({
           onToggleNotes={mode === 'create' ? handleTogglePanel : undefined}
           onTogglePin={mode === 'edit' ? handleTogglePin : undefined}
           isPinned={currentNote?.pinned}
-          onToggleAlwaysOnTop={mode === 'edit' ? handleToggleAlwaysOnTop : undefined}
-          isAlwaysOnTop={isWindowAlwaysOnTop}
           onSubmit={handleSubmit}
           submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
         />

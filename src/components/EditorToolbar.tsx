@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Clock, Send, Pin, Maximize2 } from 'lucide-react';
+import { Clock, Send, Pin } from 'lucide-react';
 
 const RecentNotesButton = memo(({
   onClick
@@ -31,22 +31,6 @@ const PinButton = memo(({
   </button>
 ));
 
-const AlwaysOnTopButton = memo(({
-  onClick,
-  isAlwaysOnTop
-}: {
-  onClick: () => void;
-  isAlwaysOnTop: boolean;
-}) => (
-  <button
-    className={`toolbar-btn always-on-top-toggle ${isAlwaysOnTop ? 'active' : ''}`}
-    onClick={onClick}
-    title={isAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
-  >
-    <Maximize2 size={18} />
-  </button>
-));
-
 const SendButton = memo(({
   disabled,
   onClick
@@ -69,8 +53,6 @@ interface EditorToolbarProps {
   onToggleNotes?: () => void;
   onTogglePin?: () => void;
   isPinned?: boolean;
-  onToggleAlwaysOnTop?: () => void;
-  isAlwaysOnTop?: boolean;
   onSubmit: () => void;
   submitDisabled: boolean;
 }
@@ -81,8 +63,6 @@ const EditorToolbar = memo(({
   onToggleNotes,
   onTogglePin,
   isPinned = false,
-  onToggleAlwaysOnTop,
-  isAlwaysOnTop = false,
   onSubmit,
   submitDisabled
 }: EditorToolbarProps) => (
@@ -96,9 +76,6 @@ const EditorToolbar = memo(({
       )}
     </div>
     <div className="toolbar-right">
-      {mode === 'edit' && onToggleAlwaysOnTop && (
-        <AlwaysOnTopButton onClick={onToggleAlwaysOnTop} isAlwaysOnTop={isAlwaysOnTop} />
-      )}
       <SendButton disabled={submitDisabled} onClick={onSubmit} />
     </div>
   </div>
