@@ -189,6 +189,7 @@ async fn set_ai_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), Stri
 #[tauri::command]
 async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
     app.exit(0);
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
