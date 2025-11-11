@@ -1,66 +1,7 @@
 #!/bin/sh
 
-# Prevent recursive execution
-if [ "$SKIP_POST_COMMIT" = "1" ]; then
-  exit 0
-fi
+# Post-commit hook intentionally left minimal
+# Version management is handled by package.json only
+# No auto-version updates to avoid triggering dev server reloads
 
-# Check if tauri dev is running (to avoid triggering reload during development)
-if pgrep -f "tauri dev" > /dev/null 2>&1 || pgrep -f "cargo.*run.*lovpen-notes" > /dev/null 2>&1; then
-  echo "⏭️  Skipping version update (tauri dev is running)"
-  exit 0
-fi
-
-# Check if this is an amend commit by checking if version files are already staged
-if git diff --cached --name-only | grep -q "package.json\|tauri.conf.json\|Cargo.toml"; then
-  exit 0
-fi
-
-# Get the last commit message
-COMMIT_MSG=$(git log -1 --pretty=%B)
-
-# Skip if commit message contains [skip-version] or is a release commit
-if echo "$COMMIT_MSG" | grep -q "\[skip-version\]\|chore(release)"; then
-  exit 0
-fi
-
-# Determine version bump type based on commit message
-if echo "$COMMIT_MSG" | grep -q "^feat!:\|BREAKING CHANGE:"; then
-  BUMP_TYPE="major"
-elif echo "$COMMIT_MSG" | grep -q "^feat:"; then
-  BUMP_TYPE="minor"
-elif echo "$COMMIT_MSG" | grep -q "^fix:\|^perf:"; then
-  BUMP_TYPE="patch"
-else
-  # No version bump needed for other commit types
-  exit 0
-fi
-
-# Get current version from package.json
-CURRENT_VERSION=$(node -p "require('./package.json').version")
-
-# Calculate new version
-NEW_VERSION=$(npx semver $CURRENT_VERSION -i $BUMP_TYPE)
-
-echo "📦 Updating version from $CURRENT_VERSION to $NEW_VERSION based on commit type..."
-
-# Update package.json
-npm version $NEW_VERSION --no-git-tag-version --allow-same-version >/dev/null 2>&1
-
-# Sync version to other files
-node scripts/sync-version.js $NEW_VERSION
-
-# Stage only the version files (exclude Cargo.lock to prevent dev server restart)
-git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
-
-# Update Cargo.lock separately without committing it (keeps it in sync but doesn't trigger reload)
-if [ -f "src-tauri/Cargo.lock" ]; then
-  # Cargo.lock will be updated automatically by cargo on next build
-  # Don't stage it to avoid triggering tauri dev reload
-  git restore --staged src-tauri/Cargo.lock 2>/dev/null || true
-fi
-
-# Amend the commit to include version changes (with flag to prevent recursion)
-SKIP_POST_COMMIT=1 git commit --amend --no-edit --no-verify
-
-echo "✅ Version updated to $NEW_VERSION"
+exit 0
