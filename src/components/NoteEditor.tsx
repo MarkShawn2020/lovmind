@@ -484,13 +484,20 @@ function NoteEditor({
           panelRef.current.style.flex = 'none';
           panelRef.current.style.minHeight = `${PANEL_HEIGHT}px`;
           panelRef.current.style.maxHeight = `${PANEL_HEIGHT}px`;
+          // Ensure opacity is set for visibility
+          panelRef.current.style.opacity = '1';
           document.querySelector('.recent-notes-toggle')?.classList.add('active');
           setIsPanelExpanded(true);
         }
       });
 
-      // Step 4: After animation, unlock editor so it can respond to manual resizes
+      // Step 4: After animation, unlock editor and clear panel opacity override
       setTimeout(() => {
+        if (panelRef.current) {
+          // Clear opacity override to let CSS class control it
+          panelRef.current.style.opacity = '';
+        }
+
         if (editorContainerRef.current) {
           fixedEditorHeight.current = undefined;
           editorContainerRef.current.style.height = '';
@@ -511,8 +518,16 @@ function NoteEditor({
         editorContainerRef.current.style.flexShrink = '0';
       }
 
-      // Step 2: Animate panel sliding up (h-[250px] -> h-0)
-      setIsPanelExpanded(false);
+      // Step 2: Fade out panel content but keep its height (maintain layout during window resize)
+      if (panelRef.current) {
+        // Override transition to only animate opacity, not height
+        panelRef.current.style.transition = 'opacity 0.3s ease';
+        panelRef.current.style.opacity = '0';
+        // Keep height fixed during animation to prevent toolbar jump
+        panelRef.current.style.height = `${PANEL_HEIGHT}px`;
+        panelRef.current.style.minHeight = `${PANEL_HEIGHT}px`;
+        panelRef.current.style.maxHeight = `${PANEL_HEIGHT}px`;
+      }
       document.querySelector('.recent-notes-toggle')?.classList.remove('active');
 
       // Step 3: Start animated window collapse simultaneously
@@ -537,24 +552,36 @@ function NoteEditor({
         });
       }
 
-      // Step 4: After animation completes, hide panel and unlock editor height
+      // Step 4: After window animation completes, actually collapse panel height and cleanup
       setTimeout(() => {
+        // Now trigger the height collapse (0ms transition since window is already resized)
+        setIsPanelExpanded(false);
+
         if (panelRef.current) {
-          panelRef.current.classList.add('hidden');
-          // Clear panel inline styles
-          panelRef.current.style.flex = '';
+          // Clear the fixed height constraints to allow CSS transition to h-0
           panelRef.current.style.height = '';
           panelRef.current.style.minHeight = '';
           panelRef.current.style.maxHeight = '';
         }
 
-        // Unlock editor height so it can fill space again
-        if (editorContainerRef.current) {
-          fixedEditorHeight.current = undefined;
-          editorContainerRef.current.style.height = '';
-          editorContainerRef.current.style.flexGrow = '1';
-          editorContainerRef.current.style.flexShrink = '0';
-        }
+        // After height transition completes, hide panel and cleanup
+        setTimeout(() => {
+          if (panelRef.current) {
+            panelRef.current.classList.add('hidden');
+            // Clear all panel inline styles
+            panelRef.current.style.flex = '';
+            panelRef.current.style.opacity = '';
+            panelRef.current.style.transition = '';
+          }
+
+          // Unlock editor height so it can fill space again
+          if (editorContainerRef.current) {
+            fixedEditorHeight.current = undefined;
+            editorContainerRef.current.style.height = '';
+            editorContainerRef.current.style.flexGrow = '1';
+            editorContainerRef.current.style.flexShrink = '0';
+          }
+        }, 50); // Short delay for height collapse
       }, 300);
     }
   }, [animateWindowResize]);
