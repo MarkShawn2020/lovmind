@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Pin, Star, Trash2, Crown, Sparkles, Maximize2 } from 'lucide-react';
+import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
@@ -385,15 +385,64 @@ function NoteEditor({
           onMouseDown={handleHeaderMouseDown}
         >
           <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1">
-            {currentNote?.title || 'Untitled Note'}
+            {(() => {
+              if (!currentNote) return 'Untitled Note';
+
+              // Calculate rank
+              const noteRanks = new Map<string, number>();
+              [...notes]
+                .sort((a, b) => Number(b.id) - Number(a.id))
+                .forEach((note, index) => {
+                  noteRanks.set(note.id, notes.length - index);
+                });
+
+              const rank = noteRanks.get(currentNote.id);
+              const isTopThree = rank && rank <= 3;
+
+              return (
+                <>
+                  {isTopThree && (
+                    <Crown
+                      className={`icon-inline rank-badge rank-${rank}`}
+                      size={16}
+                      fill="currentColor"
+                    />
+                  )}
+                  {currentNote.pinned && (
+                    <Pin className="inline-flex align-middle text-[var(--primary)]" size={14} />
+                  )}
+                  {currentNote.favorite && (
+                    <Star className="inline-flex align-middle text-[var(--highlight)] fill-[var(--highlight)]" size={14} />
+                  )}
+                  {rank}. {currentNote.title}
+                </>
+              );
+            })()}
           </div>
-          <button
-            className={`toolbar-btn always-on-top-toggle ${isWindowAlwaysOnTop ? 'active' : ''}`}
-            onClick={handleToggleAlwaysOnTop}
-            title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
-          >
-            <Pin size={16} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              className={`toolbar-btn always-on-top-toggle ${isWindowAlwaysOnTop ? 'active' : ''}`}
+              onClick={handleToggleAlwaysOnTop}
+              title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
+              style={{ opacity: isWindowAlwaysOnTop ? 1 : 0.4 }}
+            >
+              <Pin size={16} />
+            </button>
+            <button
+              className="toolbar-btn close-btn"
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (isTauri()) {
+                  const currentWindow = getCurrentWebviewWindow();
+                  await currentWindow.close();
+                }
+              }}
+              title="Close window"
+              style={{ opacity: 0.4 }}
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
       )}
 
