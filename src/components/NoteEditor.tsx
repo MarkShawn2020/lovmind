@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import confetti from 'canvas-confetti';
 import { Note, noteStatsAtom } from '../store';
@@ -75,6 +75,10 @@ function NoteEditor({
   const internalEditorRef = useRef<RenderingWysiwygEditorRef | null>(null);
   const editorRef = externalEditorRef || internalEditorRef;
   const isExpandedRef = useRef(false);
+  const collapsedHeightRef = useRef<number | null>(null);
+
+  // Constants
+  const PANEL_HEIGHT = 250;
 
   // Handle window dragging
   const handleHeaderMouseDown = async () => {
@@ -282,22 +286,83 @@ function NoteEditor({
   }, [mode, isWindowAlwaysOnTop]);
 
   // Toggle panel
-  const handleTogglePanel = useCallback(() => {
+  const handleTogglePanel = useCallback(async () => {
     if (!panelRef.current) {
       console.warn('Panel ref not initialized');
       return;
     }
 
-    // Toggle expanded state
-    setIsPanelExpanded(!isPanelExpanded);
+    if (!isExpandedRef.current) {
+      // Expanding
+      isExpandedRef.current = true;
 
-    // Toggle button active state
-    if (!isPanelExpanded) {
-      document.querySelector('.recent-notes-toggle')?.classList.add('active');
+      // Try to resize window if in Tauri
+      if (isTauri()) {
+        try {
+          const appWindow = getCurrentWindow();
+          const physicalSize = await appWindow.innerSize();
+          const scaleFactor = await appWindow.scaleFactor();
+          const currentSize = physicalSize.toLogical(scaleFactor);
+          collapsedHeightRef.current = currentSize.height;
+
+          await appWindow.setSize(new LogicalSize(
+            currentSize.width,
+            currentSize.height + PANEL_HEIGHT
+          ));
+        } catch (error) {
+          console.warn('Failed to resize window:', error);
+        }
+      }
+
+      // Animate panel in (works in any environment)
+      requestAnimationFrame(() => {
+        if (panelRef.current) {
+          panelRef.current.classList.remove('hidden', 'collapsed');
+          panelRef.current.classList.add('visible');
+        }
+        document.querySelector('.recent-notes-toggle')?.classList.add('active');
+      });
+
+      setIsPanelExpanded(true);
     } else {
+      // Collapsing
+      isExpandedRef.current = false;
+
+      // Animate panel out
+      if (panelRef.current) {
+        panelRef.current.classList.remove('visible');
+        panelRef.current.classList.add('collapsed');
+      }
       document.querySelector('.recent-notes-toggle')?.classList.remove('active');
+
+      setIsPanelExpanded(false);
+
+      // Resize window after animation
+      setTimeout(async () => {
+        if (isTauri()) {
+          try {
+            const appWindow = getCurrentWindow();
+            const physicalSize = await appWindow.innerSize();
+            const scaleFactor = await appWindow.scaleFactor();
+            const currentSize = physicalSize.toLogical(scaleFactor);
+            const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
+
+            await appWindow.setSize(new LogicalSize(
+              currentSize.width,
+              targetHeight
+            ));
+          } catch (error) {
+            console.warn('Failed to resize window:', error);
+          }
+        }
+
+        if (panelRef.current) {
+          panelRef.current.classList.add('hidden');
+          panelRef.current.classList.remove('collapsed');
+        }
+      }, 300);
     }
-  }, [isPanelExpanded]);
+  }, [PANEL_HEIGHT]);
 
   return (
     <div className="app-container">
@@ -420,9 +485,7 @@ function NoteEditor({
         {/* Notes panel */}
         <div
           ref={panelRef}
-          className={`h-[250px] flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform ${
-            isPanelExpanded ? 'translate-y-0' : 'translate-y-full'
-          }`}
+          className="h-[250px] flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform translate-y-full hidden"
         >
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
           {notes.length === 0 ? (
