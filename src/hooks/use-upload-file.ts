@@ -2,6 +2,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc } from '@tauri-apps/api/core';
 
 export interface UploadedFile {
   key: string;
@@ -40,8 +41,8 @@ export function useUploadFile({
         setProgress((prev) => Math.min(prev + 10, 90));
       }, 50);
 
-      // Save file via Tauri command
-      const assetUrl = await invoke<string>('save_uploaded_file', {
+      // Save file via Tauri command (returns file system path)
+      const filePath = await invoke<string>('save_uploaded_file', {
         fileName: file.name,
         fileData: bytes,
       });
@@ -49,8 +50,11 @@ export function useUploadFile({
       clearInterval(progressInterval);
       setProgress(100);
 
+      // Convert file path to asset:// URL for webview
+      const assetUrl = convertFileSrc(filePath);
+
       const uploadedFile = {
-        key: assetUrl,
+        key: filePath,
         appUrl: assetUrl,
         name: file.name,
         size: file.size,

@@ -162,9 +162,8 @@ async fn save_uploaded_file(
     // Write file
     fs::write(&file_path, file_data).map_err(|e| e.to_string())?;
 
-    // Return the asset protocol URL that can be used in the webview
-    let asset_url = format!("asset://localhost/uploads/{}", unique_name);
-    Ok(asset_url)
+    // Return the file path (frontend will use convertFileSrc to convert to asset:// URL)
+    Ok(file_path.to_string_lossy().to_string())
 }
 
 #[tauri::command]
