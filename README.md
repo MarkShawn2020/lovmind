@@ -1,48 +1,58 @@
+<div align="center">
+
 # Lovmind
 
-A lightning-fast floating notes app for capturing thoughts instantly. Built with Tauri for native performance.
+**Lightning-fast floating notes for instant thought capture**
 
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/MarkShawn2020/lovmind)
+[![Version](https://img.shields.io/github/v/release/MarkShawn2020/lovmind?label=version)](https://github.com/MarkShawn2020/lovmind/releases)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB)](https://tauri.app/)
-[![React](https://img.shields.io/badge/React-v19-61DAFB)](https://react.dev/)
+[![React](https://img.shields.io/badge/React-19-61DAFB)](https://react.dev/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Features
+[Download](https://github.com/MarkShawn2020/lovmind/releases) · [Report Bug](https://github.com/MarkShawn2020/lovmind/issues) · [Request Feature](https://github.com/MarkShawn2020/lovmind/issues)
 
-- **⌘N Global Hotkey** - Instant access from anywhere
-- **Floating Window** - Always-on-top note capture
-- **Rich Text Editor** - WYSIWYG editing powered by Plate.js with markdown shortcuts
-- **Multi-Window Editing** - Open notes in separate windows
-- **Note Management** - Pin, favorite, and organize your notes
-- **Resume & Continue** - Pick up where you left off
-- **100% Local** - Your notes never leave your device
+</div>
 
-## Installation
+---
 
-### Download Binary (Recommended)
+## ✨ Why Lovmind?
 
-Download the latest release for your platform:
-- [macOS (.dmg)](https://github.com/MarkShawn2020/lovmind/releases)
-- [Windows (.msi)](https://github.com/MarkShawn2020/lovmind/releases)
-- [Linux (.AppImage)](https://github.com/MarkShawn2020/lovmind/releases)
+Born from the need for **zero-friction** note-taking, Lovmind is a floating notes app that appears instantly with a global hotkey (`⌘N` / `Ctrl+N`). No switching apps, no context loss—just pure thought capture.
 
-### Build from Source
+**Key Differentiators:**
+- 🚀 **Native Performance**: Built with Tauri for 10x smaller size than Electron apps
+- ⚡ **Instant Access**: Global hotkey summons the app from anywhere
+- 🎨 **WYSIWYG Editor**: Rich text editing with Markdown shortcuts (powered by Plate.js)
+- 🪟 **Multi-Window**: Each note opens in its own window for parallel work
+- 🔒 **100% Local**: Your data never leaves your device
+
+## 📥 Installation
+
+### Option 1: Download Binary (Recommended)
+
+| Platform | Download |
+|----------|----------|
+| macOS | [Intel](https://github.com/MarkShawn2020/lovmind/releases) \| [Apple Silicon](https://github.com/MarkShawn2020/lovmind/releases) \| [Universal](https://github.com/MarkShawn2020/lovmind/releases) |
+| Windows | [x64](https://github.com/MarkShawn2020/lovmind/releases) \| [ARM64](https://github.com/MarkShawn2020/lovmind/releases) |
+| Linux | [AppImage](https://github.com/MarkShawn2020/lovmind/releases) |
+
+### Option 2: Build from Source
 
 ```bash
 # Prerequisites: Node.js 18+, pnpm 8+, Rust stable
-
 git clone https://github.com/MarkShawn2020/lovmind.git
 cd lovmind
 pnpm install
 pnpm tauri build
 ```
 
-## Usage
+## 🚀 Quick Start
 
-1. **Toggle App** - Press `⌘N` (macOS) or `Ctrl+N` (Windows/Linux)
-2. **Write** - Use rich text editor with markdown shortcuts (e.g., `#` for headings, `**` for bold)
-3. **Save** - Auto-saves while typing, `⌘S` for manual save
-4. **Edit** - Click any note to open in a dedicated editor window
-5. **Organize** - Pin important notes, favorite frequently used ones
+1. **Launch**: Press `⌘N` (macOS) or `Ctrl+N` (Windows/Linux) from anywhere
+2. **Write**: Start typing—supports Markdown shortcuts (`#` for headings, `**bold**`, etc.)
+3. **Save**: Auto-saves as you type, or press `⌘S` for manual save
+4. **Organize**: Click notes to open in dedicated windows, pin important ones
 
 ### Keyboard Shortcuts
 
@@ -50,60 +60,85 @@ pnpm tauri build
 |--------|-------|---------------|
 | Toggle App | `⌘N` | `Ctrl+N` |
 | Submit Note | `⌘Enter` | `Ctrl+Enter` |
-| Save (Editor) | `⌘S` | `Ctrl+S` |
+| Save | `⌘S` | `Ctrl+S` |
 | Close Window | `⌘W` | `Ctrl+W` |
-| Dev Tools | `⌘⇧I` | `Ctrl+Shift+I` |
 
-## Development
+## 🎯 Features
+
+- **⌘N Global Hotkey** – Instant access from any application
+- **Floating Window** – Always-on-top, distraction-free capture
+- **Rich Text Editor** – Bold, italics, headings, lists, code blocks, tables
+- **Markdown Shortcuts** – Type naturally with auto-formatting
+- **Multi-Window** – Edit multiple notes simultaneously
+- **Pin & Favorite** – Keep important notes at the top
+- **Local-First** – All data stored locally, no cloud dependency
+
+## 🛠️ Development
 
 ```bash
-pnpm tauri dev    # Start development server
-pnpm build        # Build frontend
-pnpm tauri build  # Build release
+# Start dev server (hot reload)
+pnpm tauri dev
+
+# Type checking
+pnpm check:type
+
+# Build production binary
+pnpm tauri build
 ```
 
 ### Architecture
 
 ```
-src/              # React frontend
-├── App.tsx       # Main floating window
-├── editor.tsx    # Editor window entry
-├── components/
-│   ├── NoteEditor.tsx           # Main editor component
-│   └── RenderingWysiwygEditor.tsx # Plate.js integration
-└── store/        # Jotai state management
-
-src-tauri/        # Rust backend
-├── src/
-│   ├── lib.rs    # Tauri commands & global shortcut
-│   └── note_store.rs # In-memory note storage
-└── tauri.conf.json # Window & app configuration
+lovmind/
+├── src/                          # React frontend
+│   ├── App.tsx                   # Main floating window
+│   ├── editor.tsx                # Editor window entry
+│   ├── components/
+│   │   ├── NoteEditor.tsx        # Core editor component
+│   │   └── RenderingWysiwygEditor.tsx  # Plate.js integration
+│   └── store.ts                  # Jotai state management
+│
+└── src-tauri/                    # Rust backend
+    ├── src/
+    │   ├── lib.rs                # Tauri commands & global shortcut
+    │   └── note_store.rs         # In-memory note storage
+    └── tauri.conf.json           # App configuration
 ```
 
-### Key Technologies
+### Tech Stack
 
-- **Frontend**: React 19, TypeScript, Vite
-- **Backend**: Rust, Tauri v2
-- **Rich Text**: Plate.js (Slate-based editor)
-- **State**: Jotai
-- **UI**: Radix UI, Tailwind CSS
-- **Icons**: Lucide React
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 19, TypeScript, Vite |
+| **Backend** | Rust, Tauri v2 |
+| **UI Framework** | Radix UI, Tailwind CSS |
+| **Rich Text** | Plate.js (Slate-based) |
+| **State Management** | Jotai |
+| **Icons** | Lucide React |
 
-## Contributing
+## 🤝 Contributing
 
-PRs welcome! Please ensure:
+Contributions welcome! Please ensure:
 - Code follows existing patterns
-- Tests pass (when applicable)
-- Commits follow conventional format
+- TypeScript strict mode compliance
+- Commits follow [Conventional Commits](https://www.conventionalcommits.org/)
 
-## License
+## 📄 License
 
-MIT © [Your Name]
+MIT © [Lovpen](https://github.com/MarkShawn2020)
 
-## Support
+## 💬 Support
 
-[Open an issue](https://github.com/MarkShawn2020/lovmind/issues) for bugs or feature requests.
+- 🐛 [Report bugs](https://github.com/MarkShawn2020/lovmind/issues)
+- 💡 [Request features](https://github.com/MarkShawn2020/lovmind/issues)
+- 📖 [Documentation](https://github.com/MarkShawn2020/lovmind/wiki)
 
 ---
 
+<div align="center">
+
 Built with ❤️ using [Tauri](https://tauri.app)
+
+**[⭐ Star us on GitHub](https://github.com/MarkShawn2020/lovmind)**
+
+</div>
