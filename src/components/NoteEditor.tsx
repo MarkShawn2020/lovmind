@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X, User, Mail, HelpCircle, LogOut, UserCircle } from 'lucide-react';
+import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X, User, Mail, HelpCircle, LogOut, UserCircle, Info } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
@@ -770,6 +770,17 @@ function NoteEditor({
           >
             <Mail size={16} />
             Contact Developer
+          </button>
+          <div className="border-t border-gray-200 my-1" />
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between border-none bg-transparent cursor-default"
+            onClick={(e) => e.preventDefault()}
+          >
+            <div className="flex items-center gap-2">
+              <Info size={16} />
+              Version
+            </div>
+            <span className="text-xs text-gray-500">v{packageJson.version}</span>
           </button>
           <div className="border-t border-gray-200 my-1" />
           <button

@@ -231,8 +231,13 @@ pub fn run() {
                 .checked(ai_enabled)
                 .build(app)?;
 
+            // Get version from Cargo.toml
+            let version = env!("CARGO_PKG_VERSION");
+
             // Create App menu with Quit option (macOS standard)
             let app_menu = SubmenuBuilder::new(app, "Lovpen Notes")
+                .text("version", format!("Version {}", version))
+                .separator()
                 .item(&PredefinedMenuItem::quit(app, None)?)
                 .build()?;
 
