@@ -16,6 +16,26 @@ import { isTauri } from '../utils/tauri';
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
+// Helper function to check if richContent is truly empty
+const isRichContentEmpty = (richContent: any): boolean => {
+  if (!richContent) return true;
+  if (!Array.isArray(richContent)) return false;
+
+  // Check if all blocks are empty
+  return richContent.every((node: any) => {
+    if (!node.children || !Array.isArray(node.children)) return true;
+
+    // Check if all children are empty text nodes
+    return node.children.every((child: any) => {
+      if (typeof child.text === 'string') {
+        return !child.text.trim();
+      }
+      // If it's not a text node (e.g., image, hashtag), consider it non-empty
+      return false;
+    });
+  });
+};
+
 interface NoteEditorProps {
   mode: 'create' | 'edit';
   noteId?: string; // edit 模式下需要
@@ -98,8 +118,8 @@ function NoteEditor({
 
   // Handle submit/save
   const handleSubmit = useCallback(async () => {
-    // Allow saving if either has text content or has rich content
-    if (!((content && typeof content === 'string' && content.trim()) || richContent)) {
+    // Allow saving if either has text content or has non-empty rich content
+    if (!((content && typeof content === 'string' && content.trim()) || !isRichContentEmpty(richContent))) {
       return;
     }
 
@@ -402,7 +422,7 @@ function NoteEditor({
       <EditorToolbar
         onToggleNotes={handleTogglePanel}
         onSubmit={handleSubmit}
-        submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && !richContent}
+        submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
       />
     </div>
   );
