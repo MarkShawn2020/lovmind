@@ -22,7 +22,7 @@ import { ToolbarButton } from './toolbar';
 
 type ImportType = 'html' | 'markdown';
 
-export function ImportToolbarButton({ children, ...props }: DropdownMenuProps & { children?: React.ReactNode }) {
+export function ImportToolbarButton(props: DropdownMenuProps) {
   const editor = useEditorRef();
   const [open, setOpen] = React.useState(false);
 
@@ -71,7 +71,7 @@ export function ImportToolbarButton({ children, ...props }: DropdownMenuProps & 
     <DropdownMenu open={open} onOpenChange={setOpen} modal={false} {...props}>
       <DropdownMenuTrigger asChild>
         <ToolbarButton pressed={open} tooltip="Import" isDropdown>
-          {children || <ArrowUpToLineIcon className="size-4" />}
+          <ArrowUpToLineIcon className="size-4" />
         </ToolbarButton>
       </DropdownMenuTrigger>
 

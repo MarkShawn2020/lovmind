@@ -23,7 +23,7 @@ import { ToolbarButton } from './toolbar';
 
 const siteUrl = 'https://platejs.org';
 
-export function ExportToolbarButton({ children, ...props }: DropdownMenuProps & { children?: React.ReactNode }) {
+export function ExportToolbarButton(props: DropdownMenuProps) {
   const editor = useEditorRef();
   const [open, setOpen] = React.useState(false);
 
@@ -150,7 +150,7 @@ export function ExportToolbarButton({ children, ...props }: DropdownMenuProps & 
     <DropdownMenu open={open} onOpenChange={setOpen} modal={false} {...props}>
       <DropdownMenuTrigger asChild>
         <ToolbarButton pressed={open} tooltip="Export" isDropdown>
-          {children || <ArrowDownToLineIcon className="size-4" />}
+          <ArrowDownToLineIcon className="size-4" />
         </ToolbarButton>
       </DropdownMenuTrigger>
 

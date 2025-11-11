@@ -4,7 +4,6 @@ import * as React from 'react';
 
 import {
   ArrowUpToLineIcon,
-  ArrowDownToLineIcon,
   BaselineIcon,
   BoldIcon,
   Code2Icon,
@@ -173,16 +172,12 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
                     <MoreToolbarButton />
                   </ToolbarGroup>
 
-                  <ToolbarGroup className="!flex">
+                  <ToolbarGroup>
                     <ExportToolbarButton>
                       <ArrowUpToLineIcon />
-                      Export
                     </ExportToolbarButton>
 
-                    <ImportToolbarButton>
-                      <ArrowDownToLineIcon />
-                      Import
-                    </ImportToolbarButton>
+                    <ImportToolbarButton />
                   </ToolbarGroup>
                 </div>
               </PopoverContent>
@@ -190,6 +185,8 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
           </ToolbarGroup>
         </>
       )}
+
+      <div className="grow" />
     </div>
   );
 }
