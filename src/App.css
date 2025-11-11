@@ -128,6 +128,18 @@ body {
   }
 }
 
+/* FadeInUp variant for centered elements - removes transform in final state */
+@keyframes fadeInUpCentered {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Note item special states */
 .note-item.resuming {
   background: var(--secondary);
