@@ -168,21 +168,27 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     });
 
     // Update editor value when initialRichContent changes (e.g., when loading a note)
+    // Use a ref to track if we've already loaded the initial content
+    const hasLoadedInitialContent = useRef(false);
+
     useEffect(() => {
       console.log('[RenderingWysiwygEditor] useEffect 触发:', {
         hasInitialRichContent: !!initialRichContent,
+        hasLoadedBefore: hasLoadedInitialContent.current,
         initialRichContentType: typeof initialRichContent,
-        initialRichContent: initialRichContent,
       });
 
-      if (initialRichContent) {
-        console.log('[RenderingWysiwygEditor] 更新编辑器内容为 richContent:', initialRichContent);
+      // Only load initialRichContent once, when component mounts
+      if (initialRichContent && !hasLoadedInitialContent.current) {
+        console.log('[RenderingWysiwygEditor] 首次加载，更新编辑器内容为 richContent:', initialRichContent);
         editor.tf.setValue(initialRichContent);
+        hasLoadedInitialContent.current = true;
         console.log('[RenderingWysiwygEditor] 编辑器内容已更新');
       } else {
-        console.log('[RenderingWysiwygEditor] initialRichContent 为空，跳过更新');
+        console.log('[RenderingWysiwygEditor] 跳过更新 (已加载过或无内容)');
       }
-    }, [initialRichContent, editor]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialRichContent]); // Only depend on initialRichContent, not editor
 
     // Expose resetAndFocus method to parent
     useImperativeHandle(ref, () => ({

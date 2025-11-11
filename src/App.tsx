@@ -531,7 +531,8 @@ function App() {
 
       <NoteEditor
         content={content}
-        richContent={richContent}
+        // Don't pass richContent as initialRichContent for main window (it causes infinite loop)
+        // richContent is only for loading existing notes in EditorWindow
         onContentChange={(newContent, tags, newRichContent) => {
           console.log('[App] NoteEditor onContentChange:', {
             newContentLength: newContent?.length,
