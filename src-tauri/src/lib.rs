@@ -186,6 +186,11 @@ async fn set_ai_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), Stri
     Ok(())
 }
 
+#[tauri::command]
+async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
+    app.exit(0);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -211,6 +216,7 @@ pub fn run() {
             save_uploaded_file,
             is_ai_enabled,
             set_ai_enabled,
+            quit_app,
         ])
         .setup(|app| {
             // Create menu with AI toggle
