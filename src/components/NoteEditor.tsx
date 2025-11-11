@@ -183,6 +183,38 @@ function NoteEditor({
     }
   };
 
+  // Handle manual window resize - adjust editor height only
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    const handleResize = () => {
+      if (!editorContainerRef.current || !panelRef.current) return;
+
+      // If panel is expanded, adjust the fixed editor height to fill the remaining space
+      if (isExpandedRef.current) {
+        // Calculate new editor height: window height - panel height - header height
+        const windowHeight = window.innerHeight;
+        const panelHeight = PANEL_HEIGHT;
+        const headerHeight = 48; // Approximate header height
+        const newEditorHeight = windowHeight - panelHeight - headerHeight;
+
+        fixedEditorHeight.current = newEditorHeight;
+        editorContainerRef.current.style.height = `${newEditorHeight}px`;
+        return;
+      }
+
+      // If panel is collapsed, unlock the editor to fill available space
+      if (fixedEditorHeight.current !== undefined) {
+        fixedEditorHeight.current = undefined;
+        editorContainerRef.current.style.height = '';
+        editorContainerRef.current.style.flexGrow = '1';
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Load note in edit mode
   useEffect(() => {
     if (mode === 'edit' && noteId) {
