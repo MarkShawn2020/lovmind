@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tauri::{Emitter, Manager, WindowEvent, menu::{MenuBuilder, MenuItemBuilder, CheckMenuItemBuilder}};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
 
 mod note_store;
@@ -195,19 +196,27 @@ pub fn run() {
                 .checked(ai_enabled)
                 .build(app)?;
 
-            let app_handle = app.handle().clone();
-            ai_toggle.on_check_menu_item_event(move |_app, event| {
-                let app_clone = app_handle.clone();
-                tauri::async_runtime::spawn(async move {
-                    let _ = set_ai_enabled(app_clone, event.checked).await;
-                });
-            });
-
             let menu = MenuBuilder::new(app)
                 .item(&ai_toggle)
                 .build()?;
 
             app.set_menu(menu)?;
+
+            // Handle menu events
+            let app_handle = app.handle().clone();
+            app.on_menu_event(move |app, event| {
+                if event.id() == "ai_toggle" {
+                    let app_clone = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        // Toggle the state
+                        let store = app_clone.store("settings.json").unwrap();
+                        let current = store.get("ai_enabled")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false);
+                        let _ = set_ai_enabled(app_clone, !current).await;
+                    });
+                }
+            });
 
             // Register global shortcut for Cmd+N
             let window = app.get_webview_window("main").unwrap();
