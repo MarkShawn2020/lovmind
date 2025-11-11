@@ -41,6 +41,9 @@
     "store:allow-length",
     "store:allow-load",
     "store:allow-save",
-    "opener:default"
+    "opener:default",
+    "dialog:default",
+    "dialog:allow-ask",
+    "dialog:allow-confirm"
   ]
 }
