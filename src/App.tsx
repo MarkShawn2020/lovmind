@@ -268,6 +268,9 @@ function App() {
   };
 
   const handleDelete = async (noteId: string) => {
+    if (!window.confirm('确定要删除这条笔记吗？')) {
+      return;
+    }
     setNotes(notes.filter((note) => note.id !== noteId));
     // 从后端删除
     if (isTauri()) {

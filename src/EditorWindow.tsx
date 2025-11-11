@@ -307,13 +307,25 @@ function EditorWindow() {
     }
   }, [notes, setNotes]);
 
-  const handleDeleteNote = useCallback((noteId: string) => {
+  const handleDeleteNote = useCallback(async (noteId: string) => {
+    if (!window.confirm('确定要删除这条笔记吗？')) {
+      return;
+    }
+
+    // 从状态中删除
+    setNotes(notes.filter(n => n.id !== noteId));
+
+    // 从后端删除
+    if (isTauri()) {
+      await invoke("remove_temp_note", { id: noteId });
+    }
+
     // 如果删除的是当前笔记，清空编辑器
     if (note?.id === noteId) {
       setNote(null);
       setContent('');
     }
-  }, [note]);
+  }, [note, notes, setNotes]);
 
   if (!note) {
     return (
