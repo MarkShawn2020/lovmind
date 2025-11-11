@@ -288,66 +288,16 @@ function NoteEditor({
       return;
     }
 
-    // Find the editor scroll container
-    const editorContainer = (
-      document.querySelector('[data-plate-container]') ||
-      document.querySelector('.wysiwyg-container') ||
-      document.querySelector('[data-slate-editor]')
-    ) as HTMLElement;
+    // Toggle expanded state
+    setIsPanelExpanded(!isPanelExpanded);
 
-    // Capture scroll state
-    let wasAtBottom = false;
-    if (editorContainer) {
-      const { scrollTop, scrollHeight, clientHeight } = editorContainer;
-      wasAtBottom = scrollTop + clientHeight >= scrollHeight - 50;
-    }
-
-    // Restore scroll helper
-    const restoreBottomScroll = () => {
-      if (editorContainer && wasAtBottom) {
-        const { scrollHeight, clientHeight } = editorContainer;
-        editorContainer.scrollTop = Math.max(0, scrollHeight - clientHeight);
-      }
-    };
-
-    if (!isExpandedRef.current) {
-      // Expanding
-      isExpandedRef.current = true;
-
-      const handleTransitionEnd = (e: TransitionEvent) => {
-        if (e.propertyName === 'height') {
-          restoreBottomScroll();
-          panelRef.current?.removeEventListener('transitionend', handleTransitionEnd as EventListener);
-        }
-      };
-
-      panelRef.current.addEventListener('transitionend', handleTransitionEnd as EventListener);
-      panelRef.current.classList.remove('hidden', 'collapsed');
-      panelRef.current.classList.add('visible');
+    // Toggle button active state
+    if (!isPanelExpanded) {
       document.querySelector('.recent-notes-toggle')?.classList.add('active');
     } else {
-      // Collapsing
-      isExpandedRef.current = false;
-
-      const handleTransitionEnd = (e: TransitionEvent) => {
-        if (e.propertyName === 'height') {
-          restoreBottomScroll();
-          if (panelRef.current) {
-            panelRef.current.classList.add('hidden');
-            panelRef.current.classList.remove('collapsed');
-          }
-          panelRef.current?.removeEventListener('transitionend', handleTransitionEnd as EventListener);
-        }
-      };
-
-      panelRef.current.addEventListener('transitionend', handleTransitionEnd as EventListener);
-      panelRef.current.classList.remove('visible');
-      panelRef.current.classList.add('collapsed');
       document.querySelector('.recent-notes-toggle')?.classList.remove('active');
     }
-
-    setIsPanelExpanded(isExpandedRef.current);
-  }, [mode]);
+  }, [isPanelExpanded]);
 
   return (
     <div className="app-container">
@@ -470,8 +420,8 @@ function NoteEditor({
         {/* Notes panel */}
         <div
           ref={panelRef}
-          className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
-            isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
+          className={`h-[250px] flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform ${
+            isPanelExpanded ? 'translate-y-0' : 'translate-y-full'
           }`}
         >
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
