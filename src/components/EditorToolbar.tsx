@@ -64,7 +64,7 @@ const EditorToolbar = memo(({
 }: EditorToolbarProps) => (
   <div className={`editor-toolbar ${mode === 'edit' ? 'toolbar-minimal' : ''}`}>
     <div className="toolbar-left">
-      {mode === 'create' && onToggleNotes && (
+      {onToggleNotes && (
         <RecentNotesButton onClick={onToggleNotes} />
       )}
     </div>

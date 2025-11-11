@@ -5,6 +5,7 @@ import {
 } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
+import { load } from '@tauri-apps/plugin-store';
 import { Note } from '../store';
 import { isTauri } from '../utils/tauri';
 
@@ -89,12 +90,27 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
 
         console.log('Opening window with URL:', url);
 
+        // Load window size from store
+        let windowWidth = 320;
+        let windowHeight = 500;
+        try {
+          const store = await load('settings.json');
+          const savedWidth = await store.get<number>('editor_window_width');
+          const savedHeight = await store.get<number>('editor_window_height');
+          if (savedWidth && savedWidth >= 320) windowWidth = savedWidth;
+          if (savedHeight && savedHeight >= 300) windowHeight = savedHeight;
+        } catch (error) {
+          console.log('Could not load window size from store, using defaults');
+        }
+
         // Create new editor window
         const webview = new WebviewWindow(windowLabel, {
           url: url,
           title: `Edit: ${noteToOpen.title}`,
-          width: 600,
-          height: 500,
+          width: windowWidth,
+          height: windowHeight,
+          minWidth: 320,
+          minHeight: 300,
           resizable: true,
           center: true,
           alwaysOnTop: false,
@@ -110,9 +126,23 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
           console.log('Editor window created and focused for note:', note.id);
         });
 
+        // Listen for window resize and save to store
+        const unlistenResize = await webview.onResized(async (event) => {
+          try {
+            const store = await load('settings.json');
+            await store.set('editor_window_width', event.payload.width);
+            await store.set('editor_window_height', event.payload.height);
+            await store.save();
+            console.log('Saved editor window size:', event.payload);
+          } catch (error) {
+            console.error('Failed to save window size:', error);
+          }
+        });
+
         // Listen for window close event
         await webview.once('tauri://destroyed', async () => {
           console.log('Editor window closed for note:', note.id);
+          unlistenResize();
         });
       } catch (error) {
         console.error('Failed to open editor window:', error);

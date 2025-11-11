@@ -393,15 +393,15 @@ function NoteEditor({
                 {dayjs(currentNote.time).fromNow()}
               </span>
             )}
-            <button
-              className={`toolbar-btn always-on-top-toggle ${isWindowAlwaysOnTop ? 'active' : ''}`}
-              onClick={handleToggleAlwaysOnTop}
-              title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
-              style={{ width: '28px', height: '28px' }}
-            >
-              <Maximize2 size={14} />
-            </button>
           </div>
+          <button
+            className={`toolbar-btn always-on-top-toggle ${isWindowAlwaysOnTop ? 'active' : ''}`}
+            onClick={handleToggleAlwaysOnTop}
+            title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
+            style={{ width: '28px', height: '28px', marginLeft: '8px' }}
+          >
+            <Maximize2 size={14} />
+          </button>
         </div>
       )}
 
