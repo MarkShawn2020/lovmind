@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    lovpen_notes_lib::run()
+    lovmind_lib::run()
 }
