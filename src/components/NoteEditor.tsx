@@ -283,8 +283,9 @@ function NoteEditor({
 
   // Toggle panel
   const handleTogglePanel = useCallback(() => {
-    if (!panelRef.current) {
-      console.error('Panel ref not initialized');
+    // Only works in create mode where panel exists
+    if (mode !== 'create' || !panelRef.current) {
+      console.warn('Panel not available in this mode');
       return;
     }
 
@@ -347,7 +348,7 @@ function NoteEditor({
     }
 
     setIsPanelExpanded(isExpandedRef.current);
-  }, []);
+  }, [mode]);
 
   return (
     <div className="app-container">
