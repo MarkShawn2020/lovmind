@@ -10,7 +10,7 @@ A lightning-fast floating notes app for capturing thoughts instantly. Built with
 
 - **⌘N Global Hotkey** - Instant access from anywhere
 - **Floating Window** - Always-on-top note capture
-- **Markdown Support** - Live preview with split-screen editing
+- **Rich Text Editor** - WYSIWYG editing powered by Plate.js with markdown shortcuts
 - **Multi-Window Editing** - Open notes in separate windows
 - **Note Management** - Pin, favorite, and organize your notes
 - **Resume & Continue** - Pick up where you left off
@@ -39,9 +39,9 @@ pnpm tauri build
 ## Usage
 
 1. **Toggle App** - Press `⌘N` (macOS) or `Ctrl+N` (Windows/Linux)
-2. **Write** - Markdown supported with live preview
-3. **Save** - `⌘Enter` to save, `⌘S` in editor windows
-4. **Edit** - Click any note to open in a new window
+2. **Write** - Use rich text editor with markdown shortcuts (e.g., `#` for headings, `**` for bold)
+3. **Save** - Auto-saves while typing, `⌘S` for manual save
+4. **Edit** - Click any note to open in a dedicated editor window
 5. **Organize** - Pin important notes, favorite frequently used ones
 
 ### Keyboard Shortcuts
@@ -66,23 +66,28 @@ pnpm tauri build  # Build release
 
 ```
 src/              # React frontend
-├── App.tsx       # Main window component
-├── EditorWindow.tsx # Editor window component
-└── App.css       # Styles
+├── App.tsx       # Main floating window
+├── editor.tsx    # Editor window entry
+├── components/
+│   ├── NoteEditor.tsx           # Main editor component
+│   └── RenderingWysiwygEditor.tsx # Plate.js integration
+└── store/        # Jotai state management
 
 src-tauri/        # Rust backend
 ├── src/
-│   ├── lib.rs    # Tauri commands
-│   └── note_store.rs # Note storage
-└── tauri.conf.json # Configuration
+│   ├── lib.rs    # Tauri commands & global shortcut
+│   └── note_store.rs # In-memory note storage
+└── tauri.conf.json # Window & app configuration
 ```
 
 ### Key Technologies
 
 - **Frontend**: React 19, TypeScript, Vite
 - **Backend**: Rust, Tauri v2
-- **Markdown**: react-markdown, remark-gfm
-- **Icons**: lucide-react
+- **Rich Text**: Plate.js (Slate-based editor)
+- **State**: Jotai
+- **UI**: Radix UI, Tailwind CSS
+- **Icons**: Lucide React
 
 ## Contributing
 
