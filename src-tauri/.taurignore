@@ -1,0 +1,2 @@
+# Ignore tauri.conf.json changes to prevent dev server reload
+tauri.conf.json

@@ -1,18 +1,13 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "lovmind",
-  "version": "0.52.2",
+  "version": "0.52.4",
   "identifier": "app.lovpen.mind",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "pnpm build",
-    "frontendDist": "../dist",
-    "watch": {
-      "ignored": [
-        "**/tauri.conf.json"
-      ]
-    }
+    "frontendDist": "../dist"
   },
   "app": {
     "macOSPrivateApi": true,
