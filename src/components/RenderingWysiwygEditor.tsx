@@ -167,6 +167,14 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       value: initialValue,
     });
 
+    // Update editor value when initialRichContent changes (e.g., when loading a note)
+    useEffect(() => {
+      if (initialRichContent) {
+        console.log('[RenderingWysiwygEditor] 更新编辑器内容为 richContent:', initialRichContent);
+        editor.tf.setValue(initialRichContent);
+      }
+    }, [initialRichContent, editor]);
+
     // Expose resetAndFocus method to parent
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => {

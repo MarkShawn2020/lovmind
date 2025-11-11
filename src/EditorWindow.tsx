@@ -57,6 +57,12 @@ function EditorWindow() {
         if (noteData) {
           setNote(noteData);
           setContent(noteData.text);
+          setRichContent(noteData.richContent || null);
+          console.log('[EditorWindow] 加载 note 数据:', {
+            id: noteData.id,
+            hasRichContent: !!noteData.richContent,
+            richContentPreview: noteData.richContent ? JSON.stringify(noteData.richContent).substring(0, 200) : null,
+          });
         } else {
           console.error('No note found with ID:', noteId);
         }
@@ -74,9 +80,11 @@ function EditorWindow() {
       contentLength: content?.length,
       contentType: typeof content,
       contentTrimmed: content?.trim()?.length,
+      hasRichContent: !!richContent,
     });
 
-    if (note && content && typeof content === 'string' && content.trim()) {
+    // Allow saving if either has text content or has rich content (e.g., images)
+    if (note && ((content && typeof content === 'string' && content.trim()) || richContent)) {
       // 更新note
       const updatedNote: Note = {
         ...note,
