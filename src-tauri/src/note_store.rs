@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-use std::sync::Mutex;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Manager};
+use tauri_plugin_store::StoreExt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TempNote {
@@ -16,40 +15,66 @@ pub struct TempNote {
     pub rich_content: Option<serde_json::Value>,
 }
 
-// 全局临时存储，用于在窗口间传递数据
-pub static TEMP_NOTE_STORE: Lazy<Mutex<HashMap<String, TempNote>>> = Lazy::new(|| {
-    Mutex::new(HashMap::new())
-});
-
 #[tauri::command]
-pub fn store_temp_note(note: TempNote) -> Result<(), String> {
-    let mut store = TEMP_NOTE_STORE.lock().map_err(|e| e.to_string())?;
-    store.insert(note.id.clone(), note);
+pub fn store_temp_note(app: AppHandle, note: TempNote) -> Result<(), String> {
+    let store = app.store("notes.json").map_err(|e| e.to_string())?;
+
+    // Get existing notes
+    let mut notes: Vec<TempNote> = store.get("notes")
+        .and_then(|v| serde_json::from_value(v.clone()).ok())
+        .unwrap_or_else(Vec::new);
+
+    // Update or insert note
+    if let Some(pos) = notes.iter().position(|n| n.id == note.id) {
+        notes[pos] = note;
+    } else {
+        notes.push(note);
+    }
+
+    // Save back to store
+    store.set("notes", serde_json::to_value(&notes).map_err(|e| e.to_string())?);
+    store.save().map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn get_temp_note(id: String) -> Result<Option<TempNote>, String> {
-    let store = TEMP_NOTE_STORE.lock().map_err(|e| e.to_string())?;
-    Ok(store.get(&id).cloned())
+pub fn get_temp_note(app: AppHandle, id: String) -> Result<Option<TempNote>, String> {
+    let store = app.store("notes.json").map_err(|e| e.to_string())?;
+    let notes: Vec<TempNote> = store.get("notes")
+        .and_then(|v| serde_json::from_value(v.clone()).ok())
+        .unwrap_or_else(Vec::new);
+
+    Ok(notes.into_iter().find(|n| n.id == id))
 }
 
 #[tauri::command]
-pub fn remove_temp_note(id: String) -> Result<(), String> {
-    let mut store = TEMP_NOTE_STORE.lock().map_err(|e| e.to_string())?;
-    store.remove(&id);
+pub fn remove_temp_note(app: AppHandle, id: String) -> Result<(), String> {
+    let store = app.store("notes.json").map_err(|e| e.to_string())?;
+    let mut notes: Vec<TempNote> = store.get("notes")
+        .and_then(|v| serde_json::from_value(v.clone()).ok())
+        .unwrap_or_else(Vec::new);
+
+    notes.retain(|n| n.id != id);
+
+    store.set("notes", serde_json::to_value(&notes).map_err(|e| e.to_string())?);
+    store.save().map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn get_all_temp_notes() -> Result<Vec<TempNote>, String> {
-    let store = TEMP_NOTE_STORE.lock().map_err(|e| e.to_string())?;
-    Ok(store.values().cloned().collect())
+pub fn get_all_temp_notes(app: AppHandle) -> Result<Vec<TempNote>, String> {
+    let store = app.store("notes.json").map_err(|e| e.to_string())?;
+    let notes: Vec<TempNote> = store.get("notes")
+        .and_then(|v| serde_json::from_value(v.clone()).ok())
+        .unwrap_or_else(Vec::new);
+
+    Ok(notes)
 }
 
 #[tauri::command]
-pub fn clear_temp_notes() -> Result<(), String> {
-    let mut store = TEMP_NOTE_STORE.lock().map_err(|e| e.to_string())?;
-    store.clear();
+pub fn clear_temp_notes(app: AppHandle) -> Result<(), String> {
+    let store = app.store("notes.json").map_err(|e| e.to_string())?;
+    store.set("notes", serde_json::json!([]));
+    store.save().map_err(|e| e.to_string())?;
     Ok(())
 }
