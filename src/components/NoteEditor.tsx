@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Pin, Star, Trash2, Crown } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { invoke } from '@tauri-apps/api/core';
+import confetti from 'canvas-confetti';
 import { Note } from '../store';
 import RenderingWysiwygEditor, { RenderingWysiwygEditorRef } from './RenderingWysiwygEditor';
 import EditorToolbar from './EditorToolbar';
@@ -9,6 +10,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
 import { useNoteOperations } from '../hooks/useNoteOperations';
+import { useWindowOperations } from '../hooks/useWindowOperations';
 import { isTauri } from '../utils/tauri';
 
 dayjs.extend(relativeTime);
@@ -17,9 +19,8 @@ dayjs.locale('zh-cn');
 interface NoteEditorProps {
   mode: 'create' | 'edit';
   noteId?: string; // edit 模式下需要
-  onAfterSave?: (note: Note) => void; // 保存后的回调（比如 confetti 动画）
+  showConfetti?: boolean; // 是否显示 confetti 动画（create 模式默认 true）
   placeholder?: string;
-  onNoteClick?: (note: Note) => void;
   currentNoteId?: string | null;
   editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
 }
@@ -27,13 +28,13 @@ interface NoteEditorProps {
 function NoteEditor({
   mode,
   noteId,
-  onAfterSave,
+  showConfetti = mode === 'create',
   placeholder = "此时此刻，你在想什么呢？",
-  onNoteClick,
   currentNoteId,
   editorRef: externalEditorRef,
 }: NoteEditorProps) {
   const { notes, setNotes, deleteNote, togglePin, toggleFavorite, updateNote } = useNoteOperations();
+  const { openNoteInNewWindow } = useWindowOperations(notes, setNotes);
 
   // Internal state
   const [content, setContent] = useState('');
@@ -126,8 +127,20 @@ function NoteEditor({
       setCurrentTags([]);
       editorRef.current?.resetAndFocus();
 
-      // Callback for additional actions (like confetti)
-      onAfterSave?.(newNote);
+      // Show confetti animation if enabled
+      if (showConfetti) {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#ff3366', '#ff66cc', '#ff99dd', '#9966ff', '#6699ff'],
+          ticks: 200,
+          gravity: 1.2,
+          scalar: 1.2,
+          shapes: ['star', 'circle'],
+          drift: 0
+        });
+      }
 
       if (!isTauri()) return;
 
@@ -186,13 +199,11 @@ function NoteEditor({
             button.textContent = originalText;
           }, 1000);
         }
-
-        onAfterSave?.(updatedNote);
       } catch (error) {
         console.error('Failed to save note:', error);
       }
     }
-  }, [mode, content, richContent, currentTags, currentNote, notes, setNotes, updateNote, editorRef, onAfterSave]);
+  }, [mode, content, richContent, currentTags, currentNote, notes, setNotes, updateNote, editorRef, showConfetti]);
 
   // Toggle panel
   const handleTogglePanel = useCallback(() => {
@@ -310,7 +321,7 @@ function NoteEditor({
                     } ${note.favorite ? 'favorite' : ''} ${
                       note.pinned ? 'pinned' : ''
                     }`}
-                    onClick={() => onNoteClick?.(note)}
+                    onClick={() => openNoteInNewWindow(note)}
                     style={{ cursor: 'pointer' }}
                   >
                     <div className="note-content">

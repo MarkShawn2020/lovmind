@@ -1,12 +1,8 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import NoteEditor from './components/NoteEditor';
-import { useNoteOperations } from './hooks/useNoteOperations';
-import { useWindowOperations } from './hooks/useWindowOperations';
 
 function EditorWindow() {
-  const { notes, setNotes } = useNoteOperations();
-  const { openNoteInNewWindow } = useWindowOperations(notes, setNotes);
   const [noteId, setNoteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,8 +34,6 @@ function EditorWindow() {
       <NoteEditor
         mode="edit"
         noteId={noteId}
-        placeholder="此时此刻，你在想什么呢？"
-        onNoteClick={openNoteInNewWindow}
         currentNoteId={noteId}
       />
     </div>

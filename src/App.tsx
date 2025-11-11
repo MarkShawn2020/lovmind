@@ -1,26 +1,33 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { isTauri } from "./utils/tauri";
-import { useNoteOperations } from "./hooks/useNoteOperations";
-import { useWindowOperations } from "./hooks/useWindowOperations";
-import confetti from "canvas-confetti";
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import "./App.css";
 import lovpenLogo from "./assets/lovpen-logo.svg";
 import NoteEditor from "./components/NoteEditor";
 import packageJson from "../package.json";
-import { useAtomValue } from "jotai";
-import { noteStatsAtom, Note } from "./store";
+import { useAtomValue, useAtom } from "jotai";
+import { noteStatsAtom, notesAtom, Note } from "./store";
 import { RenderingWysiwygEditorRef } from "./components/RenderingWysiwygEditor";
 
 function App() {
-  const { notes, setNotes } = useNoteOperations();
-  const { handleHeaderMouseDown, openNoteInNewWindow } = useWindowOperations(notes, setNotes);
+  const [notes, setNotes] = useAtom(notesAtom);
   const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
 
   // Get note statistics from derived atom
   const noteStats = useAtomValue(noteStatsAtom);
+
+  // Handle window dragging
+  const handleHeaderMouseDown = async () => {
+    if (!isTauri()) return;
+    try {
+      const appWindow = getCurrentWindow();
+      await appWindow.startDragging();
+    } catch (error) {
+      console.error("Failed to start dragging:", error);
+    }
+  };
 
   useEffect(() => {
     if (!isTauri()) {
@@ -165,21 +172,6 @@ function App() {
     syncWithBackend();
   }, []); // 只在组件挂载时运行一次
 
-  // Handle confetti animation after note creation
-  const handleAfterSave = useCallback((note: Note) => {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#ff3366', '#ff66cc', '#ff99dd', '#9966ff', '#6699ff'],
-      ticks: 200,
-      gravity: 1.2,
-      scalar: 1.2,
-      shapes: ['star', 'circle'],
-      drift: 0
-    });
-  }, []);
-
   return (
     <div className="app-container">
       <div 
@@ -226,9 +218,7 @@ function App() {
 
       <NoteEditor
         mode="create"
-        onAfterSave={handleAfterSave}
         placeholder="此时此刻，你在想什么呢？"
-        onNoteClick={openNoteInNewWindow}
         editorRef={editorRef}
       />
     </div>
