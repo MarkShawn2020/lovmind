@@ -458,9 +458,6 @@ function NoteEditor({
               className="app-logo h-5 w-auto"
             />
             <h1>Lovpen Notes ({noteStats.total})</h1>
-            <span className="version-badge text-[0.7em] px-1.5 py-0.5 ml-1 bg-white/10 rounded font-normal opacity-70 self-center">
-              v{packageJson.version}
-            </span>
           </div>
           <div className="header-stats relative">
             <button
