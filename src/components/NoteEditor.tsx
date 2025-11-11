@@ -421,15 +421,19 @@ function NoteEditor({
           </div>
           <div className="flex items-center gap-1">
             <button
-              className={`toolbar-btn always-on-top-toggle ${isWindowAlwaysOnTop ? 'active' : 'bg-transparent'}`}
+              className={`toolbar-btn always-on-top-toggle ${isWindowAlwaysOnTop ? 'active' : ''}`}
               onClick={handleToggleAlwaysOnTop}
               title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
-              style={{ opacity: isWindowAlwaysOnTop ? 1 : 0.4 }}
+              style={{
+                opacity: isWindowAlwaysOnTop ? 1 : 0.4,
+                background: isWindowAlwaysOnTop ? undefined : 'transparent',
+                border: isWindowAlwaysOnTop ? undefined : 'none'
+              }}
             >
               <Pin size={16} />
             </button>
             <button
-              className="toolbar-btn close-btn bg-transparent"
+              className="toolbar-btn close-btn"
               onClick={async (e) => {
                 e.stopPropagation();
                 if (isTauri()) {
@@ -438,7 +442,7 @@ function NoteEditor({
                 }
               }}
               title="Close window"
-              style={{ opacity: 0.4 }}
+              style={{ opacity: 0.4, background: 'transparent', border: 'none' }}
             >
               <X size={16} />
             </button>
