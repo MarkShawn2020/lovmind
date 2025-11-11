@@ -51,8 +51,6 @@ const SendButton = memo(({
 interface EditorToolbarProps {
   mode: 'create' | 'edit';
   onToggleNotes?: () => void;
-  onTogglePin?: () => void;
-  isPinned?: boolean;
   onSubmit: () => void;
   submitDisabled: boolean;
 }
@@ -61,8 +59,6 @@ interface EditorToolbarProps {
 const EditorToolbar = memo(({
   mode,
   onToggleNotes,
-  onTogglePin,
-  isPinned = false,
   onSubmit,
   submitDisabled
 }: EditorToolbarProps) => (
@@ -70,9 +66,6 @@ const EditorToolbar = memo(({
     <div className="toolbar-left">
       {mode === 'create' && onToggleNotes && (
         <RecentNotesButton onClick={onToggleNotes} />
-      )}
-      {mode === 'edit' && onTogglePin && (
-        <PinButton onClick={onTogglePin} isPinned={isPinned} />
       )}
     </div>
     <div className="toolbar-right">

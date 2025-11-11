@@ -97,6 +97,15 @@ function NoteEditor({
           if (isTauri()) {
             noteData = await invoke<Note | null>('get_temp_note', { id: noteId });
             console.log('Retrieved note from Tauri backend:', noteData);
+
+            // Check current window always-on-top status
+            try {
+              const currentWindow = getCurrentWindow();
+              const isOnTop = await currentWindow.isAlwaysOnTop?.() || false;
+              setIsWindowAlwaysOnTop(isOnTop);
+            } catch (error) {
+              console.error('Failed to get always-on-top status:', error);
+            }
           } else {
             noteData = notes.find(n => n.id === noteId) || null;
             console.log('Retrieved note from Jotai atom:', noteData);
@@ -548,8 +557,6 @@ function NoteEditor({
         <EditorToolbar
           mode={mode}
           onToggleNotes={mode === 'create' ? handleTogglePanel : undefined}
-          onTogglePin={mode === 'edit' ? handleTogglePin : undefined}
-          isPinned={currentNote?.pinned}
           onSubmit={handleSubmit}
           submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
         />
