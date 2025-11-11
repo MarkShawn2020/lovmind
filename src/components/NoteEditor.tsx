@@ -634,15 +634,19 @@ function NoteEditor({
         >
           <div className="text-sm font-semibold text-white flex items-center gap-1">
             {(() => {
-              if (!currentNote) return 'Untitled Note';
-
-              // Calculate rank
+              // Calculate rank for all notes
               const noteRanks = new Map<string, number>();
               [...notes]
                 .sort((a, b) => Number(b.id) - Number(a.id))
                 .forEach((note, index) => {
                   noteRanks.set(note.id, notes.length - index);
                 });
+
+              // If currentNote is not loaded yet, show placeholder with sequence number
+              if (!currentNote) {
+                const tempRank = noteId ? noteRanks.get(noteId) || (notes.length + 1) : '?';
+                return <>{tempRank}. Loading...</>;
+              }
 
               const rank = noteRanks.get(currentNote.id);
               const isTopThree = rank && rank <= 3;

@@ -218,7 +218,7 @@ async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
         let blank_note = note_store::TempNote {
             id: note_id.clone(),
             text: String::new(),
-            title: title.clone(),
+            title,
             time: chrono::Utc::now().to_rfc3339(),
             tags: Vec::new(),
             favorite: Some(false),
@@ -248,7 +248,7 @@ async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
             window_label,
             webview_url
         )
-        .title(&format!("Edit: {}", title))
+        .title("New Note")
         .inner_size(360.0, 480.0)
         .min_inner_size(320.0, 240.0)
         .resizable(true)
