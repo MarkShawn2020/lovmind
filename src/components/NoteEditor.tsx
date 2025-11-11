@@ -519,7 +519,7 @@ function NoteEditor({
                 return (
                   <div
                     key={note.id}
-                    className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-[var(--primary)] group ${
+                    className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary group ${
                       currentNoteId === note.id ? 'active' : ''
                     } ${note.favorite ? 'favorite' : ''} ${
                       note.pinned ? 'pinned' : ''
