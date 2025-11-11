@@ -174,8 +174,18 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
     // Handle content changes
     const handleChange = ({ value }: { value: Value }) => {
+      console.log('[RenderingWysiwygEditor] 内容变化:', {
+        valueLength: value.length,
+        value: JSON.stringify(value, null, 2),
+      });
+
       if (onChange) {
         const { text, tags } = extractTextContent(value);
+        console.log('[RenderingWysiwygEditor] 提取的文本内容:', {
+          textLength: text.length,
+          textPreview: text.substring(0, 200),
+          tags,
+        });
         onChange(text, tags);
       }
     };

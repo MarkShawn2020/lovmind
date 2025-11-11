@@ -83,6 +83,12 @@ export const PlaceholderElement = withHOC(
 
     const replaceCurrentPlaceholder = React.useCallback(
       (file: File) => {
+        console.log('[PlaceholderElement] replaceCurrentPlaceholder 被调用:', {
+          elementId: element.id,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+        });
         void uploadFile(file);
         api.placeholder.addUploadingFile(element.id as string, file);
       },
@@ -92,7 +98,13 @@ export const PlaceholderElement = withHOC(
     React.useEffect(() => {
       if (!uploadedFile) return;
 
+      console.log('[PlaceholderElement] uploadedFile 更新，准备插入节点:', {
+        elementId: element.id,
+        uploadedFile,
+      });
+
       const path = editor.api.findPath(element);
+      console.log('[PlaceholderElement] 找到元素路径:', path);
 
       editor.tf.withoutSaving(() => {
         editor.tf.removeNodes({ at: path });
@@ -108,12 +120,14 @@ export const PlaceholderElement = withHOC(
           url: uploadedFile.url,
         };
 
+        console.log('[PlaceholderElement] 插入新节点:', node);
         editor.tf.insertNodes(node, { at: path });
 
         updateUploadHistory(editor, node);
       });
 
       api.placeholder.removeUploadingFile(element.id as string);
+      console.log('[PlaceholderElement] 节点插入完成');
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [uploadedFile, element.id]);
 
@@ -122,15 +136,29 @@ export const PlaceholderElement = withHOC(
 
     /** Paste and drop */
     React.useEffect(() => {
-      if (isReplaced.current) return;
+      console.log('[PlaceholderElement] Paste/Drop effect 触发:', {
+        isReplaced: isReplaced.current,
+        elementId: element.id,
+      });
+
+      if (isReplaced.current) {
+        console.log('[PlaceholderElement] 已经处理过，跳过');
+        return;
+      }
 
       isReplaced.current = true;
       const currentFiles = api.placeholder.getUploadingFile(
         element.id as string
       );
 
-      if (!currentFiles) return;
+      console.log('[PlaceholderElement] 获取待上传文件:', currentFiles);
 
+      if (!currentFiles) {
+        console.log('[PlaceholderElement] 没有待上传文件');
+        return;
+      }
+
+      console.log('[PlaceholderElement] 开始处理粘贴/拖放的文件');
       replaceCurrentPlaceholder(currentFiles);
 
       // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -28,6 +28,12 @@ export function useUploadFile({
   const [isUploading, setIsUploading] = React.useState(false);
 
   async function uploadThing(file: File) {
+    console.log('[useUploadFile] 开始上传文件:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    });
+
     setIsUploading(true);
     setUploadingFile(file);
 
@@ -35,6 +41,7 @@ export function useUploadFile({
       // Read file as ArrayBuffer and convert to bytes array
       const arrayBuffer = await file.arrayBuffer();
       const bytes = Array.from(new Uint8Array(arrayBuffer));
+      console.log('[useUploadFile] 文件读取完成，字节数:', bytes.length);
 
       // Simulate upload progress
       const progressInterval = setInterval(() => {
@@ -42,16 +49,19 @@ export function useUploadFile({
       }, 50);
 
       // Save file via Tauri command (returns file system path)
+      console.log('[useUploadFile] 调用 Tauri save_uploaded_file...');
       const filePath = await invoke<string>('save_uploaded_file', {
         fileName: file.name,
         fileData: bytes,
       });
+      console.log('[useUploadFile] 文件保存成功，路径:', filePath);
 
       clearInterval(progressInterval);
       setProgress(100);
 
       // Convert file path to asset:// URL for webview
       const assetUrl = convertFileSrc(filePath);
+      console.log('[useUploadFile] 转换后的 asset URL:', assetUrl);
 
       const uploadedFile = {
         key: filePath,
@@ -64,9 +74,11 @@ export function useUploadFile({
 
       setUploadedFile(uploadedFile);
       onUploadComplete?.(uploadedFile);
+      console.log('[useUploadFile] 上传完成:', uploadedFile);
 
       return uploadedFile;
     } catch (error) {
+      console.error('[useUploadFile] 上传失败:', error);
       const errorMessage = getErrorMessage(error);
       const message =
         errorMessage.length > 0
@@ -77,13 +89,15 @@ export function useUploadFile({
       onUploadError?.(error);
 
       // Fallback to blob URL for preview
+      const blobUrl = URL.createObjectURL(file);
+      console.log('[useUploadFile] 使用 blob URL fallback:', blobUrl);
       const mockUploadedFile = {
         key: 'local-blob',
-        appUrl: URL.createObjectURL(file),
+        appUrl: blobUrl,
         name: file.name,
         size: file.size,
         type: file.type,
-        url: URL.createObjectURL(file),
+        url: blobUrl,
       } as UploadedFile;
 
       setUploadedFile(mockUploadedFile);

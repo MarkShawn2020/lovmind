@@ -68,6 +68,13 @@ function EditorWindow() {
   }, [notes]);
 
   const handleSave = async () => {
+    console.log('[EditorWindow] handleSave 被调用:', {
+      hasNote: !!note,
+      contentLength: content?.length,
+      contentType: typeof content,
+      contentTrimmed: content?.trim()?.length,
+    });
+
     if (note && content && typeof content === 'string' && content.trim()) {
       // 更新note
       const updatedNote: Note = {
@@ -78,14 +85,23 @@ function EditorWindow() {
         tags: currentTags.length > 0 ? currentTags : note.tags
       };
 
+      console.log('[EditorWindow] 准备保存的 note 内容:', {
+        id: updatedNote.id,
+        title: updatedNote.title,
+        textLength: updatedNote.text.length,
+        textPreview: updatedNote.text.substring(0, 200),
+        tags: updatedNote.tags,
+      });
+
       if (isTauri()) {
         // Tauri 环境：保存到 Rust 后端
-        console.log('Storing updated note to Tauri backend:', updatedNote);
+        console.log('[EditorWindow] Tauri 环境：保存到 Rust 后端');
+        console.log('[EditorWindow] 完整的 note 对象:', JSON.stringify(updatedNote, null, 2));
         try {
           await invoke('store_temp_note', { note: updatedNote });
-          console.log('Successfully stored note to backend');
+          console.log('[EditorWindow] 成功保存到后端');
         } catch (error) {
-          console.error('Failed to store note to backend:', error);
+          console.error('[EditorWindow] 保存到后端失败:', error);
           return;
         }
 
