@@ -5,38 +5,22 @@ import { isTauri } from "./utils/tauri";
 import { useNoteOperations } from "./hooks/useNoteOperations";
 import { useWindowOperations } from "./hooks/useWindowOperations";
 import confetti from "canvas-confetti";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import "./App.css";
 import lovpenLogo from "./assets/lovpen-logo.svg";
 import NoteEditor from "./components/NoteEditor";
 import packageJson from "../package.json";
-import { useAtom, useAtomValue } from "jotai";
-import { contentAtom, noteStatsAtom, Note } from "./store";
+import { useAtomValue } from "jotai";
+import { noteStatsAtom, Note } from "./store";
 import { RenderingWysiwygEditorRef } from "./components/RenderingWysiwygEditor";
 
 function App() {
-  const [content, setContent] = useAtom(contentAtom);
   const { notes, setNotes } = useNoteOperations();
   const { handleHeaderMouseDown, openNoteInNewWindow } = useWindowOperations(notes, setNotes);
-  const [currentTags, setCurrentTags] = useState<string[]>([]);
-  const [richContent, setRichContent] = useState<any>(null);
-  const notesListRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
-  const isExpandedRef = useRef(false);
-  // Store the collapsed height to restore when collapsing
-  const collapsedHeightRef = useRef<number | null>(null);
-  const PANEL_HEIGHT = 250;
 
   // Get note statistics from derived atom
   const noteStats = useAtomValue(noteStatsAtom);
-
-  // Initialize window state on mount
-  useEffect(() => {
-    // Simply mark as not expanded on mount, don't change window size
-    isExpandedRef.current = false;
-    console.log('Window state initialized');
-  }, []); // Only run once on mount
 
   useEffect(() => {
     if (!isTauri()) {
@@ -148,19 +132,6 @@ function App() {
     };
   }, []);
 
-  // 当笔记更新时，滚动到底部（仅当没有pinned notes时）
-  useEffect(() => {
-    if (notesListRef.current) {
-      const container = notesListRef.current.parentElement;
-      if (container) {
-        const hasPinnedNotes = notes.some((note) => note.pinned);
-        if (!hasPinnedNotes) {
-          container.scrollTop = container.scrollHeight;
-        }
-      }
-    }
-  }, [notes]);
-
   // 启动时同步 Tauri 后端存储的notes
   useEffect(() => {
     if (!isTauri()) {
@@ -194,153 +165,19 @@ function App() {
     syncWithBackend();
   }, []); // 只在组件挂载时运行一次
 
-  const handleSubmit = async () => {
-    // Allow saving if either has text content or has rich content (e.g., images)
-    if ((content && typeof content === 'string' && content.trim()) || richContent) {
-      // 生成标题和标签
-      const firstLine = content ? content.split("\n")[0].substring(0, 50) : "Image Note";
-      const title = firstLine || "Untitled Note";
-      // Use tags extracted from the editor, fallback to empty array
-      const tags = currentTags.length > 0 ? currentTags : [];
-
-      const newNote: Note = {
-        id: Date.now().toString(),
-        text: content || "",
-        title,
-        time: new Date().toLocaleString(),
-        tags,
-        richContent: richContent, // Save rich content for images
-      };
-
-      console.log('[App] 创建新 note:', {
-        id: newNote.id,
-        textLength: newNote.text.length,
-        hasRichContent: !!newNote.richContent,
-      });
-
-      setNotes([...notes, newNote]);
-
-      // Reset editor and focus - unified handling for both button and keyboard submit
-      setContent("");
-      setRichContent(null);
-      editorRef.current?.resetAndFocus();
-
-      // 触发confetti动画
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#ff3366', '#ff66cc', '#ff99dd', '#9966ff', '#6699ff'],
-        ticks: 200,
-        gravity: 1.2,
-        scalar: 1.2,
-        shapes: ['star', 'circle'],
-        drift: 0
-      });
-
-      if (!isTauri()) return;
-
-      // 存储到后端
-      await invoke("store_temp_note", { note: newNote });
-
-      // 尝试调用后端生成标题
-      try {
-        const [generatedTitle, generatedTags] = await invoke<
-          [string, string[]]
-        >("generate_title_and_tags", {
-          content: content,
-        });
-        newNote.title = generatedTitle;
-        newNote.tags = generatedTags;
-        setNotes((prev) => [...prev.slice(0, -1), newNote]);
-        // 更新后端存储的note
-        await invoke("store_temp_note", { note: newNote });
-      } catch (error) {
-        console.log("Using local title generation");
-      }
-    }
-  };
-
-
-  // Toggle function - Squeeze view internally without resizing window
-  const handleToggleRecentNotes = useCallback(() => {
-    if (!panelRef.current) {
-      console.error('Panel ref not initialized');
-      return;
-    }
-
-    // Find the editor scroll container - try multiple selectors
-    const editorContainer = (
-      document.querySelector('[data-plate-container]') ||
-      document.querySelector('.wysiwyg-container') ||
-      document.querySelector('[data-slate-editor]')
-    ) as HTMLElement;
-
-    if (!editorContainer) {
-      console.warn('Could not find editor scroll container');
-    }
-
-    // Capture scroll state before resize
-    let wasAtBottom = false;
-
-    if (editorContainer) {
-      const { scrollTop, scrollHeight, clientHeight } = editorContainer;
-      // Consider "at bottom" if within 50px of bottom
-      wasAtBottom = scrollTop + clientHeight >= scrollHeight - 50;
-    }
-
-    // Helper to restore scroll to bottom
-    const restoreBottomScroll = () => {
-      if (editorContainer && wasAtBottom) {
-        const { scrollHeight, clientHeight } = editorContainer;
-        editorContainer.scrollTop = Math.max(0, scrollHeight - clientHeight);
-      }
-    };
-
-    if (!isExpandedRef.current) {
-      // Expanding - show panel within existing window space
-      isExpandedRef.current = true;
-
-      // Listen for transition end, then adjust scroll
-      const handleTransitionEnd = (e: TransitionEvent) => {
-        if (e.propertyName === 'height') {
-          restoreBottomScroll();
-          panelRef.current?.removeEventListener('transitionend', handleTransitionEnd as EventListener);
-        }
-      };
-
-      panelRef.current.addEventListener('transitionend', handleTransitionEnd as EventListener);
-
-      // Start the animation
-      if (panelRef.current) {
-        panelRef.current.classList.remove('hidden', 'collapsed');
-        panelRef.current.classList.add('visible');
-      }
-      document.querySelector('.recent-notes-toggle')?.classList.add('active');
-
-    } else {
-      // Collapsing - hide panel
-      isExpandedRef.current = false;
-
-      const handleTransitionEnd = (e: TransitionEvent) => {
-        if (e.propertyName === 'height') {
-          restoreBottomScroll();
-          if (panelRef.current) {
-            panelRef.current.classList.add('hidden');
-            panelRef.current.classList.remove('collapsed');
-          }
-          panelRef.current?.removeEventListener('transitionend', handleTransitionEnd as EventListener);
-        }
-      };
-
-      panelRef.current.addEventListener('transitionend', handleTransitionEnd as EventListener);
-
-      if (panelRef.current) {
-        panelRef.current.classList.remove('visible');
-        panelRef.current.classList.add('collapsed');
-      }
-      document.querySelector('.recent-notes-toggle')?.classList.remove('active');
-    }
+  // Handle confetti animation after note creation
+  const handleAfterSave = useCallback((note: Note) => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#ff3366', '#ff66cc', '#ff99dd', '#9966ff', '#6699ff'],
+      ticks: 200,
+      gravity: 1.2,
+      scalar: 1.2,
+      shapes: ['star', 'circle'],
+      drift: 0
+    });
   }, []);
 
   return (
@@ -388,28 +225,11 @@ function App() {
 
 
       <NoteEditor
-        content={content}
-        // Don't pass richContent as initialRichContent for main window (it causes infinite loop)
-        // richContent is only for loading existing notes in EditorWindow
-        onContentChange={(newContent, tags, newRichContent) => {
-          console.log('[App] NoteEditor onContentChange:', {
-            newContentLength: newContent?.length,
-            hasNewRichContent: newRichContent !== undefined,
-          });
-          setContent(newContent);
-          if (tags) setCurrentTags(tags);
-          if (newRichContent !== undefined) {
-            setRichContent(newRichContent);
-          }
-        }}
-        onSubmit={handleSubmit}
+        mode="create"
+        onAfterSave={handleAfterSave}
         placeholder="此时此刻，你在想什么呢？"
-        isPanelExpanded={isExpandedRef.current}
-        onTogglePanel={handleToggleRecentNotes}
-        panelRef={panelRef}
-        notesListRef={notesListRef}
-        editorRef={editorRef}
         onNoteClick={openNoteInNewWindow}
+        editorRef={editorRef}
       />
     </div>
   );

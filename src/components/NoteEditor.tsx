@@ -1,4 +1,7 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Pin, Star, Trash2, Crown } from 'lucide-react';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { invoke } from '@tauri-apps/api/core';
 import { Note } from '../store';
 import RenderingWysiwygEditor, { RenderingWysiwygEditorRef } from './RenderingWysiwygEditor';
 import EditorToolbar from './EditorToolbar';
@@ -6,41 +9,258 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
 import { useNoteOperations } from '../hooks/useNoteOperations';
+import { isTauri } from '../utils/tauri';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
 interface NoteEditorProps {
-  content: string;
-  richContent?: any;
-  onContentChange: (content: string, tags?: string[], richContent?: any) => void;
-  onSubmit: () => void;
+  mode: 'create' | 'edit';
+  noteId?: string; // edit 模式下需要
+  onAfterSave?: (note: Note) => void; // 保存后的回调（比如 confetti 动画）
   placeholder?: string;
-  isPanelExpanded: boolean;
-  onTogglePanel: () => void;
-  panelRef: React.RefObject<HTMLDivElement | null>;
-  notesListRef: React.RefObject<HTMLDivElement | null>;
-  editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
-  // 可选的额外功能
   onNoteClick?: (note: Note) => void;
-  currentNoteId?: string | null; // 用于高亮当前编辑的笔记
+  currentNoteId?: string | null;
+  editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
 }
 
 function NoteEditor({
-  content,
-  richContent,
-  onContentChange,
-  onSubmit,
+  mode,
+  noteId,
+  onAfterSave,
   placeholder = "此时此刻，你在想什么呢？",
-  isPanelExpanded,
-  onTogglePanel,
-  panelRef,
-  notesListRef,
-  editorRef,
   onNoteClick,
   currentNoteId,
+  editorRef: externalEditorRef,
 }: NoteEditorProps) {
-  const { notes, deleteNote, togglePin, toggleFavorite } = useNoteOperations();
+  const { notes, setNotes, deleteNote, togglePin, toggleFavorite, updateNote } = useNoteOperations();
+
+  // Internal state
+  const [content, setContent] = useState('');
+  const [richContent, setRichContent] = useState<any>(null);
+  const [currentTags, setCurrentTags] = useState<string[]>([]);
+  const [isPanelExpanded, setIsPanelExpanded] = useState(false);
+  const [currentNote, setCurrentNote] = useState<Note | null>(null);
+
+  // Refs
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const notesListRef = useRef<HTMLDivElement | null>(null);
+  const internalEditorRef = useRef<RenderingWysiwygEditorRef | null>(null);
+  const editorRef = externalEditorRef || internalEditorRef;
+  const isExpandedRef = useRef(false);
+
+  // Load note in edit mode
+  useEffect(() => {
+    if (mode === 'edit' && noteId) {
+      const loadNote = async () => {
+        try {
+          let noteData: Note | null = null;
+
+          if (isTauri()) {
+            noteData = await invoke<Note | null>('get_temp_note', { id: noteId });
+            console.log('Retrieved note from Tauri backend:', noteData);
+          } else {
+            noteData = notes.find(n => n.id === noteId) || null;
+            console.log('Retrieved note from Jotai atom:', noteData);
+          }
+
+          if (noteData) {
+            console.log('[NoteEditor] Loading note:', noteData.id);
+            setCurrentNote(noteData);
+            setContent(noteData.text);
+            setRichContent(noteData.richContent || null);
+            setCurrentTags(noteData.tags || []);
+          } else {
+            console.error('No note found with ID:', noteId);
+          }
+        } catch (error) {
+          console.error('Failed to load note:', error);
+        }
+      };
+
+      loadNote();
+    }
+  }, [mode, noteId, notes]);
+
+  // Handle content change
+  const handleContentChange = useCallback((newContent: string, tags?: string[], newRichContent?: any) => {
+    console.log('[NoteEditor] Content changed:', {
+      newContentLength: newContent?.length,
+      hasNewRichContent: newRichContent !== undefined,
+    });
+    setContent(newContent);
+    if (tags) setCurrentTags(tags);
+    if (newRichContent !== undefined) {
+      setRichContent(newRichContent);
+    }
+  }, []);
+
+  // Handle submit/save
+  const handleSubmit = useCallback(async () => {
+    // Allow saving if either has text content or has rich content
+    if (!((content && typeof content === 'string' && content.trim()) || richContent)) {
+      return;
+    }
+
+    if (mode === 'create') {
+      // Create new note
+      const firstLine = content ? content.split("\n")[0].substring(0, 50) : "Image Note";
+      const title = firstLine || "Untitled Note";
+      const tags = currentTags.length > 0 ? currentTags : [];
+
+      const newNote: Note = {
+        id: Date.now().toString(),
+        text: content || "",
+        title,
+        time: new Date().toLocaleString(),
+        tags,
+        richContent: richContent,
+      };
+
+      console.log('[NoteEditor] Creating new note:', newNote.id);
+      setNotes([...notes, newNote]);
+
+      // Reset editor
+      setContent("");
+      setRichContent(null);
+      setCurrentTags([]);
+      editorRef.current?.resetAndFocus();
+
+      // Callback for additional actions (like confetti)
+      onAfterSave?.(newNote);
+
+      if (!isTauri()) return;
+
+      // Store to backend
+      await invoke("store_temp_note", { note: newNote });
+
+      // Try to generate title using AI
+      try {
+        const [generatedTitle, generatedTags] = await invoke<[string, string[]]>(
+          "generate_title_and_tags",
+          { content: content }
+        );
+        newNote.title = generatedTitle;
+        newNote.tags = generatedTags;
+        setNotes((prev) => [...prev.slice(0, -1), newNote]);
+        await invoke("store_temp_note", { note: newNote });
+      } catch (error) {
+        console.log("Using local title generation");
+      }
+    } else if (mode === 'edit' && currentNote) {
+      // Update existing note
+      const updatedNote: Note = {
+        ...currentNote,
+        text: content,
+        title: content.split('\n')[0].substring(0, 50) || 'Untitled Note',
+        time: new Date().toLocaleString(),
+        tags: currentTags.length > 0 ? currentTags : currentNote.tags,
+        richContent: richContent,
+      };
+
+      console.log('[NoteEditor] Updating note:', updatedNote.id);
+
+      try {
+        await updateNote(updatedNote);
+
+        // Update window title
+        if (isTauri()) {
+          try {
+            const currentWindow = getCurrentWebviewWindow();
+            await currentWindow.setTitle(`Edit: ${updatedNote.title}`);
+          } catch (error) {
+            console.error('Failed to update window title:', error);
+          }
+        } else {
+          document.title = `Edit: ${updatedNote.title}`;
+        }
+
+        setCurrentNote(updatedNote);
+
+        // Show save success feedback
+        const button = document.querySelector('.submit-btn') as HTMLButtonElement;
+        if (button) {
+          const originalText = button.textContent;
+          button.textContent = 'Saved ✓';
+          setTimeout(() => {
+            button.textContent = originalText;
+          }, 1000);
+        }
+
+        onAfterSave?.(updatedNote);
+      } catch (error) {
+        console.error('Failed to save note:', error);
+      }
+    }
+  }, [mode, content, richContent, currentTags, currentNote, notes, setNotes, updateNote, editorRef, onAfterSave]);
+
+  // Toggle panel
+  const handleTogglePanel = useCallback(() => {
+    if (!panelRef.current) {
+      console.error('Panel ref not initialized');
+      return;
+    }
+
+    // Find the editor scroll container
+    const editorContainer = (
+      document.querySelector('[data-plate-container]') ||
+      document.querySelector('.wysiwyg-container') ||
+      document.querySelector('[data-slate-editor]')
+    ) as HTMLElement;
+
+    // Capture scroll state
+    let wasAtBottom = false;
+    if (editorContainer) {
+      const { scrollTop, scrollHeight, clientHeight } = editorContainer;
+      wasAtBottom = scrollTop + clientHeight >= scrollHeight - 50;
+    }
+
+    // Restore scroll helper
+    const restoreBottomScroll = () => {
+      if (editorContainer && wasAtBottom) {
+        const { scrollHeight, clientHeight } = editorContainer;
+        editorContainer.scrollTop = Math.max(0, scrollHeight - clientHeight);
+      }
+    };
+
+    if (!isExpandedRef.current) {
+      // Expanding
+      isExpandedRef.current = true;
+
+      const handleTransitionEnd = (e: TransitionEvent) => {
+        if (e.propertyName === 'height') {
+          restoreBottomScroll();
+          panelRef.current?.removeEventListener('transitionend', handleTransitionEnd as EventListener);
+        }
+      };
+
+      panelRef.current.addEventListener('transitionend', handleTransitionEnd as EventListener);
+      panelRef.current.classList.remove('hidden', 'collapsed');
+      panelRef.current.classList.add('visible');
+      document.querySelector('.recent-notes-toggle')?.classList.add('active');
+    } else {
+      // Collapsing
+      isExpandedRef.current = false;
+
+      const handleTransitionEnd = (e: TransitionEvent) => {
+        if (e.propertyName === 'height') {
+          restoreBottomScroll();
+          if (panelRef.current) {
+            panelRef.current.classList.add('hidden');
+            panelRef.current.classList.remove('collapsed');
+          }
+          panelRef.current?.removeEventListener('transitionend', handleTransitionEnd as EventListener);
+        }
+      };
+
+      panelRef.current.addEventListener('transitionend', handleTransitionEnd as EventListener);
+      panelRef.current.classList.remove('visible');
+      panelRef.current.classList.add('collapsed');
+      document.querySelector('.recent-notes-toggle')?.classList.remove('active');
+    }
+
+    setIsPanelExpanded(isExpandedRef.current);
+  }, []);
 
   return (
     <div className="editor-section">
@@ -49,13 +269,13 @@ function NoteEditor({
           ref={editorRef}
           initialContent={content}
           initialRichContent={richContent}
-          onChange={onContentChange}
-          onSubmit={onSubmit}
+          onChange={handleContentChange}
+          onSubmit={handleSubmit}
           placeholder={placeholder}
         />
       </div>
 
-      {/* 最近笔记面板 */}
+      {/* Notes panel */}
       <div
         ref={panelRef}
         className={`recent-notes-panel ${isPanelExpanded ? 'visible' : 'hidden'}`}
@@ -66,24 +286,21 @@ function NoteEditor({
           ) : (
             (() => {
               const sortedNotes = [...notes].sort((a, b) => {
-                // Pinned notes come first
                 if (a.pinned && !b.pinned) return -1;
                 if (!a.pinned && b.pinned) return 1;
-                // Within same pin status, sort by creation time descending (newest first)
                 return Number(b.id) - Number(a.id);
               });
 
-              // Create a map of note ID to fixed rank (based on creation time)
               const noteRanks = new Map<string, number>();
               [...notes]
-                .sort((a, b) => Number(b.id) - Number(a.id)) // Sort by creation time descending
+                .sort((a, b) => Number(b.id) - Number(a.id))
                 .forEach((note, index) => {
-                  noteRanks.set(note.id, notes.length - index); // Assign fixed rank
+                  noteRanks.set(note.id, notes.length - index);
                 });
 
               return sortedNotes.map((note) => {
                 const rank = noteRanks.get(note.id)!;
-                const isTopThree = rank <= 3; // Top 3 oldest notes
+                const isTopThree = rank <= 3;
 
                 return (
                   <div
@@ -114,53 +331,53 @@ function NoteEditor({
                           )}
                           {rank}. {note.title}
                         </div>
-                      <span className="note-time">{dayjs(note.time).fromNow()}</span>
-                    </div>
-                    <p className="note-preview">
-                      {note.text.replace(/\n/g, ' ').substring(0, 100)}
-                      {note.text.length > 100 ? '...' : ''}
-                    </p>
-                    <div className="note-tags">
-                      {note.tags.map((tag, i) => (
-                        <span key={i} className="tag">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                    <div
-                      className="note-actions"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        className={`action-btn pin-btn ${
-                          note.pinned ? 'active' : ''
-                        }`}
-                        onClick={() => togglePin(note.id)}
-                        title={note.pinned ? 'Unpin note' : 'Pin note'}
+                        <span className="note-time">{dayjs(note.time).fromNow()}</span>
+                      </div>
+                      <p className="note-preview">
+                        {note.text.replace(/\n/g, ' ').substring(0, 100)}
+                        {note.text.length > 100 ? '...' : ''}
+                      </p>
+                      <div className="note-tags">
+                        {note.tags.map((tag, i) => (
+                          <span key={i} className="tag">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                      <div
+                        className="note-actions"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Pin size={18} />
-                      </button>
-                      <button
-                        className={`action-btn favorite-btn ${
-                          note.favorite ? 'active' : ''
-                        }`}
-                        onClick={() => toggleFavorite(note.id)}
-                        title={
-                          note.favorite ? 'Unfavorite note' : 'Favorite note'
-                        }
-                      >
-                        <Star size={18} />
-                      </button>
-                      <button
-                        className="action-btn delete-btn"
-                        onClick={() => deleteNote(note.id)}
-                        title="Delete note"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                        <button
+                          className={`action-btn pin-btn ${
+                            note.pinned ? 'active' : ''
+                          }`}
+                          onClick={() => togglePin(note.id)}
+                          title={note.pinned ? 'Unpin note' : 'Pin note'}
+                        >
+                          <Pin size={18} />
+                        </button>
+                        <button
+                          className={`action-btn favorite-btn ${
+                            note.favorite ? 'active' : ''
+                          }`}
+                          onClick={() => toggleFavorite(note.id)}
+                          title={
+                            note.favorite ? 'Unfavorite note' : 'Favorite note'
+                          }
+                        >
+                          <Star size={18} />
+                        </button>
+                        <button
+                          className="action-btn delete-btn"
+                          onClick={() => deleteNote(note.id)}
+                          title="Delete note"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
                 );
               });
             })()
@@ -169,8 +386,8 @@ function NoteEditor({
       </div>
 
       <EditorToolbar
-        onToggleNotes={onTogglePanel}
-        onSubmit={onSubmit}
+        onToggleNotes={handleTogglePanel}
+        onSubmit={handleSubmit}
         submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && !richContent}
       />
     </div>
