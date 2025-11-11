@@ -326,12 +326,12 @@ function NoteEditor({
                 </svg>
               </div>
 
-              <div className="flex flex-col items-center gap-2">
-                <h3 className="inline-flex items-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0 opacity-0 animate-[fadeInUp_0.5s_ease_forwards_0.15s]">
+              <div className="flex flex-col items-center gap-2 opacity-0 animate-[fadeInUp_0.5s_ease_forwards_0.15s]">
+                <h3 className="inline-flex items-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0">
                   <Sparkles size={16} className="icon-sparkle" />
                   开启灵感之旅
                 </h3>
-                <p className="text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0 opacity-0 animate-[fadeInUp_0.5s_ease_forwards_0.3s]">
+                <p className="text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0">
                   快捷键 <kbd className="inline-block px-1.5 py-0.5 text-xs font-mono bg-[var(--muted)] border border-[var(--border)] rounded mx-0.5">⌘N</kbd> 随时唤起
                 </p>
               </div>
