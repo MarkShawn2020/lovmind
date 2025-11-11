@@ -82,6 +82,8 @@ function NoteEditor({
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({});
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
 
   // Refs
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -403,6 +405,41 @@ function NoteEditor({
     }
   }, [mode, isWindowAlwaysOnTop]);
 
+  // Handle title edit save
+  const handleSaveTitle = useCallback(async () => {
+    if (!currentNote || !editingTitle.trim()) {
+      setIsEditingTitle(false);
+      return;
+    }
+
+    const updatedNote: Note = {
+      ...currentNote,
+      title: editingTitle.trim(),
+    };
+
+    try {
+      await updateNote(updatedNote);
+
+      // Update window title
+      if (isTauri()) {
+        try {
+          const currentWindow = getCurrentWebviewWindow();
+          await currentWindow.setTitle(`Edit: ${updatedNote.title}`);
+        } catch (error) {
+          console.error('Failed to update window title:', error);
+        }
+      } else {
+        document.title = `Edit: ${updatedNote.title}`;
+      }
+
+      setCurrentNote(updatedNote);
+      setIsEditingTitle(false);
+    } catch (error) {
+      console.error('Failed to save title:', error);
+      setIsEditingTitle(false);
+    }
+  }, [currentNote, editingTitle, updateNote]);
+
   // Unified animation function for panel expand/collapse
   const animatePanelToggle = useCallback((expanding: boolean) => {
     if (!panelRef.current || !editorContainerRef.current) {
@@ -625,7 +662,38 @@ function NoteEditor({
                   {currentNote.favorite && (
                     <Star className="inline-flex align-middle text-white fill-white" size={14} />
                   )}
-                  {rank}. {currentNote.title}
+                  {rank}.{' '}
+                  {isEditingTitle ? (
+                    <input
+                      type="text"
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onBlur={handleSaveTitle}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveTitle();
+                        } else if (e.key === 'Escape') {
+                          setIsEditingTitle(false);
+                        }
+                      }}
+                      autoFocus
+                      className="bg-white/10 text-white px-2 py-0.5 rounded outline-none border border-white/20 focus:border-white/40"
+                      style={{ minWidth: '200px' }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span
+                      className="cursor-pointer hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingTitle(currentNote.title);
+                        setIsEditingTitle(true);
+                      }}
+                      title="Click to edit title"
+                    >
+                      {currentNote.title}
+                    </span>
+                  )}
                 </>
               );
             })()}
