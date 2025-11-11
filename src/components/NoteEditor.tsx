@@ -67,6 +67,7 @@ function NoteEditor({
   const [currentTags, setCurrentTags] = useState<string[]>([]);
   const [isPanelExpanded, setIsPanelExpanded] = useState(false);
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
+  const [isWindowAlwaysOnTop, setIsWindowAlwaysOnTop] = useState(false);
 
   // Refs
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -252,6 +253,20 @@ function NoteEditor({
       });
     }
   }, [mode, currentNote, togglePin]);
+
+  // Handle always on top toggle for edit mode
+  const handleToggleAlwaysOnTop = useCallback(async () => {
+    if (mode === 'edit' && isTauri()) {
+      try {
+        const currentWindow = getCurrentWebviewWindow();
+        const newState = !isWindowAlwaysOnTop;
+        await currentWindow.setAlwaysOnTop(newState);
+        setIsWindowAlwaysOnTop(newState);
+      } catch (error) {
+        console.error('Failed to toggle always on top:', error);
+      }
+    }
+  }, [mode, isWindowAlwaysOnTop]);
 
   // Toggle panel
   const handleTogglePanel = useCallback(() => {
@@ -523,6 +538,8 @@ function NoteEditor({
           onToggleNotes={mode === 'create' ? handleTogglePanel : undefined}
           onTogglePin={mode === 'edit' ? handleTogglePin : undefined}
           isPinned={currentNote?.pinned}
+          onToggleAlwaysOnTop={mode === 'edit' ? handleToggleAlwaysOnTop : undefined}
+          isAlwaysOnTop={isWindowAlwaysOnTop}
           onSubmit={handleSubmit}
           submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
         />
