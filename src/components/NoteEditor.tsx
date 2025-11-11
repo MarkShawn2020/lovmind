@@ -637,7 +637,15 @@ function NoteEditor({
               // Calculate rank
               const noteRanks = new Map<string, number>();
               [...notes]
-                .sort((a, b) => Number(b.id) - Number(a.id))
+                .sort((a, b) => {
+                  const aNum = Number(a.id);
+                  const bNum = Number(b.id);
+                  // Handle non-numeric IDs gracefully
+                  if (isNaN(aNum) && isNaN(bNum)) return a.id.localeCompare(b.id);
+                  if (isNaN(aNum)) return 1; // Non-numeric IDs go to end
+                  if (isNaN(bNum)) return -1;
+                  return bNum - aNum; // Descending order (newest first)
+                })
                 .forEach((note, index) => {
                   noteRanks.set(note.id, notes.length - index);
                 });
@@ -802,12 +810,25 @@ function NoteEditor({
               const sortedNotes = [...notes].sort((a, b) => {
                 if (a.pinned && !b.pinned) return -1;
                 if (!a.pinned && b.pinned) return 1;
-                return Number(b.id) - Number(a.id);
+                const aNum = Number(a.id);
+                const bNum = Number(b.id);
+                if (isNaN(aNum) && isNaN(bNum)) return a.id.localeCompare(b.id);
+                if (isNaN(aNum)) return 1;
+                if (isNaN(bNum)) return -1;
+                return bNum - aNum;
               });
 
               const noteRanks = new Map<string, number>();
               [...notes]
-                .sort((a, b) => Number(b.id) - Number(a.id))
+                .sort((a, b) => {
+                  const aNum = Number(a.id);
+                  const bNum = Number(b.id);
+                  // Handle non-numeric IDs gracefully
+                  if (isNaN(aNum) && isNaN(bNum)) return a.id.localeCompare(b.id);
+                  if (isNaN(aNum)) return 1; // Non-numeric IDs go to end
+                  if (isNaN(bNum)) return -1;
+                  return bNum - aNum; // Descending order (newest first)
+                })
                 .forEach((note, index) => {
                   noteRanks.set(note.id, notes.length - index);
                 });

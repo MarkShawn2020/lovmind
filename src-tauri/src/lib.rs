@@ -206,7 +206,13 @@ async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
 
     if editor_windows.is_empty() {
         // No editor windows exist, create a new blank one
-        let note_id = Uuid::new_v4().to_string();
+        // Use timestamp-based ID to match frontend ID generation
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+        let note_id = timestamp.to_string();
         let window_label = format!("note-editor-{}", note_id);
 
         // Create a blank note
