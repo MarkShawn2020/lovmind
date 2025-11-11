@@ -646,8 +646,9 @@ function NoteEditor({
                 return `#${notes.length + 1}. Untitled Note`;
               }
 
-              const rank = noteRanks.get(currentNote.id);
-              const isTopThree = rank && rank <= 3;
+              // Get rank, if not found (new note not yet in notes list), use next available number
+              const rank = noteRanks.get(currentNote.id) || notes.length + 1;
+              const isTopThree = rank <= 3;
 
               return (
                 <>
