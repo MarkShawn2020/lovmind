@@ -65,10 +65,13 @@ function NoteEditor({
   }, [notes, setNotes, onFavoriteNote]);
 
   const handleDelete = useCallback((noteId: string) => {
+    console.log('Delete button clicked for note:', noteId);
     // 如果父组件提供了删除回调，优先使用父组件的逻辑
     if (onDeleteNote) {
+      console.log('Calling parent onDeleteNote');
       onDeleteNote(noteId);
     } else {
+      console.log('Using default confirm dialog');
       // 否则使用默认的确认+删除逻辑
       if (confirm('确定要删除这条笔记吗？')) {
         setNotes(notes.filter(n => n.id !== noteId));

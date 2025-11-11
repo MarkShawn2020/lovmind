@@ -308,8 +308,22 @@ function EditorWindow() {
   }, [notes, setNotes]);
 
   const handleDeleteNote = useCallback(async (noteId: string) => {
-    if (!window.confirm('确定要删除这条笔记吗？')) {
-      return;
+    // 使用 Tauri dialog API
+    if (isTauri()) {
+      const { ask } = await import('@tauri-apps/plugin-dialog');
+      const confirmed = await ask('确定要删除这条笔记吗？', {
+        title: '确认删除',
+        kind: 'warning',
+        okLabel: '删除',
+        cancelLabel: '取消'
+      });
+      if (!confirmed) {
+        return;
+      }
+    } else {
+      if (!window.confirm('确定要删除这条笔记吗？')) {
+        return;
+      }
     }
 
     // 从状态中删除

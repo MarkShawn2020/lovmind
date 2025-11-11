@@ -268,12 +268,34 @@ function App() {
   };
 
   const handleDelete = async (noteId: string) => {
-    if (!window.confirm('确定要删除这条笔记吗？')) {
-      return;
+    console.log('App.tsx handleDelete called for:', noteId);
+
+    // 使用 Tauri dialog API
+    if (isTauri()) {
+      const { ask } = await import('@tauri-apps/plugin-dialog');
+      const confirmed = await ask('确定要删除这条笔记吗？', {
+        title: '确认删除',
+        kind: 'warning',
+        okLabel: '删除',
+        cancelLabel: '取消'
+      });
+      console.log('Tauri dialog confirmation result:', confirmed);
+      if (!confirmed) {
+        return;
+      }
+    } else {
+      const confirmed = window.confirm('确定要删除这条笔记吗？');
+      console.log('Browser confirmation result:', confirmed);
+      if (!confirmed) {
+        return;
+      }
     }
+
+    console.log('Deleting note from state');
     setNotes(notes.filter((note) => note.id !== noteId));
     // 从后端删除
     if (isTauri()) {
+      console.log('Calling Tauri remove_temp_note');
       await invoke("remove_temp_note", { id: noteId });
     }
   };
