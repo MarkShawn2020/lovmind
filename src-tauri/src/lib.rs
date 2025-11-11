@@ -1,11 +1,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tauri::{Emitter, Manager, WindowEvent, menu::{MenuBuilder, MenuItemBuilder, CheckMenuItemBuilder, SubmenuBuilder, PredefinedMenuItem}};
+use tauri::{Emitter, Manager, WindowEvent, menu::{MenuBuilder, CheckMenuItemBuilder, SubmenuBuilder, PredefinedMenuItem}};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
 use std::fs;
-use std::path::PathBuf;
 
 mod note_store;
 use note_store::{store_temp_note, get_temp_note, remove_temp_note, get_all_temp_notes, clear_temp_notes};
@@ -194,7 +193,7 @@ async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
-    use tauri::Manager;
+    use tauri::{Manager, WebviewWindowBuilder, WebviewUrl};
 
     // Get all windows
     let windows = app.webview_windows();
@@ -206,10 +205,61 @@ async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
         .collect();
 
     if editor_windows.is_empty() {
-        return Ok(()); // No editor windows to toggle
+        // No editor windows exist, create a new blank one
+        let note_id = Uuid::new_v4().to_string();
+        let window_label = format!("note-editor-{}", note_id);
+
+        // Create a blank note
+        let blank_note = note_store::TempNote {
+            id: note_id.clone(),
+            text: String::new(),
+            title: "Untitled Note".to_string(),
+            time: chrono::Utc::now().to_rfc3339(),
+            tags: Vec::new(),
+            favorite: Some(false),
+            pinned: Some(false),
+            rich_content: None,
+        };
+
+        // Store the blank note
+        store_temp_note(app.clone(), blank_note)?;
+
+        // Determine URL and WebviewUrl type based on environment
+        #[cfg(debug_assertions)]
+        let webview_url = {
+            let url_str = format!("http://localhost:1420/?window=editor&noteId={}", note_id);
+            WebviewUrl::External(url_str.parse().expect("Invalid URL format"))
+        };
+
+        #[cfg(not(debug_assertions))]
+        let webview_url = {
+            let url_str = format!("index.html?window=editor&noteId={}", note_id);
+            WebviewUrl::App(url_str.into())
+        };
+
+        // Create new editor window
+        WebviewWindowBuilder::new(
+            &app,
+            window_label,
+            webview_url
+        )
+        .title("New Note")
+        .inner_size(360.0, 480.0)
+        .min_inner_size(320.0, 240.0)
+        .resizable(true)
+        .center()
+        .always_on_top(false)
+        .focused(true)
+        .skip_taskbar(false)
+        .decorations(false)
+        .transparent(true)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+        return Ok(());
     }
 
-    // Check if any editor window is visible
+    // Editor windows exist, toggle their visibility
     let any_visible = editor_windows.iter()
         .any(|w| w.is_visible().unwrap_or(false));
 
@@ -338,7 +388,6 @@ pub fn run() {
             // Register global shortcuts
             let window = app.get_webview_window("main").unwrap();
             let window_clone_main = window.clone();
-            let app_handle = app.handle().clone();
             let app_handle_editors = app.handle().clone();
 
             // Cmd+N: Toggle editor windows
