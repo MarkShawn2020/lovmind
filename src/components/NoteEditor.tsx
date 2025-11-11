@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Pin, Star, Trash2, Crown, Sparkles, Zap } from 'lucide-react';
+import { Pin, Star, Trash2, Crown, Sparkles } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { invoke } from '@tauri-apps/api/core';
 import confetti from 'canvas-confetti';
@@ -325,20 +325,10 @@ function NoteEditor({
               </div>
               <div className="empty-state-content">
                 <h3 className="empty-state-title">
-                  <Sparkles size={18} className="icon-sparkle" />
-                  开启你的灵感之旅
+                  <Sparkles size={16} className="icon-sparkle" />
+                  开启灵感之旅
                 </h3>
-                <p className="empty-state-text">每个想法都值得被记录</p>
-                <div className="empty-state-tips">
-                  <div className="tip-item">
-                    <Zap size={14} />
-                    <span>快捷键 <kbd>⌘N</kbd> 快速唤起</span>
-                  </div>
-                  <div className="tip-item">
-                    <Sparkles size={14} />
-                    <span>支持富文本、图片、代码</span>
-                  </div>
-                </div>
+                <p className="empty-state-text">快捷键 <kbd>⌘N</kbd> 随时唤起</p>
               </div>
             </div>
           ) : (
