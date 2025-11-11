@@ -206,20 +206,19 @@ async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
 
     if editor_windows.is_empty() {
         // No editor windows exist, create a new blank one
-        // Use timestamp-based ID to match frontend ID generation
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
-        let note_id = timestamp.to_string();
+        let note_id = Uuid::new_v4().to_string();
         let window_label = format!("note-editor-{}", note_id);
 
-        // Create a blank note
+        // Get all notes to calculate next sequence number
+        let all_notes = get_all_temp_notes(app.clone())?;
+        let next_sequence = all_notes.len() + 1;
+        let title = format!("Note #{}", next_sequence);
+
+        // Create a blank note with auto-incremented title
         let blank_note = note_store::TempNote {
             id: note_id.clone(),
             text: String::new(),
-            title: "Untitled Note".to_string(),
+            title,
             time: chrono::Utc::now().to_rfc3339(),
             tags: Vec::new(),
             favorite: Some(false),

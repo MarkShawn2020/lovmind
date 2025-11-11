@@ -590,7 +590,7 @@ function NoteEditor({
               alt="Lovmind"
               className="app-logo h-5 w-auto"
             />
-            <h1>Lovmind #{notes.length + 1}</h1>
+            <h1>Lovmind ({noteStats.total})</h1>
           </div>
           <div className="header-stats relative">
             <button
@@ -634,29 +634,18 @@ function NoteEditor({
         >
           <div className="text-sm font-semibold text-white flex items-center gap-1">
             {(() => {
+              if (!currentNote) return 'Untitled Note';
+
               // Calculate rank
               const noteRanks = new Map<string, number>();
               [...notes]
-                .sort((a, b) => {
-                  const aNum = Number(a.id);
-                  const bNum = Number(b.id);
-                  // Handle non-numeric IDs gracefully
-                  if (isNaN(aNum) && isNaN(bNum)) return a.id.localeCompare(b.id);
-                  if (isNaN(aNum)) return 1; // Non-numeric IDs go to end
-                  if (isNaN(bNum)) return -1;
-                  return bNum - aNum; // Descending order (newest first)
-                })
+                .sort((a, b) => Number(b.id) - Number(a.id))
                 .forEach((note, index) => {
                   noteRanks.set(note.id, notes.length - index);
                 });
 
-              if (!currentNote) {
-                return `#${notes.length}. Untitled Note`;
-              }
-
-              // Get rank, if not found (new note not yet in notes list), use total count
-              const rank = noteRanks.get(currentNote.id) || notes.length;
-              const isTopThree = rank <= 3;
+              const rank = noteRanks.get(currentNote.id);
+              const isTopThree = rank && rank <= 3;
 
               return (
                 <>
@@ -810,25 +799,12 @@ function NoteEditor({
               const sortedNotes = [...notes].sort((a, b) => {
                 if (a.pinned && !b.pinned) return -1;
                 if (!a.pinned && b.pinned) return 1;
-                const aNum = Number(a.id);
-                const bNum = Number(b.id);
-                if (isNaN(aNum) && isNaN(bNum)) return a.id.localeCompare(b.id);
-                if (isNaN(aNum)) return 1;
-                if (isNaN(bNum)) return -1;
-                return bNum - aNum;
+                return Number(b.id) - Number(a.id);
               });
 
               const noteRanks = new Map<string, number>();
               [...notes]
-                .sort((a, b) => {
-                  const aNum = Number(a.id);
-                  const bNum = Number(b.id);
-                  // Handle non-numeric IDs gracefully
-                  if (isNaN(aNum) && isNaN(bNum)) return a.id.localeCompare(b.id);
-                  if (isNaN(aNum)) return 1; // Non-numeric IDs go to end
-                  if (isNaN(bNum)) return -1;
-                  return bNum - aNum; // Descending order (newest first)
-                })
+                .sort((a, b) => Number(b.id) - Number(a.id))
                 .forEach((note, index) => {
                   noteRanks.set(note.id, notes.length - index);
                 });
