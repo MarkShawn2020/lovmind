@@ -16,7 +16,7 @@ export default defineConfig(async () => ({
       behavior: {
         defaultAction: 'copy',  // Copy mode for AI workflow
       },
-      showSwitch: true,         // Show toggle button
+      showSwitch: false,         // Show toggle button
     }),
     react(),
   ].filter(Boolean),

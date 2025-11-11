@@ -69,7 +69,7 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
           <ToolbarGroup>
             <AIToolbarButton tooltip="Ask AI">
               <WandSparklesIcon />
-              Ask AI
+              <span className="hidden lg:inline">Ask AI</span>
             </AIToolbarButton>
           </ToolbarGroup>
 

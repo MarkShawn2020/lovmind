@@ -58,6 +58,7 @@ export function AIToolbarButton(
     <ToolbarButton
       {...props}
       disabled={!aiEnabled}
+      tooltip={!aiEnabled ? "正在开发，敬请期待" : props.tooltip}
       onClick={() => {
         if (aiEnabled) {
           api.aiChat.show();
