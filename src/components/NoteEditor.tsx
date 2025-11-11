@@ -499,14 +499,23 @@ function NoteEditor({
       }, 300);
 
     } else {
-      // Collapsing: animate panel and window, then unlock editor height
+      // Collapsing: LOCK editor height first, then animate panel and window
       isExpandedRef.current = false;
 
-      // Animate panel sliding up (h-[250px] -> h-0)
+      // Step 1: Lock the editor container to its current height (prevent it from growing during collapse)
+      if (editorContainerRef.current) {
+        const currentEditorHeight = editorContainerRef.current.clientHeight;
+        fixedEditorHeight.current = currentEditorHeight;
+        editorContainerRef.current.style.height = `${currentEditorHeight}px`;
+        editorContainerRef.current.style.flexGrow = '0';
+        editorContainerRef.current.style.flexShrink = '0';
+      }
+
+      // Step 2: Animate panel sliding up (h-[250px] -> h-0)
       setIsPanelExpanded(false);
       document.querySelector('.recent-notes-toggle')?.classList.remove('active');
 
-      // Start animated window collapse simultaneously
+      // Step 3: Start animated window collapse simultaneously
       if (isTauri()) {
         const appWindow = getCurrentWindow();
         appWindow.innerSize().then(physicalSize => {
@@ -528,7 +537,7 @@ function NoteEditor({
         });
       }
 
-      // After animation completes: hide panel and unlock editor height
+      // Step 4: After animation completes, hide panel and unlock editor height
       setTimeout(() => {
         if (panelRef.current) {
           panelRef.current.classList.add('hidden');
