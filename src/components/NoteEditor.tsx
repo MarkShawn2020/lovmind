@@ -315,7 +315,7 @@ function NoteEditor({
       >
         <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
           {notes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 gap-5 h-full text-center">
+            <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
               <div className="relative w-16 h-16">
                 <svg className="floating-logo" viewBox="0 0 986.05 1080" xmlns="http://www.w3.org/2000/svg">
                   <g fill="currentColor">
@@ -325,12 +325,13 @@ function NoteEditor({
                   </g>
                 </svg>
               </div>
-              <div className="w-full max-w-[280px] mx-auto flex flex-col items-center gap-2">
-                <h3 className="empty-state-title w-full text-center flex items-center justify-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0 opacity-0 animate-[fadeInUp_0.5s_ease_forwards_0.15s]">
+
+              <div className="flex flex-col gap-2 items-center">
+                <h3 className="inline-flex items-center justify-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0 opacity-0 animate-[fadeInUp_0.5s_ease_forwards_0.15s]">
                   <Sparkles size={16} className="icon-sparkle" />
                   开启灵感之旅
                 </h3>
-                <p className="empty-state-text w-full text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0 opacity-0 animate-[fadeInUp_0.5s_ease_forwards_0.3s]">
+                <p className="text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0 opacity-0 animate-[fadeInUp_0.5s_ease_forwards_0.3s]">
                   快捷键 <kbd className="inline-block px-1.5 py-0.5 text-xs font-mono bg-[var(--muted)] border border-[var(--border)] rounded mx-0.5">⌘N</kbd> 随时唤起
                 </p>
               </div>
