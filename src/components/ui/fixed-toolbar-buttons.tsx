@@ -171,14 +171,6 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
                   <ToolbarGroup>
                     <MoreToolbarButton />
                   </ToolbarGroup>
-
-                  <ToolbarGroup>
-                    <ExportToolbarButton>
-                      <ArrowUpToLineIcon />
-                    </ExportToolbarButton>
-
-                    <ImportToolbarButton />
-                  </ToolbarGroup>
                 </div>
               </PopoverContent>
             </Popover>
@@ -187,6 +179,14 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
       )}
 
       <div className="grow" />
+
+      <ToolbarGroup>
+        <ExportToolbarButton>
+          <ArrowUpToLineIcon />
+        </ExportToolbarButton>
+
+        <ImportToolbarButton />
+      </ToolbarGroup>
     </div>
   );
 }
