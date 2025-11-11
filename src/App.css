@@ -73,29 +73,7 @@ body {
   font-weight: 500;
 }
 
-.notes-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Enhanced Empty State */
-.empty-state-enhanced {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 24px;
-  gap: 20px;
-  height: 100%;
-  text-align: center;
-}
-
-.empty-state-logo {
-  position: relative;
-  width: 64px;
-  height: 64px;
-}
+/* Empty State Animations */
 
 .floating-logo {
   width: 100%;
@@ -121,20 +99,7 @@ body {
   }
 }
 
-.empty-state-content {
-  gap: 8px;
-}
-
-.empty-state-title {
-  gap: 6px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--foreground);
-  margin: 0;
-  opacity: 0;
-  animation: fadeInUp 0.5s ease forwards 0.15s;
-}
-
+/* Animation for sparkle icon */
 .icon-sparkle {
   color: hsl(280, 70%, 65%);
   animation: sparkle 2s ease-in-out infinite;
@@ -151,26 +116,7 @@ body {
   }
 }
 
-.empty-state-text {
-  font-size: 0.8125rem;
-  color: var(--muted-foreground);
-  margin: 0;
-  text-align: center;
-  opacity: 0;
-  animation: fadeInUp 0.5s ease forwards 0.3s;
-}
-
-.empty-state-text kbd {
-  display: inline-block;
-  padding: 2px 5px;
-  font-size: 0.75rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  background: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  margin: 0 2px;
-}
-
+/* FadeInUp animation - used in component via Tailwind animate-[] */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -182,26 +128,7 @@ body {
   }
 }
 
-.note-item {
-  background: var(--card);
-  padding: 8px 10px;
-  border-radius: var(--radius);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  transition: all 0.2s;
-  position: relative;
-  border: 1px solid var(--border);
-  height: 90px;
-  min-height: 90px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.note-item:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  border-color: var(--primary);
-}
-
+/* Note item special states */
 .note-item.resuming {
   background: var(--secondary);
   border: 2px solid var(--primary);
@@ -231,35 +158,7 @@ body {
   }
 }
 
-.note-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 2px;
-}
-
-.note-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--card-foreground);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.icon-inline {
-  display: inline-flex;
-  vertical-align: middle;
-}
-
-.icon-inline.pinned {
-  color: var(--primary);
-}
-
-.icon-inline.favorited {
-  color: var(--highlight);
-  fill: var(--highlight);
-}
-
+/* Rank badge animations */
 .icon-inline.rank-badge {
   animation: crown-shine 2s ease-in-out infinite;
 }
@@ -288,93 +187,7 @@ body {
   }
 }
 
-.note-time {
-  font-size: 0.625rem;
-  color: var(--muted-foreground);
-}
-
-.note-preview {
-  font-size: 0.8125rem;
-  color: var(--muted-foreground);
-  line-height: 1.5;
-  margin-bottom: 4px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  word-break: break-word;
-}
-
-.note-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.note-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.note-tags {
-  display: flex;
-  gap: 3px;
-  margin-top: auto;
-  margin-bottom: 4px;
-}
-
-.tag {
-  font-size: 0.625rem;
-  padding: 2px 6px;
-  background: var(--secondary);
-  color: var(--primary);
-  border-radius: var(--radius-full);
-  font-weight: 500;
-  border: 1px solid var(--border);
-}
-
-.note-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  align-items: stretch;
-  opacity: 0;
-  transition: opacity 0.2s;
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 0;
-  border-radius: 0 var(--radius) var(--radius) 0;
-  border-left: 1px solid var(--border);
-  box-shadow: -2px 0 8px rgba(0,0,0,0.05);
-  justify-content: center;
-  width: 36px;
-  overflow: hidden;
-}
-
-.note-item:hover .note-actions {
-  opacity: 1;
-}
-
-.action-btn {
-  padding: 6px 5px;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  position: relative;
-}
-
+/* Action button dividers */
 .action-btn:not(:last-child)::after {
   content: '';
   position: absolute;
@@ -386,60 +199,7 @@ body {
   background: var(--border);
 }
 
-.action-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.action-btn svg {
-  stroke-width: 2;
-}
-
-.pin-btn {
-  color: var(--muted-foreground);
-}
-
-.pin-btn:hover {
-  color: var(--primary);
-  border-color: var(--primary);
-  background: rgba(217, 119, 87, 0.08);
-}
-
-.pin-btn.active {
-  color: var(--primary);
-  background: rgba(217, 119, 87, 0.12);
-  border-color: var(--primary);
-}
-
-.favorite-btn {
-  color: var(--muted-foreground);
-}
-
-.favorite-btn:hover {
-  color: var(--highlight);
-  border-color: var(--highlight);
-  background: rgba(194, 192, 125, 0.08);
-}
-
-.favorite-btn.active {
-  color: var(--highlight);
-  background: rgba(194, 192, 125, 0.12);
-  border-color: var(--highlight);
-}
-
-.favorite-btn.active svg {
-  fill: var(--highlight);
-}
-
-.delete-btn {
-  color: var(--muted-foreground);
-}
-
-.delete-btn:hover {
-  color: var(--destructive);
-  border-color: var(--destructive);
-  background: rgba(200, 84, 80, 0.08);
-}
-
+/* Resume button (if used elsewhere) */
 .resume-btn {
   color: var(--chart-3);
   border-color: var(--chart-3);
@@ -581,57 +341,6 @@ body {
   opacity: 0.4;
   cursor: not-allowed;
   box-shadow: none;
-}
-
-.recent-notes-panel {
-  flex-shrink: 0;
-  background: var(--muted);
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  /* Smooth height animation for internal squeeze effect */
-  height: 0;
-  opacity: 0;
-  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: height, opacity;
-}
-
-.recent-notes-panel.visible {
-  height: 250px;
-  opacity: 1;
-}
-
-.recent-notes-panel.collapsed {
-  height: 0;
-  opacity: 0;
-}
-
-.recent-notes-panel.hidden {
-  height: 0;
-  opacity: 0;
-}
-
-
-.recent-notes-header {
-  padding: 12px var(--spacing-s);
-  border-bottom: 1px solid var(--border);
-  background: var(--card);
-  flex-shrink: 0;
-}
-
-.recent-notes-header h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--foreground);
-  margin: 0;
-}
-
-.recent-notes-panel .notes-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--spacing-s);
 }
 
 .editor-container {

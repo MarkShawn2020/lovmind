@@ -309,12 +309,14 @@ function NoteEditor({
       {/* Notes panel */}
       <div
         ref={panelRef}
-        className={`recent-notes-panel ${isPanelExpanded ? 'visible' : 'hidden'}`}
+        className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
+          isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
+        }`}
       >
-        <div className="notes-list" ref={notesListRef}>
+        <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
           {notes.length === 0 ? (
-            <div className="empty-state-enhanced">
-              <div className="empty-state-logo">
+            <div className="flex flex-col items-center justify-center p-8 gap-5 h-full text-center">
+              <div className="relative w-16 h-16">
                 <svg className="floating-logo" viewBox="0 0 986.05 1080" xmlns="http://www.w3.org/2000/svg">
                   <g fill="currentColor">
                     <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z"/>
@@ -323,12 +325,14 @@ function NoteEditor({
                   </g>
                 </svg>
               </div>
-              <div className="empty-state-content w-full max-w-[280px] mx-auto flex flex-col items-center">
-                <h3 className="empty-state-title w-full text-center flex items-center justify-center">
+              <div className="w-full max-w-[280px] mx-auto flex flex-col items-center gap-2">
+                <h3 className="empty-state-title w-full text-center flex items-center justify-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0 opacity-0 animate-[fadeInUp_0.5s_ease_forwards_0.15s]">
                   <Sparkles size={16} className="icon-sparkle" />
                   开启灵感之旅
                 </h3>
-                <p className="empty-state-text w-full text-center">快捷键 <kbd>⌘N</kbd> 随时唤起</p>
+                <p className="empty-state-text w-full text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0 opacity-0 animate-[fadeInUp_0.5s_ease_forwards_0.3s]">
+                  快捷键 <kbd className="inline-block px-1.5 py-0.5 text-xs font-mono bg-[var(--muted)] border border-[var(--border)] rounded mx-0.5">⌘N</kbd> 随时唤起
+                </p>
               </div>
             </div>
           ) : (
@@ -353,16 +357,16 @@ function NoteEditor({
                 return (
                   <div
                     key={note.id}
-                    className={`note-item cursor-pointer ${
+                    className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-[var(--primary)] group ${
                       currentNoteId === note.id ? 'active' : ''
                     } ${note.favorite ? 'favorite' : ''} ${
                       note.pinned ? 'pinned' : ''
                     }`}
                     onClick={() => openNoteInNewWindow(note)}
                   >
-                    <div className="note-content">
-                      <div className="note-header">
-                        <div className="note-title">
+                    <div className="flex flex-col h-full">
+                      <div className="flex justify-between mb-0.5">
+                        <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1">
                           {isTopThree && (
                             <Crown
                               className={`icon-inline rank-badge rank-${rank}`}
@@ -371,59 +375,59 @@ function NoteEditor({
                             />
                           )}
                           {note.pinned && (
-                            <Pin className="icon-inline pinned" size={14} />
+                            <Pin className="inline-flex align-middle text-[var(--primary)]" size={14} />
                           )}
                           {note.favorite && (
-                            <Star className="icon-inline favorited" size={14} />
+                            <Star className="inline-flex align-middle text-[var(--highlight)] fill-[var(--highlight)]" size={14} />
                           )}
                           {rank}. {note.title}
                         </div>
-                        <span className="note-time">{dayjs(note.time).fromNow()}</span>
+                        <span className="text-[0.625rem] text-[var(--muted-foreground)]">{dayjs(note.time).fromNow()}</span>
                       </div>
-                      <p className="note-preview">
+                      <p className="text-[0.8125rem] text-[var(--muted-foreground)] leading-6 mb-1 line-clamp-2 overflow-hidden text-ellipsis break-words">
                         {note.text.replace(/\n/g, ' ').substring(0, 100)}
                         {note.text.length > 100 ? '...' : ''}
                       </p>
-                      <div className="note-tags">
+                      <div className="flex gap-[3px] mt-auto mb-1">
                         {note.tags.map((tag, i) => (
-                          <span key={i} className="tag">
+                          <span key={i} className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--secondary)] text-[var(--primary)] rounded-full font-medium border border-[var(--border)]">
                             #{tag}
                           </span>
                         ))}
                       </div>
                       <div
-                        className="note-actions"
+                        className="note-actions flex flex-col gap-0 items-stretch opacity-0 transition-opacity duration-200 absolute top-0 right-0 bottom-0 bg-white/95 p-0 rounded-r-[var(--radius)] border-l border-[var(--border)] shadow-[-2px_0_8px_rgba(0,0,0,0.05)] justify-center w-9 overflow-hidden group-hover:opacity-100"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
-                          className={`action-btn pin-btn ${
-                            note.pinned ? 'active' : ''
+                          className={`action-btn pin-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--primary)] hover:bg-[rgba(217,119,87,0.08)] ${
+                            note.pinned ? 'active text-[var(--primary)] bg-[rgba(217,119,87,0.12)] border-[var(--primary)]' : ''
                           }`}
                           onClick={() => togglePin(note.id)}
                           title={note.pinned ? 'Unpin note' : 'Pin note'}
                         >
-                          <Pin size={18} />
+                          <Pin size={18} strokeWidth={2} />
                         </button>
                         <button
-                          className={`action-btn favorite-btn ${
-                            note.favorite ? 'active' : ''
+                          className={`action-btn favorite-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--highlight)] hover:bg-[rgba(194,192,125,0.08)] ${
+                            note.favorite ? 'active text-[var(--highlight)] bg-[rgba(194,192,125,0.12)] border-[var(--highlight)]' : ''
                           }`}
                           onClick={() => toggleFavorite(note.id)}
                           title={
                             note.favorite ? 'Unfavorite note' : 'Favorite note'
                           }
                         >
-                          <Star size={18} />
+                          <Star size={18} strokeWidth={2} className={note.favorite ? 'fill-[var(--highlight)]' : ''} />
                         </button>
                         <button
-                          className="action-btn delete-btn"
+                          className="action-btn delete-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--destructive)] hover:bg-[rgba(200,84,80,0.08)]"
                           onClick={async (e) => {
                             e.stopPropagation();
                             await deleteNote(note.id);
                           }}
                           title="Delete note"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 size={18} strokeWidth={2} />
                         </button>
                       </div>
                     </div>
