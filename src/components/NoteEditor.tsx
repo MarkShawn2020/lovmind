@@ -7,6 +7,7 @@ import confetti from 'canvas-confetti';
 import { Note, noteStatsAtom } from '../store';
 import RenderingWysiwygEditor, { RenderingWysiwygEditorRef } from './RenderingWysiwygEditor';
 import EditorToolbar from './EditorToolbar';
+import ProfileModal from './ProfileModal';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -19,6 +20,11 @@ import packageJson from '../../package.json';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
+
+interface UserProfile {
+  nickname?: string;
+  avatar?: string;
+}
 
 // Panel height constant
 const PANEL_HEIGHT = 250;
@@ -72,6 +78,8 @@ function NoteEditor({
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
   const [isWindowAlwaysOnTop, setIsWindowAlwaysOnTop] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile>({});
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
 
   // Refs
@@ -85,6 +93,52 @@ function NoteEditor({
   const fixedEditorHeight = useRef<number | undefined>(undefined);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  // Load user profile
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (isTauri()) {
+        try {
+          const profile = await invoke<UserProfile | null>('get_user_profile');
+          if (profile) {
+            setUserProfile(profile);
+          }
+        } catch (error) {
+          console.error('Failed to load profile:', error);
+        }
+      } else {
+        const saved = localStorage.getItem('user_profile');
+        if (saved) {
+          setUserProfile(JSON.parse(saved));
+        }
+      }
+    };
+    loadProfile();
+  }, []);
+
+  // Reload profile when modal closes
+  useEffect(() => {
+    if (!isProfileModalOpen) {
+      const loadProfile = async () => {
+        if (isTauri()) {
+          try {
+            const profile = await invoke<UserProfile | null>('get_user_profile');
+            if (profile) {
+              setUserProfile(profile);
+            }
+          } catch (error) {
+            console.error('Failed to load profile:', error);
+          }
+        } else {
+          const saved = localStorage.getItem('user_profile');
+          if (saved) {
+            setUserProfile(JSON.parse(saved));
+          }
+        }
+      };
+      loadProfile();
+    }
+  }, [isProfileModalOpen]);
 
   // Handle click outside to close user menu
   useEffect(() => {
@@ -462,7 +516,7 @@ function NoteEditor({
           <div className="header-stats relative">
             <button
               ref={userButtonRef}
-              className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer border-none"
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer border-none overflow-hidden"
               onClick={(e) => {
                 e.stopPropagation();
                 if (userButtonRef.current) {
@@ -474,9 +528,13 @@ function NoteEditor({
                 }
                 setIsUserMenuOpen(!isUserMenuOpen);
               }}
-              title="User menu"
+              title={userProfile.nickname || 'User menu'}
             >
-              <User size={18} className="text-white" />
+              {userProfile.avatar ? (
+                <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <User size={18} className="text-white" />
+              )}
             </button>
 
             {noteStats.streak > 2 && (
@@ -742,7 +800,7 @@ function NoteEditor({
             className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
             onClick={() => {
               setIsUserMenuOpen(false);
-              // TODO: Open profile
+              setIsProfileModalOpen(true);
             }}
           >
             <UserCircle size={16} />
@@ -798,6 +856,12 @@ function NoteEditor({
           </button>
         </div>
       )}
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </div>
   );
 }

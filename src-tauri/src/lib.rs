@@ -192,6 +192,28 @@ async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserProfile {
+    nickname: Option<String>,
+    avatar: Option<String>,
+}
+
+#[tauri::command]
+async fn get_user_profile(app: tauri::AppHandle) -> Result<Option<UserProfile>, String> {
+    let store = app.store("settings.json").map_err(|e| e.to_string())?;
+    let profile = store.get("user_profile")
+        .and_then(|v| serde_json::from_value::<UserProfile>(v.clone()).ok());
+    Ok(profile)
+}
+
+#[tauri::command]
+async fn save_user_profile(app: tauri::AppHandle, profile: UserProfile) -> Result<(), String> {
+    let store = app.store("settings.json").map_err(|e| e.to_string())?;
+    store.set("user_profile", serde_json::to_value(&profile).map_err(|e| e.to_string())?);
+    store.save().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -218,6 +240,8 @@ pub fn run() {
             is_ai_enabled,
             set_ai_enabled,
             quit_app,
+            get_user_profile,
+            save_user_profile,
         ])
         .setup(|app| {
             // Create menu with AI toggle
