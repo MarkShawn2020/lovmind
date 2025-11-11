@@ -1,6 +1,6 @@
 [package]
 name = "lovpen-notes"
-version = "0.50.7"
+version = "0.50.8"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
