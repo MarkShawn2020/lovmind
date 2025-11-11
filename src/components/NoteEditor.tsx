@@ -480,6 +480,13 @@ function NoteEditor({
           />
         </div>
 
+        <EditorToolbar
+          mode={mode}
+          onToggleNotes={handleTogglePanel}
+          onSubmit={handleSubmit}
+          submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
+        />
+
         {/* Notes panel */}
         <div
           ref={panelRef}
@@ -613,13 +620,6 @@ function NoteEditor({
           )}
         </div>
         </div>
-
-        <EditorToolbar
-          mode={mode}
-          onToggleNotes={handleTogglePanel}
-          onSubmit={handleSubmit}
-          submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
-        />
       </div>
     </div>
   );
