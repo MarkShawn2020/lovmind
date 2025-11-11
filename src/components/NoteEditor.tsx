@@ -72,6 +72,7 @@ function NoteEditor({
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
   const [isWindowAlwaysOnTop, setIsWindowAlwaysOnTop] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
 
   // Refs
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -83,11 +84,17 @@ function NoteEditor({
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const fixedEditorHeight = useRef<number | undefined>(undefined);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const userButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // Handle click outside to close user menu
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node) &&
+        userButtonRef.current &&
+        !userButtonRef.current.contains(event.target as Node)
+      ) {
         setIsUserMenuOpen(false);
       }
     };
@@ -455,69 +462,25 @@ function NoteEditor({
               v{packageJson.version}
             </span>
           </div>
-          <div className="header-stats relative" ref={userMenuRef}>
+          <div className="header-stats relative">
             <button
+              ref={userButtonRef}
               className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer border-none"
               onClick={(e) => {
                 e.stopPropagation();
+                if (userButtonRef.current) {
+                  const rect = userButtonRef.current.getBoundingClientRect();
+                  setMenuPosition({
+                    top: rect.bottom + 8,
+                    right: window.innerWidth - rect.right
+                  });
+                }
                 setIsUserMenuOpen(!isUserMenuOpen);
               }}
               title="User menu"
             >
               <User size={18} className="text-white" />
             </button>
-
-            {isUserMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-2xl border border-gray-200 py-1 z-[9999]">
-                <button
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
-                  onClick={() => {
-                    setIsUserMenuOpen(false);
-                    // TODO: Open profile
-                  }}
-                >
-                  <UserCircle size={16} />
-                  Profile
-                </button>
-                <button
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
-                  onClick={() => {
-                    setIsUserMenuOpen(false);
-                    // TODO: Open help
-                  }}
-                >
-                  <HelpCircle size={16} />
-                  Help
-                </button>
-                <button
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
-                  onClick={() => {
-                    setIsUserMenuOpen(false);
-                    window.open('mailto:shawninjuly@gmail.com', '_blank');
-                  }}
-                >
-                  <Mail size={16} />
-                  Contact Developer
-                </button>
-                <div className="border-t border-gray-200 my-1" />
-                <button
-                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
-                  onClick={async () => {
-                    setIsUserMenuOpen(false);
-                    if (isTauri()) {
-                      try {
-                        await invoke('quit_app');
-                      } catch (error) {
-                        console.error('Failed to exit:', error);
-                      }
-                    }
-                  }}
-                >
-                  <LogOut size={16} />
-                  Quit
-                </button>
-              </div>
-            )}
 
             {noteStats.streak > 2 && (
               <span className="header-stat-badge streak-badge ml-2" title={`${noteStats.streak} day streak!`}>
@@ -766,6 +729,67 @@ function NoteEditor({
         </div>
         </div>
       </div>
+
+      {/* User Menu - Fixed positioning to be above all other elements */}
+      {isUserMenuOpen && (
+        <div
+          ref={userMenuRef}
+          className="fixed w-48 bg-white rounded-lg shadow-2xl border border-gray-200 py-1"
+          style={{
+            top: `${menuPosition.top}px`,
+            right: `${menuPosition.right}px`,
+            zIndex: 99999
+          }}
+        >
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              // TODO: Open profile
+            }}
+          >
+            <UserCircle size={16} />
+            Profile
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              // TODO: Open help
+            }}
+          >
+            <HelpCircle size={16} />
+            Help
+          </button>
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              window.open('mailto:shawninjuly@gmail.com', '_blank');
+            }}
+          >
+            <Mail size={16} />
+            Contact Developer
+          </button>
+          <div className="border-t border-gray-200 my-1" />
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+            onClick={async () => {
+              setIsUserMenuOpen(false);
+              if (isTauri()) {
+                try {
+                  await invoke('quit_app');
+                } catch (error) {
+                  console.error('Failed to exit:', error);
+                }
+              }
+            }}
+          >
+            <LogOut size={16} />
+            Quit
+          </button>
+        </div>
+      )}
     </div>
   );
 }
