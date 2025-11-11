@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tauri::{Emitter, Manager, WindowEvent, menu::{MenuBuilder, MenuItemBuilder, CheckMenuItemBuilder}};
+use tauri::{Emitter, Manager, WindowEvent, menu::{MenuBuilder, MenuItemBuilder, CheckMenuItemBuilder, SubmenuBuilder, PredefinedMenuItem}};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
@@ -223,7 +223,19 @@ pub fn run() {
                 .checked(ai_enabled)
                 .build(app)?;
 
+            // Create Edit menu with standard clipboard operations for macOS
+            let edit_menu = SubmenuBuilder::new(app, "Edit")
+                .item(&PredefinedMenuItem::undo(app, None)?)
+                .item(&PredefinedMenuItem::redo(app, None)?)
+                .separator()
+                .item(&PredefinedMenuItem::cut(app, None)?)
+                .item(&PredefinedMenuItem::copy(app, None)?)
+                .item(&PredefinedMenuItem::paste(app, None)?)
+                .item(&PredefinedMenuItem::select_all(app, None)?)
+                .build()?;
+
             let menu = MenuBuilder::new(app)
+                .item(&edit_menu)
                 .item(&ai_toggle)
                 .build()?;
 
