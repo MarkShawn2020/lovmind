@@ -293,32 +293,33 @@ function NoteEditor({
     }
 
     if (!isExpandedRef.current) {
-      // Expanding: expand window and animate panel simultaneously
+      // Expanding: show panel content first (instantly), then animate window expansion
       isExpandedRef.current = true;
 
-      // Start expanding window (don't await - let it run in parallel with panel animation)
-      if (isTauri()) {
-        const appWindow = getCurrentWindow();
-        appWindow.innerSize().then(physicalSize => {
-          return appWindow.scaleFactor().then(scaleFactor => {
-            const currentSize = physicalSize.toLogical(scaleFactor);
-            collapsedHeightRef.current = currentSize.height;
-            return appWindow.setSize(new LogicalSize(
-              currentSize.width,
-              currentSize.height + PANEL_HEIGHT
-            ));
-          });
-        }).catch(error => {
-          console.warn('Failed to resize window:', error);
-        });
+      // Step 1: Show panel content instantly (remove hidden, set full height immediately)
+      if (panelRef.current) {
+        panelRef.current.classList.remove('hidden');
+        document.querySelector('.recent-notes-toggle')?.classList.add('active');
+        setIsPanelExpanded(true);
       }
 
-      // Simultaneously animate panel sliding down (h-0 -> h-[250px])
+      // Step 2: After content is visible, animate window expansion
+      // Small delay to ensure DOM updates are applied
       requestAnimationFrame(() => {
-        if (panelRef.current) {
-          panelRef.current.classList.remove('hidden');
-          document.querySelector('.recent-notes-toggle')?.classList.add('active');
-          setIsPanelExpanded(true);
+        if (isTauri()) {
+          const appWindow = getCurrentWindow();
+          appWindow.innerSize().then(physicalSize => {
+            return appWindow.scaleFactor().then(scaleFactor => {
+              const currentSize = physicalSize.toLogical(scaleFactor);
+              collapsedHeightRef.current = currentSize.height;
+              return appWindow.setSize(new LogicalSize(
+                currentSize.width,
+                currentSize.height + PANEL_HEIGHT
+              ));
+            });
+          }).catch(error => {
+            console.warn('Failed to resize window:', error);
+          });
         }
       });
 
