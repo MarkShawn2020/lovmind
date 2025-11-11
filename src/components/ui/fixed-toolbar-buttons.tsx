@@ -70,7 +70,7 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
           <ToolbarGroup>
             <AIToolbarButton tooltip="Ask AI">
               <WandSparklesIcon />
-              <span className="hidden lg:inline">Ask AI</span>
+              <span className="hidden sm:inline">Ask AI</span>
             </AIToolbarButton>
           </ToolbarGroup>
 
@@ -83,7 +83,8 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
               <PopoverTrigger asChild>
                 <ToolbarButton
                   tooltip="更多工具"
-                  pressed={isToolbarOpen}
+                  data-state={isToolbarOpen ? "open" : "closed"}
+                  className={cn(isToolbarOpen && "bg-accent text-accent-foreground")}
                 >
                   {isToolbarOpen ? <MoreVerticalIcon /> : <MoreHorizontalIcon />}
                 </ToolbarButton>

@@ -144,7 +144,7 @@ export function TurnIntoToolbarButton({ compact = true, ...props }: DropdownMenu
     <DropdownMenu open={open} onOpenChange={setOpen} modal={false} {...props}>
       <DropdownMenuTrigger asChild>
         <ToolbarButton
-          className={compact ? '' : 'lg:min-w-[125px]'}
+          className={compact ? '' : 'sm:min-w-[125px]'}
           pressed={open}
           tooltip="Turn into"
           isDropdown
@@ -152,7 +152,7 @@ export function TurnIntoToolbarButton({ compact = true, ...props }: DropdownMenu
           {compact ? selectedItem.icon : (
             <>
               {selectedItem.icon}
-              <span className="ml-1 hidden lg:inline">{selectedItem.label}</span>
+              <span className="ml-1 hidden sm:inline">{selectedItem.label}</span>
             </>
           )}
         </ToolbarButton>
