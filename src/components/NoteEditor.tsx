@@ -281,17 +281,12 @@ function NoteEditor({
     }
 
     if (!isExpandedRef.current) {
-      // Expanding: show panel content first (instantly), then animate window expansion over 300ms
+      // Expanding: show panel content immediately, then animate window expansion
       isExpandedRef.current = true;
+      document.querySelector('.recent-notes-toggle')?.classList.add('active');
+      setIsPanelExpanded(true);
 
-      // Step 1: Show panel content instantly (remove hidden, set full height immediately)
-      if (panelRef.current) {
-        panelRef.current.classList.remove('hidden');
-        document.querySelector('.recent-notes-toggle')?.classList.add('active');
-        setIsPanelExpanded(true);
-      }
-
-      // Step 2: Animate window expansion smoothly over 300ms
+      // Animate window expansion over 300ms
       if (isTauri()) {
         const appWindow = getCurrentWindow();
         try {
@@ -305,7 +300,6 @@ function NoteEditor({
           const startTime = performance.now();
           const duration = 300;
 
-          // Easing function for smooth animation
           const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
           const animate = (currentTime: number) => {
@@ -333,36 +327,31 @@ function NoteEditor({
       }
 
     } else {
-      // Collapsing: first animate panel up, then shrink window
+      // Collapsing: shrink window first, then hide panel content
       isExpandedRef.current = false;
-
-      // Animate panel sliding up (h-[250px] -> h-0)
-      setIsPanelExpanded(false);
       document.querySelector('.recent-notes-toggle')?.classList.remove('active');
 
-      // Wait for animation to complete, then shrink window
-      setTimeout(async () => {
-        if (panelRef.current) {
-          panelRef.current.classList.add('hidden');
-        }
+      if (isTauri()) {
+        try {
+          const appWindow = getCurrentWindow();
+          const physicalSize = await appWindow.innerSize();
+          const scaleFactor = await appWindow.scaleFactor();
+          const currentSize = physicalSize.toLogical(scaleFactor);
+          const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
 
-        if (isTauri()) {
-          try {
-            const appWindow = getCurrentWindow();
-            const physicalSize = await appWindow.innerSize();
-            const scaleFactor = await appWindow.scaleFactor();
-            const currentSize = physicalSize.toLogical(scaleFactor);
-            const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
-
-            await appWindow.setSize(new LogicalSize(
-              currentSize.width,
-              targetHeight
-            ));
-          } catch (error) {
-            console.warn('Failed to resize window:', error);
-          }
+          await appWindow.setSize(new LogicalSize(
+            currentSize.width,
+            targetHeight
+          ));
+        } catch (error) {
+          console.warn('Failed to resize window:', error);
         }
-      }, 300); // Wait for CSS transition to complete
+      }
+
+      // Hide panel content after window shrinks
+      setTimeout(() => {
+        setIsPanelExpanded(false);
+      }, 300);
     }
   }, []);
 
@@ -471,19 +460,10 @@ function NoteEditor({
         </div>
       )}
 
-      {/* Editor Section */}
-      <div className="editor-section" style={{ position: 'relative' }}>
-        {/* Fixed editor + toolbar container - absolutely positioned, never moves */}
-        <div
-          className="flex flex-col overflow-hidden"
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-          }}
-        >
+      {/* Editor Section - acts as viewport that expands */}
+      <div className="editor-section" style={{ position: 'relative', overflow: 'hidden' }}>
+        {/* Editor + Toolbar: fixed height, stays at top */}
+        <div className="flex flex-col" style={{ flexShrink: 0 }}>
           <div className="editor-area flex-1 overflow-hidden">
             <RenderingWysiwygEditor
               ref={editorRef}
@@ -503,20 +483,16 @@ function NoteEditor({
           />
         </div>
 
-        {/* Notes panel - absolutely positioned below toolbar, slides up from bottom */}
+        {/* Panel: always visible right below toolbar, initially clipped by window */}
         <div
           ref={panelRef}
-          className={`bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden will-change-transform ${
-            isPanelExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          className={`bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden ${
+            isPanelExpanded ? 'opacity-100' : 'opacity-0'
           }`}
           style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
             height: '250px',
-            transform: isPanelExpanded ? 'translateY(0)' : 'translateY(250px)',
-            transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+            flexShrink: 0,
+            transition: 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
