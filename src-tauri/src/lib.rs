@@ -192,6 +192,40 @@ async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::Manager;
+
+    // Get all windows
+    let windows = app.webview_windows();
+
+    // Filter for editor windows (those starting with "note-editor-")
+    let editor_windows: Vec<_> = windows.iter()
+        .filter(|(label, _)| label.starts_with("note-editor-"))
+        .map(|(_, window)| window.clone())
+        .collect();
+
+    if editor_windows.is_empty() {
+        return Ok(()); // No editor windows to toggle
+    }
+
+    // Check if any editor window is visible
+    let any_visible = editor_windows.iter()
+        .any(|w| w.is_visible().unwrap_or(false));
+
+    // Toggle all editor windows based on current state
+    for window in editor_windows {
+        if any_visible {
+            let _ = window.hide();
+        } else {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+    }
+
+    Ok(())
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserProfile {
     nickname: Option<String>,
@@ -242,6 +276,7 @@ pub fn run() {
             quit_app,
             get_user_profile,
             save_user_profile,
+            toggle_editor_windows,
         ])
         .setup(|app| {
             // Create menu with AI toggle
@@ -300,25 +335,41 @@ pub fn run() {
                 }
             });
 
-            // Register global shortcut for Cmd+N
+            // Register global shortcuts
             let window = app.get_webview_window("main").unwrap();
-            let window_clone = window.clone();
+            let window_clone_main = window.clone();
+            let app_handle = app.handle().clone();
+            let app_handle_editors = app.handle().clone();
 
-            let shortcut = Shortcut::new(Some(Modifiers::SUPER), Code::KeyN);
-            
-            app.global_shortcut().on_shortcuts(vec![shortcut.clone()], move |_app, shortcut, event| {
-                if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-                    if shortcut == &Shortcut::new(Some(Modifiers::SUPER), Code::KeyN) {
-                        let _ = window_clone.emit("toggle-window", ());
-                        if window_clone.is_visible().unwrap_or(false) {
-                            let _ = window_clone.hide();
-                        } else {
-                            let _ = window_clone.show();
-                            let _ = window_clone.set_focus();
+            // Cmd+N: Toggle editor windows
+            let shortcut_cmd_n = Shortcut::new(Some(Modifiers::SUPER), Code::KeyN);
+            // Shift+O: Toggle main window
+            let shortcut_shift_o = Shortcut::new(Some(Modifiers::SHIFT), Code::KeyO);
+
+            app.global_shortcut().on_shortcuts(
+                vec![shortcut_cmd_n.clone(), shortcut_shift_o.clone()],
+                move |app, shortcut, event| {
+                    if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        // Cmd+N: Toggle editor windows
+                        if shortcut == &Shortcut::new(Some(Modifiers::SUPER), Code::KeyN) {
+                            let app_clone = app_handle_editors.clone();
+                            tauri::async_runtime::spawn(async move {
+                                let _ = toggle_editor_windows(app_clone).await;
+                            });
+                        }
+                        // Shift+O: Toggle main window
+                        else if shortcut == &Shortcut::new(Some(Modifiers::SHIFT), Code::KeyO) {
+                            let _ = window_clone_main.emit("toggle-window", ());
+                            if window_clone_main.is_visible().unwrap_or(false) {
+                                let _ = window_clone_main.hide();
+                            } else {
+                                let _ = window_clone_main.show();
+                                let _ = window_clone_main.set_focus();
+                            }
                         }
                     }
                 }
-            })?;
+            )?;
             
             // Handle window events for proper floating behavior
             window.on_window_event(move |event| {
