@@ -1,12 +1,11 @@
-import { useCallback, useRef } from 'react';
 import { Pin, Star, Trash2, Crown } from 'lucide-react';
-import { useAtom } from 'jotai';
-import { notesAtom, Note } from '../store';
+import { Note } from '../store';
 import RenderingWysiwygEditor, { RenderingWysiwygEditorRef } from './RenderingWysiwygEditor';
 import EditorToolbar from './EditorToolbar';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
+import { useNoteOperations } from '../hooks/useNoteOperations';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -25,10 +24,6 @@ interface NoteEditorProps {
   // 可选的额外功能
   onNoteClick?: (note: Note) => void;
   currentNoteId?: string | null; // 用于高亮当前编辑的笔记
-  // 可选的自定义操作回调（用于添加额外逻辑，如 Tauri 同步）
-  onPinNote?: (noteId: string) => void;
-  onFavoriteNote?: (noteId: string) => void;
-  onDeleteNote?: (noteId: string) => void;
 }
 
 function NoteEditor({
@@ -44,40 +39,8 @@ function NoteEditor({
   editorRef,
   onNoteClick,
   currentNoteId,
-  onPinNote,
-  onFavoriteNote,
-  onDeleteNote,
 }: NoteEditorProps) {
-  const [notes, setNotes] = useAtom(notesAtom);
-
-  const handlePin = useCallback((noteId: string) => {
-    setNotes(notes.map(n =>
-      n.id === noteId ? { ...n, pinned: !n.pinned } : n
-    ));
-    onPinNote?.(noteId); // 调用父组件的额外逻辑
-  }, [notes, setNotes, onPinNote]);
-
-  const handleFavorite = useCallback((noteId: string) => {
-    setNotes(notes.map(n =>
-      n.id === noteId ? { ...n, favorite: !n.favorite } : n
-    ));
-    onFavoriteNote?.(noteId); // 调用父组件的额外逻辑
-  }, [notes, setNotes, onFavoriteNote]);
-
-  const handleDelete = useCallback((noteId: string) => {
-    console.log('Delete button clicked for note:', noteId);
-    // 如果父组件提供了删除回调，优先使用父组件的逻辑
-    if (onDeleteNote) {
-      console.log('Calling parent onDeleteNote');
-      onDeleteNote(noteId);
-    } else {
-      console.log('Using default confirm dialog');
-      // 否则使用默认的确认+删除逻辑
-      if (confirm('确定要删除这条笔记吗？')) {
-        setNotes(notes.filter(n => n.id !== noteId));
-      }
-    }
-  }, [notes, setNotes, onDeleteNote]);
+  const { notes, deleteNote, togglePin, toggleFavorite } = useNoteOperations();
 
   return (
     <div className="editor-section">
@@ -172,7 +135,7 @@ function NoteEditor({
                         className={`action-btn pin-btn ${
                           note.pinned ? 'active' : ''
                         }`}
-                        onClick={() => handlePin(note.id)}
+                        onClick={() => togglePin(note.id)}
                         title={note.pinned ? 'Unpin note' : 'Pin note'}
                       >
                         <Pin size={18} />
@@ -181,7 +144,7 @@ function NoteEditor({
                         className={`action-btn favorite-btn ${
                           note.favorite ? 'active' : ''
                         }`}
-                        onClick={() => handleFavorite(note.id)}
+                        onClick={() => toggleFavorite(note.id)}
                         title={
                           note.favorite ? 'Unfavorite note' : 'Favorite note'
                         }
@@ -190,7 +153,7 @@ function NoteEditor({
                       </button>
                       <button
                         className="action-btn delete-btn"
-                        onClick={() => handleDelete(note.id)}
+                        onClick={() => deleteNote(note.id)}
                         title="Delete note"
                       >
                         <Trash2 size={18} />
