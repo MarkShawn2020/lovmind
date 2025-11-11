@@ -426,7 +426,7 @@ function NoteEditor({
               title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
               style={{
                 background: 'transparent',
-                border: isWindowAlwaysOnTop ? '1px solid white' : 'none',
+                border: 'none',
                 color: isWindowAlwaysOnTop ? 'white' : 'rgba(255, 255, 255, 0.5)'
               }}
             >
