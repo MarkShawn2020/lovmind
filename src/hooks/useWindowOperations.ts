@@ -91,17 +91,43 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
 
         console.log('Opening window with URL:', url);
 
-        // Load window size from store
+        // Load per-note window bounds from store
+        interface WindowBounds {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        }
+
         let windowWidth = WINDOW_CONFIG.EDITOR.WIDTH;
         let windowHeight = WINDOW_CONFIG.EDITOR.HEIGHT;
+        let windowX: number | undefined;
+        let windowY: number | undefined;
+        let shouldCenter = true;
+
         try {
           const store = await load('settings.json');
-          const savedWidth = await store.get<number>('editor_window_width');
-          const savedHeight = await store.get<number>('editor_window_height');
-          if (savedWidth && savedWidth >= WINDOW_CONFIG.EDITOR.MIN_WIDTH) windowWidth = savedWidth;
-          if (savedHeight && savedHeight >= WINDOW_CONFIG.EDITOR.MIN_HEIGHT) windowHeight = savedHeight;
+          const boundsKey = `editor_window_bounds_${note.id}`;
+          const savedBounds = await store.get<WindowBounds>(boundsKey);
+
+          if (savedBounds) {
+            // Validate saved bounds
+            if (savedBounds.width >= WINDOW_CONFIG.EDITOR.MIN_WIDTH) {
+              windowWidth = savedBounds.width;
+            }
+            if (savedBounds.height >= WINDOW_CONFIG.EDITOR.MIN_HEIGHT) {
+              windowHeight = savedBounds.height;
+            }
+            // Use saved position
+            windowX = savedBounds.x;
+            windowY = savedBounds.y;
+            shouldCenter = false;
+            console.log('Restored window bounds for note:', note.id, savedBounds);
+          } else {
+            console.log('No saved bounds found, will center window with default size');
+          }
         } catch (error) {
-          console.log('Could not load window size from store, using defaults');
+          console.log('Could not load window bounds from store, using defaults:', error);
         }
 
         // Create new editor window
@@ -110,10 +136,11 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
           title: `Edit: ${noteToOpen.title}`,
           width: windowWidth,
           height: windowHeight,
+          ...(windowX !== undefined && windowY !== undefined ? { x: windowX, y: windowY } : {}),
           minWidth: WINDOW_CONFIG.EDITOR.MIN_WIDTH,
           minHeight: WINDOW_CONFIG.EDITOR.MIN_HEIGHT,
           resizable: true,
-          center: true,
+          center: shouldCenter,
           alwaysOnTop: false,
           focus: true,
           skipTaskbar: false,
@@ -127,23 +154,42 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
           console.log('Editor window created and focused for note:', note.id);
         });
 
-        // Listen for window resize and save to store
-        const unlistenResize = await webview.onResized(async (event) => {
+        // Save window bounds (position + size) to store
+        const saveBounds = async () => {
           try {
+            const position = await webview.outerPosition();
+            const size = await webview.outerSize();
+            const bounds: WindowBounds = {
+              x: position.x,
+              y: position.y,
+              width: size.width,
+              height: size.height,
+            };
             const store = await load('settings.json');
-            await store.set('editor_window_width', event.payload.width);
-            await store.set('editor_window_height', event.payload.height);
+            const boundsKey = `editor_window_bounds_${note.id}`;
+            await store.set(boundsKey, bounds);
             await store.save();
-            console.log('Saved editor window size:', event.payload);
+            console.log('Saved window bounds for note:', note.id, bounds);
           } catch (error) {
-            console.error('Failed to save window size:', error);
+            console.error('Failed to save window bounds:', error);
           }
+        };
+
+        // Listen for window resize
+        const unlistenResize = await webview.onResized(async () => {
+          await saveBounds();
+        });
+
+        // Listen for window move
+        const unlistenMove = await webview.onMoved(async () => {
+          await saveBounds();
         });
 
         // Listen for window close event
         await webview.once('tauri://destroyed', async () => {
           console.log('Editor window closed for note:', note.id);
           unlistenResize();
+          unlistenMove();
         });
       } catch (error) {
         console.error('Failed to open editor window:', error);
