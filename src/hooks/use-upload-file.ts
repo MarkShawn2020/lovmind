@@ -1,23 +1,18 @@
 import * as React from 'react';
-
-import type { OurFileRouter } from '@/lib/uploadthing';
-import type {
-  ClientUploadedFileData,
-  UploadFilesOptions,
-} from 'uploadthing/types';
-
-import { generateReactHelpers } from '@uploadthing/react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { invoke } from '@tauri-apps/api/core';
 
-export type UploadedFile<T = unknown> = ClientUploadedFileData<T>;
+export interface UploadedFile {
+  key: string;
+  appUrl: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+}
 
-interface UseUploadFileProps
-  extends Pick<
-    UploadFilesOptions<OurFileRouter['editorUploader']>,
-    'headers' | 'onUploadBegin' | 'onUploadProgress' | 'skipPolling'
-  > {
+interface UseUploadFileProps {
   onUploadComplete?: (file: UploadedFile) => void;
   onUploadError?: (error: unknown) => void;
 }
@@ -25,7 +20,6 @@ interface UseUploadFileProps
 export function useUploadFile({
   onUploadComplete,
   onUploadError,
-  ...props
 }: UseUploadFileProps = {}) {
   const [uploadedFile, setUploadedFile] = React.useState<UploadedFile>();
   const [uploadingFile, setUploadingFile] = React.useState<File>();
@@ -37,65 +31,48 @@ export function useUploadFile({
     setUploadingFile(file);
 
     try {
-      // Check if running in Tauri environment
-      if (window.__TAURI__) {
-        // Read file as ArrayBuffer and convert to bytes array
-        const arrayBuffer = await file.arrayBuffer();
-        const bytes = Array.from(new Uint8Array(arrayBuffer));
+      // Read file as ArrayBuffer and convert to bytes array
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = Array.from(new Uint8Array(arrayBuffer));
 
-        // Simulate upload progress
-        const progressInterval = setInterval(() => {
-          setProgress((prev) => Math.min(prev + 10, 90));
-        }, 50);
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => Math.min(prev + 10, 90));
+      }, 50);
 
-        // Save file via Tauri command
-        const assetUrl = await invoke<string>('save_uploaded_file', {
-          fileName: file.name,
-          fileData: bytes,
-        });
+      // Save file via Tauri command
+      const assetUrl = await invoke<string>('save_uploaded_file', {
+        fileName: file.name,
+        fileData: bytes,
+      });
 
-        clearInterval(progressInterval);
-        setProgress(100);
+      clearInterval(progressInterval);
+      setProgress(100);
 
-        const uploadedFile = {
-          key: assetUrl,
-          appUrl: assetUrl,
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          url: assetUrl,
-        } as UploadedFile;
+      const uploadedFile = {
+        key: assetUrl,
+        appUrl: assetUrl,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: assetUrl,
+      } as UploadedFile;
 
-        setUploadedFile(uploadedFile);
-        onUploadComplete?.(uploadedFile);
+      setUploadedFile(uploadedFile);
+      onUploadComplete?.(uploadedFile);
 
-        return uploadedFile;
-      } else {
-        // Fallback to web environment (uploadthing)
-        const res = await uploadFiles('editorUploader', {
-          ...props,
-          files: [file],
-          onUploadProgress: ({ progress }) => {
-            setProgress(Math.min(progress, 100));
-          },
-        });
-
-        setUploadedFile(res[0]);
-        onUploadComplete?.(res[0]);
-
-        return uploadedFile;
-      }
+      return uploadedFile;
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       const message =
         errorMessage.length > 0
           ? errorMessage
-          : 'Something went wrong, please try again later.';
+          : 'Failed to upload file. Please try again.';
 
       toast.error(message);
       onUploadError?.(error);
 
-      // Fallback to blob URL
+      // Fallback to blob URL for preview
       const mockUploadedFile = {
         key: 'local-blob',
         appUrl: URL.createObjectURL(file),
@@ -123,10 +100,7 @@ export function useUploadFile({
   };
 }
 
-export const { uploadFiles, useUploadThing } =
-  generateReactHelpers<OurFileRouter>();
-
-export function getErrorMessage(err: unknown) {
+function getErrorMessage(err: unknown) {
   const unknownError = 'Something went wrong, please try again later.';
 
   if (err instanceof z.ZodError) {
