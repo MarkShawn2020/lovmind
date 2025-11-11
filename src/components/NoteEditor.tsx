@@ -79,6 +79,8 @@ function NoteEditor({
   const editorRef = externalEditorRef || internalEditorRef;
   const isExpandedRef = useRef(false);
   const collapsedHeightRef = useRef<number | undefined>(undefined);
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const fixedEditorHeight = useRef<number | undefined>(undefined);
 
   // Handle window dragging
   const handleHeaderMouseDown = async () => {
@@ -255,6 +257,18 @@ function NoteEditor({
     }
   }, [mode, content, richContent, currentTags, currentNote, notes, setNotes, updateNote, editorRef, showConfetti]);
 
+  // Handle pin toggle for edit mode
+  const handleTogglePin = useCallback(async () => {
+    if (mode === 'edit' && currentNote) {
+      await togglePin(currentNote.id);
+      // Update local state
+      setCurrentNote({
+        ...currentNote,
+        pinned: !currentNote.pinned,
+      });
+    }
+  }, [mode, currentNote, togglePin]);
+
   // Handle always on top toggle for edit mode
   const handleToggleAlwaysOnTop = useCallback(async (e?: React.MouseEvent) => {
     if (e) {
@@ -273,50 +287,98 @@ function NoteEditor({
     }
   }, [mode, isWindowAlwaysOnTop]);
 
+  // Animate window resize smoothly
+  const animateWindowResize = useCallback((
+    appWindow: any,
+    startHeight: number,
+    endHeight: number,
+    width: number,
+    duration: number = 300
+  ) => {
+    const startTime = performance.now();
+    const delta = endHeight - startHeight;
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Cubic bezier easing (0.4, 0, 0.2, 1) - matches CSS transition
+      const eased = progress < 0.5
+        ? 4 * progress * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+      const currentHeight = startHeight + delta * eased;
+
+      appWindow.setSize(new LogicalSize(width, Math.round(currentHeight))).catch((err: any) => {
+        console.warn('Failed to resize window during animation:', err);
+      });
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, []);
+
   // Toggle panel
   const handleTogglePanel = useCallback(async () => {
-    if (!panelRef.current) {
-      console.warn('Panel ref not initialized');
+    if (!panelRef.current || !editorContainerRef.current) {
+      console.warn('Panel or editor container ref not initialized');
       return;
     }
 
     if (!isExpandedRef.current) {
-      // Expanding: show panel content first (instantly), then animate window expansion
+      // Expanding: LOCK editor height first, then animate window and panel
       isExpandedRef.current = true;
 
-      // Step 1: Show panel content instantly (remove hidden, set full height immediately)
-      if (panelRef.current) {
-        panelRef.current.classList.remove('hidden');
-        document.querySelector('.recent-notes-toggle')?.classList.add('active');
-        setIsPanelExpanded(true);
+      // Step 1: Lock the editor container to its current height (prevent it from growing)
+      const currentEditorHeight = editorContainerRef.current.clientHeight;
+      fixedEditorHeight.current = currentEditorHeight;
+      editorContainerRef.current.style.height = `${currentEditorHeight}px`;
+      editorContainerRef.current.style.flexGrow = '0';
+      editorContainerRef.current.style.flexShrink = '0';
+
+      // Step 2: Start animated window expansion
+      if (isTauri()) {
+        const appWindow = getCurrentWindow();
+        appWindow.innerSize().then(physicalSize => {
+          return appWindow.scaleFactor().then(scaleFactor => {
+            const currentSize = physicalSize.toLogical(scaleFactor);
+            collapsedHeightRef.current = currentSize.height;
+
+            // Animate window height from current to current + PANEL_HEIGHT
+            animateWindowResize(
+              appWindow,
+              currentSize.height,
+              currentSize.height + PANEL_HEIGHT,
+              currentSize.width,
+              300
+            );
+          });
+        }).catch(error => {
+          console.warn('Failed to start window resize animation:', error);
+        });
       }
 
-      // Step 2: After content is visible, animate window expansion
-      // Small delay to ensure DOM updates are applied
+      // Step 3: Simultaneously animate panel sliding down (h-0 -> h-[250px])
       requestAnimationFrame(() => {
-        if (isTauri()) {
-          const appWindow = getCurrentWindow();
-          appWindow.innerSize().then(physicalSize => {
-            return appWindow.scaleFactor().then(scaleFactor => {
-              const currentSize = physicalSize.toLogical(scaleFactor);
-              collapsedHeightRef.current = currentSize.height;
-              return appWindow.setSize(new LogicalSize(
-                currentSize.width,
-                currentSize.height + PANEL_HEIGHT
-              ));
-            });
-          }).catch(error => {
-            console.warn('Failed to resize window:', error);
-          });
+        if (panelRef.current) {
+          panelRef.current.classList.remove('hidden');
+          document.querySelector('.recent-notes-toggle')?.classList.add('active');
+          setIsPanelExpanded(true);
         }
       });
 
     } else {
-      // Collapsing: shrink window first, then trigger panel CSS transition
+      // Collapsing: animate panel and window, then unlock editor height
       isExpandedRef.current = false;
+
+      // Animate panel sliding up (h-[250px] -> h-0)
+      setIsPanelExpanded(false);
       document.querySelector('.recent-notes-toggle')?.classList.remove('active');
 
-      // Step 1: Shrink window immediately
+      // Start animated window collapse simultaneously
       if (isTauri()) {
         const appWindow = getCurrentWindow();
         appWindow.innerSize().then(physicalSize => {
@@ -324,30 +386,36 @@ function NoteEditor({
             const currentSize = physicalSize.toLogical(scaleFactor);
             const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
 
-            return appWindow.setSize(new LogicalSize(
+            // Animate window height from current to target
+            animateWindowResize(
+              appWindow,
+              currentSize.height,
+              targetHeight,
               currentSize.width,
-              targetHeight
-            ));
+              300
+            );
           });
         }).catch(error => {
-          console.warn('Failed to resize window:', error);
+          console.warn('Failed to start window resize animation:', error);
         });
       }
 
-      // Step 2: Immediately after window shrinks, start panel CSS transition
-      // Panel transitions from h-[250px] to h-0, overflow is clipped by window
-      requestAnimationFrame(() => {
-        setIsPanelExpanded(false);
+      // After animation completes: hide panel and unlock editor height
+      setTimeout(() => {
+        if (panelRef.current) {
+          panelRef.current.classList.add('hidden');
+        }
 
-        // After CSS transition completes, add hidden class
-        setTimeout(() => {
-          if (panelRef.current) {
-            panelRef.current.classList.add('hidden');
-          }
-        }, 300);
-      });
+        // Unlock editor height so it can fill space again
+        if (editorContainerRef.current) {
+          fixedEditorHeight.current = undefined;
+          editorContainerRef.current.style.height = '';
+          editorContainerRef.current.style.flexGrow = '1';
+          editorContainerRef.current.style.flexShrink = '0';
+        }
+      }, 300);
     }
-  }, []);
+  }, [animateWindowResize]);
 
   return (
     <div className="app-container">
@@ -456,8 +524,16 @@ function NoteEditor({
 
       {/* Editor Section */}
       <div className="editor-section">
-        {/* Fixed editor + toolbar container - height never changes */}
-        <div className="flex-1 flex-shrink-0 flex flex-col overflow-hidden min-h-0">
+        {/* Fixed editor + toolbar container - height ABSOLUTELY never changes */}
+        <div
+          ref={editorContainerRef}
+          className="flex flex-col overflow-hidden min-h-0"
+          style={{
+            height: fixedEditorHeight.current,
+            flexShrink: 0,
+            flexGrow: fixedEditorHeight.current ? 0 : 1,
+          }}
+        >
           <div className="editor-area">
             <RenderingWysiwygEditor
               ref={editorRef}
