@@ -381,7 +381,10 @@ function NoteEditor({
                         </button>
                         <button
                           className="action-btn delete-btn"
-                          onClick={() => deleteNote(note.id)}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await deleteNote(note.id);
+                          }}
                           title="Delete note"
                         >
                           <Trash2 size={18} />
