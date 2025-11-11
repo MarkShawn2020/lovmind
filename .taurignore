@@ -15,8 +15,7 @@ vite.config.ts
 tailwind.config.js
 tsconfig.json
 
-# Ignore version files (auto-updated by git hooks, don't trigger restart)
-package.json
+# Ignore build-time config files (don't need Rust rebuild for frontend-only changes)
 package-lock.json
 src-tauri/Cargo.toml
 src-tauri/Cargo.lock
