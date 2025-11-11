@@ -12,7 +12,6 @@ import 'dayjs/locale/zh-cn';
 import { useNoteOperations } from '../hooks/useNoteOperations';
 import { useWindowOperations } from '../hooks/useWindowOperations';
 import { isTauri } from '../utils/tauri';
-import lovpenLogo from '../assets/lovpen-logo.svg';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -316,7 +315,13 @@ function NoteEditor({
           {notes.length === 0 ? (
             <div className="empty-state-enhanced">
               <div className="empty-state-logo">
-                <img src={lovpenLogo} alt="Lovpen" className="floating-logo" />
+                <svg className="floating-logo" viewBox="0 0 986.05 1080" xmlns="http://www.w3.org/2000/svg">
+                  <g fill="currentColor">
+                    <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z"/>
+                    <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z"/>
+                    <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z"/>
+                  </g>
+                </svg>
               </div>
               <div className="empty-state-content">
                 <h3 className="empty-state-title">
