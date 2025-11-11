@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Clock, Send } from 'lucide-react';
+import { Clock, Send, Pin } from 'lucide-react';
 
 const RecentNotesButton = memo(({
   onClick
@@ -12,6 +12,22 @@ const RecentNotesButton = memo(({
     title="Toggle Recent Notes"
   >
     <Clock size={18} />
+  </button>
+));
+
+const PinButton = memo(({
+  onClick,
+  isPinned
+}: {
+  onClick: () => void;
+  isPinned: boolean;
+}) => (
+  <button
+    className={`toolbar-btn pin-toggle ${isPinned ? 'active' : ''}`}
+    onClick={onClick}
+    title={isPinned ? 'Unpin note' : 'Pin note'}
+  >
+    <Pin size={18} />
   </button>
 ));
 
@@ -32,19 +48,32 @@ const SendButton = memo(({
   </button>
 ));
 
-// Memoized toolbar to prevent any re-renders
-const EditorToolbar = memo(({
-  onToggleNotes,
-  onSubmit,
-  submitDisabled
-}: {
-  onToggleNotes: () => void;
+interface EditorToolbarProps {
+  mode: 'create' | 'edit';
+  onToggleNotes?: () => void;
+  onTogglePin?: () => void;
+  isPinned?: boolean;
   onSubmit: () => void;
   submitDisabled: boolean;
-}) => (
-  <div className="editor-toolbar">
+}
+
+// Memoized toolbar to prevent any re-renders
+const EditorToolbar = memo(({
+  mode,
+  onToggleNotes,
+  onTogglePin,
+  isPinned = false,
+  onSubmit,
+  submitDisabled
+}: EditorToolbarProps) => (
+  <div className={`editor-toolbar ${mode === 'edit' ? 'toolbar-minimal' : ''}`}>
     <div className="toolbar-left">
-      <RecentNotesButton onClick={onToggleNotes} />
+      {mode === 'create' && onToggleNotes && (
+        <RecentNotesButton onClick={onToggleNotes} />
+      )}
+      {mode === 'edit' && onTogglePin && (
+        <PinButton onClick={onTogglePin} isPinned={isPinned} />
+      )}
     </div>
     <div className="toolbar-right">
       <SendButton disabled={submitDisabled} onClick={onSubmit} />

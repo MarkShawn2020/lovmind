@@ -265,6 +265,13 @@ body {
   backface-visibility: hidden;
 }
 
+.editor-toolbar.toolbar-minimal {
+  height: 44px;
+  background: var(--muted);
+  border-top-color: var(--border);
+  opacity: 0.95;
+}
+
 .toolbar-left {
   display: flex;
   gap: 8px;

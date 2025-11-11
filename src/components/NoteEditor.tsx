@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Pin, Star, Trash2, Crown, Sparkles } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import confetti from 'canvas-confetti';
-import { Note } from '../store';
+import { Note, noteStatsAtom } from '../store';
 import RenderingWysiwygEditor, { RenderingWysiwygEditorRef } from './RenderingWysiwygEditor';
 import EditorToolbar from './EditorToolbar';
 import dayjs from 'dayjs';
@@ -12,6 +13,9 @@ import 'dayjs/locale/zh-cn';
 import { useNoteOperations } from '../hooks/useNoteOperations';
 import { useWindowOperations } from '../hooks/useWindowOperations';
 import { isTauri } from '../utils/tauri';
+import { useAtomValue } from 'jotai';
+import lovpenLogo from '../assets/lovpen-logo.svg';
+import packageJson from '../../package.json';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -55,6 +59,7 @@ function NoteEditor({
 }: NoteEditorProps) {
   const { notes, setNotes, deleteNote, togglePin, toggleFavorite, updateNote } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, setNotes);
+  const noteStats = useAtomValue(noteStatsAtom);
 
   // Internal state
   const [content, setContent] = useState('');
@@ -69,6 +74,17 @@ function NoteEditor({
   const internalEditorRef = useRef<RenderingWysiwygEditorRef | null>(null);
   const editorRef = externalEditorRef || internalEditorRef;
   const isExpandedRef = useRef(false);
+
+  // Handle window dragging
+  const handleHeaderMouseDown = async () => {
+    if (!isTauri()) return;
+    try {
+      const appWindow = getCurrentWindow();
+      await appWindow.startDragging();
+    } catch (error) {
+      console.error("Failed to start dragging:", error);
+    }
+  };
 
   // Load note in edit mode
   useEffect(() => {
@@ -225,6 +241,18 @@ function NoteEditor({
     }
   }, [mode, content, richContent, currentTags, currentNote, notes, setNotes, updateNote, editorRef, showConfetti]);
 
+  // Handle pin toggle for edit mode
+  const handleTogglePin = useCallback(async () => {
+    if (mode === 'edit' && currentNote) {
+      await togglePin(currentNote.id);
+      // Update local state
+      setCurrentNote({
+        ...currentNote,
+        pinned: !currentNote.pinned,
+      });
+    }
+  }, [mode, currentNote, togglePin]);
+
   // Toggle panel
   const handleTogglePanel = useCallback(() => {
     if (!panelRef.current) {
@@ -294,8 +322,56 @@ function NoteEditor({
   }, []);
 
   return (
-    <div className="editor-section">
-      <div className="editor-area">
+    <div className="app-container">
+      {/* Header */}
+      {mode === 'create' ? (
+        <div
+          className="app-header cursor-move"
+          onMouseDown={handleHeaderMouseDown}
+        >
+          <div className="flex items-center gap-2">
+            <img
+              src={lovpenLogo}
+              alt="Lovpen"
+              className="app-logo h-5 w-auto"
+            />
+            <h1>Lovpen Notes</h1>
+            <span className="version-badge text-[0.7em] px-1.5 py-0.5 ml-1 bg-white/10 rounded font-normal opacity-70 self-center">
+              v{packageJson.version}
+            </span>
+          </div>
+          <div className="header-stats">
+            <span className="header-stat-badge">
+              {noteStats.total} {noteStats.total === 1 ? 'note' : 'notes'}
+            </span>
+            {noteStats.streak > 2 && (
+              <span className="header-stat-badge streak-badge" title={`${noteStats.streak} day streak!`}>
+                🔥 {noteStats.streak}d
+              </span>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div
+          className="app-header cursor-move"
+          onMouseDown={handleHeaderMouseDown}
+        >
+          <div className="flex items-center gap-2">
+            <h1 className="text-sm">{currentNote?.title || 'Untitled Note'}</h1>
+          </div>
+          {currentNote && (
+            <div className="header-stats">
+              <span className="header-stat-badge text-xs">
+                {dayjs(currentNote.time).fromNow()}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Editor Section */}
+      <div className="editor-section">
+        <div className="editor-area">
         <RenderingWysiwygEditor
           ref={editorRef}
           initialContent={content}
@@ -306,13 +382,14 @@ function NoteEditor({
         />
       </div>
 
-      {/* Notes panel */}
-      <div
-        ref={panelRef}
-        className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
-          isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
-        }`}
-      >
+      {/* Notes panel - only in create mode */}
+      {mode === 'create' && (
+        <div
+          ref={panelRef}
+          className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
+            isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
+          }`}
+        >
         <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
           {notes.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
@@ -438,13 +515,18 @@ function NoteEditor({
             })()
           )}
         </div>
-      </div>
+        </div>
+      )}
 
       <EditorToolbar
-        onToggleNotes={handleTogglePanel}
+        mode={mode}
+        onToggleNotes={mode === 'create' ? handleTogglePanel : undefined}
+        onTogglePin={mode === 'edit' ? handleTogglePin : undefined}
+        isPinned={currentNote?.pinned}
         onSubmit={handleSubmit}
         submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
       />
+      </div>
     </div>
   );
 }
