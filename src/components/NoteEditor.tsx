@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Pin, Star, Trash2, Crown } from 'lucide-react';
+import { Pin, Star, Trash2, Crown, Sparkles, Zap } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { invoke } from '@tauri-apps/api/core';
 import confetti from 'canvas-confetti';
@@ -12,6 +12,7 @@ import 'dayjs/locale/zh-cn';
 import { useNoteOperations } from '../hooks/useNoteOperations';
 import { useWindowOperations } from '../hooks/useWindowOperations';
 import { isTauri } from '../utils/tauri';
+import lovpenLogo from '../assets/lovpen-logo.svg';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -313,7 +314,28 @@ function NoteEditor({
       >
         <div className="notes-list" ref={notesListRef}>
           {notes.length === 0 ? (
-            <p className="empty-state">在这里记下你的想法吧</p>
+            <div className="empty-state-enhanced">
+              <div className="empty-state-logo">
+                <img src={lovpenLogo} alt="Lovpen" className="floating-logo" />
+              </div>
+              <div className="empty-state-content">
+                <h3 className="empty-state-title">
+                  <Sparkles size={18} className="icon-sparkle" />
+                  开启你的灵感之旅
+                </h3>
+                <p className="empty-state-text">每个想法都值得被记录</p>
+                <div className="empty-state-tips">
+                  <div className="tip-item">
+                    <Zap size={14} />
+                    <span>快捷键 <kbd>⌘N</kbd> 快速唤起</span>
+                  </div>
+                  <div className="tip-item">
+                    <Sparkles size={14} />
+                    <span>支持富文本、图片、代码</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : (
             (() => {
               const sortedNotes = [...notes].sort((a, b) => {
