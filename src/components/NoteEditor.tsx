@@ -550,10 +550,10 @@ function NoteEditor({
           <div className="flex items-center gap-2">
             <img
               src={lovpenLogo}
-              alt="Lovpen"
+              alt="Lovmind"
               className="app-logo h-5 w-auto"
             />
-            <h1>Lovpen Notes ({noteStats.total})</h1>
+            <h1>Lovmind ({noteStats.total})</h1>
           </div>
           <div className="header-stats relative">
             <button
@@ -940,9 +940,9 @@ function NoteEditor({
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <img src={lovpenLogo} alt="Lovpen Notes" className="w-10 h-10" />
+                  <img src={lovpenLogo} alt="Lovmind" className="w-10 h-10" />
                   <div>
-                    <h2 className="text-xl font-bold text-gray-800">Lovpen Notes</h2>
+                    <h2 className="text-xl font-bold text-gray-800">Lovmind</h2>
                     <p className="text-sm text-gray-500">v{packageJson.version}</p>
                   </div>
                 </div>
@@ -986,7 +986,7 @@ function NoteEditor({
 
               <div className="pt-4 border-t border-gray-200 space-y-3">
                 <div className="text-center">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">Lovpen</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">Lovmind</p>
                   <p className="text-xs text-gray-500">专注于创造高效优雅的效率工具</p>
                 </div>
                 <div className="text-center">

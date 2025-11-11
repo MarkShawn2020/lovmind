@@ -259,7 +259,7 @@ pub fn run() {
             let version = env!("CARGO_PKG_VERSION");
 
             // Create App menu with Quit option (macOS standard)
-            let app_menu = SubmenuBuilder::new(app, "Lovpen Notes")
+            let app_menu = SubmenuBuilder::new(app, "Lovmind")
                 .text("version", format!("Version {}", version))
                 .separator()
                 .item(&PredefinedMenuItem::quit(app, None)?)

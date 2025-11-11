@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "lovpen-notes",
-  "version": "0.50.8",
-  "identifier": "app.lovpen.notes",
+  "productName": "lovmind",
+  "version": "0.50.11-alpha.1",
+  "identifier": "app.lovmind.notes",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Lovpen Notes",
+        "title": "Lovmind",
         "width": 420,
         "height": 640,
         "minWidth": 320,
