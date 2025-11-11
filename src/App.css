@@ -137,7 +137,6 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: 100%;
   max-width: 280px;
 }
 
@@ -150,7 +149,6 @@ body {
   font-weight: 600;
   color: var(--foreground);
   margin: 0;
-  width: 100%;
   opacity: 0;
   animation: fadeInUp 0.5s ease forwards 0.15s;
 }
@@ -176,7 +174,6 @@ body {
   color: var(--muted-foreground);
   margin: 0;
   text-align: center;
-  width: 100%;
   opacity: 0;
   animation: fadeInUp 0.5s ease forwards 0.3s;
 }
