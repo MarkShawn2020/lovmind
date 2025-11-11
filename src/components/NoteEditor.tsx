@@ -323,11 +323,11 @@ function NoteEditor({
                   </g>
                 </svg>
               </div>
-              <div className="empty-state-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', maxWidth: '280px', width: '100%', margin: '0 auto' }}>
-                <div className="empty-state-title" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+              <div className="empty-state-content w-full max-w-[280px] mx-auto flex flex-col items-center">
+                <h3 className="empty-state-title w-full text-center flex items-center justify-center">
                   <Sparkles size={16} className="icon-sparkle" />
                   开启灵感之旅
-                </div>
+                </h3>
                 <p className="empty-state-text w-full text-center">快捷键 <kbd>⌘N</kbd> 随时唤起</p>
               </div>
             </div>
@@ -353,13 +353,12 @@ function NoteEditor({
                 return (
                   <div
                     key={note.id}
-                    className={`note-item ${
+                    className={`note-item cursor-pointer ${
                       currentNoteId === note.id ? 'active' : ''
                     } ${note.favorite ? 'favorite' : ''} ${
                       note.pinned ? 'pinned' : ''
                     }`}
                     onClick={() => openNoteInNewWindow(note)}
-                    style={{ cursor: 'pointer' }}
                   >
                     <div className="note-content">
                       <div className="note-header">

@@ -174,32 +174,18 @@ function App() {
 
   return (
     <div className="app-container">
-      <div 
-        className="app-header" 
+      <div
+        className="app-header cursor-move"
         onMouseDown={handleHeaderMouseDown}
-        style={{ cursor: 'move' }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="flex items-center gap-2">
           <img
             src={lovpenLogo}
             alt="Lovpen"
-            className="app-logo"
-            style={{ height: '20px', width: 'auto' }}
+            className="app-logo h-5 w-auto"
           />
           <h1>Lovpen Notes</h1>
-          <span 
-            className="version-badge" 
-            style={{ 
-              fontSize: '0.7em', 
-              padding: '2px 6px', 
-              marginLeft: '4px',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '4px',
-              fontWeight: 'normal',
-              opacity: 0.7,
-              alignSelf: 'center'
-            }}
-          >
+          <span className="version-badge text-[0.7em] px-1.5 py-0.5 ml-1 bg-white/10 rounded font-normal opacity-70 self-center">
             v{packageJson.version}
           </span>
         </div>

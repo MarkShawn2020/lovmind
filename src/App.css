@@ -1,6 +1,4 @@
 * {
-  /* margin: 0;
-  padding: 0; */
   box-sizing: border-box;
 }
 
@@ -28,7 +26,6 @@ body {
   justify-content: space-between;
   align-items: center;
   border-radius: 12px 12px 0 0;
-  cursor: move;
   user-select: none;
   -webkit-user-select: none;
   flex-shrink: 0;
@@ -39,8 +36,9 @@ body {
   font-weight: 600;
   letter-spacing: -0.01em;
 }
+
 .app-logo {
-  filter: brightness(0) invert(1); /* Make the logo white */
+  filter: brightness(0) invert(1);
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -75,19 +73,10 @@ body {
   font-weight: 500;
 }
 
-
 .notes-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.empty-state {
-  text-align: center;
-  color: var(--muted-foreground);
-  font-style: italic;
-  padding: var(--spacing-m) var(--spacing-text);
-  font-size: 0.875rem;
 }
 
 /* Enhanced Empty State */
@@ -133,21 +122,15 @@ body {
 }
 
 .empty-state-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 8px;
 }
 
 .empty-state-title {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   gap: 6px;
   font-size: 1rem;
   font-weight: 600;
   color: var(--foreground);
-  /* margin: 0; */
+  margin: 0;
   opacity: 0;
   animation: fadeInUp 0.5s ease forwards 0.15s;
 }
