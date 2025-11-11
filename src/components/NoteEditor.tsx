@@ -955,39 +955,44 @@ function NoteEditor({
               </div>
 
               <p className="text-gray-600 mb-6">
-                A lightning-fast floating notes app for capturing thoughts instantly. Built with Tauri for native performance.
+                随时随地，捕捉灵感。闪电般快速的浮动笔记应用。
               </p>
 
               <div className="space-y-3 mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Features</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">主要特性</h3>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
-                    <span><strong>⌘N Global Hotkey</strong> - Instant access from anywhere</span>
+                    <span><strong>⌘N 全局快捷键</strong> - 任何时候瞬间唤起</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
-                    <span><strong>Floating Window</strong> - Always-on-top note capture</span>
+                    <span><strong>浮动窗口</strong> - 置顶显示，快速记录</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
-                    <span><strong>Rich Text Editor</strong> - WYSIWYG editing powered by Plate.js</span>
+                    <span><strong>富文本编辑</strong> - 所见即所得，支持 Markdown 快捷输入</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
-                    <span><strong>Multi-Window Editing</strong> - Open notes in separate windows</span>
+                    <span><strong>多窗口编辑</strong> - 每条笔记独立窗口</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-500 mt-0.5">•</span>
-                    <span><strong>100% Local</strong> - Your notes never leave your device</span>
+                    <span><strong>100% 本地</strong> - 数据永不离开你的设备</span>
                   </li>
                 </ul>
               </div>
 
-              <div className="pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-500 text-center">
-                  Built with ❤️ using Tauri, React, and TypeScript
-                </p>
+              <div className="pt-4 border-t border-gray-200 space-y-3">
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-gray-700 mb-1">Lovpen</p>
+                  <p className="text-xs text-gray-500">专注于创造高效优雅的效率工具</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-gray-500">关注公众号</p>
+                  <p className="text-sm font-medium text-gray-700">手工川</p>
+                </div>
               </div>
             </div>
           </div>
