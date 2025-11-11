@@ -323,8 +323,8 @@ function NoteEditor({
                   </g>
                 </svg>
               </div>
-              <div className="empty-state-content w-full max-w-[280px] mx-auto flex flex-col items-center justify-center">
-                <div className="empty-state-title self-center">
+              <div className="empty-state-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', maxWidth: '280px', margin: '0 auto', width: '100%' }}>
+                <div className="empty-state-title" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
                   <Sparkles size={16} className="icon-sparkle" />
                   开启灵感之旅
                 </div>
