@@ -986,7 +986,7 @@ function NoteEditor({
 
               <div className="pt-4 border-t border-gray-200 space-y-3">
                 <div className="text-center">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">Lovmind</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">Lovpen</p>
                   <p className="text-xs text-gray-500">专注于创造高效优雅的效率工具</p>
                 </div>
                 <div className="text-center">

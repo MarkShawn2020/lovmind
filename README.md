@@ -2,7 +2,7 @@
 
 A lightning-fast floating notes app for capturing thoughts instantly. Built with Tauri for native performance.
 
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/yourusername/lovmind)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/markshawn2020/lovmind)
 [![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-v19-61DAFB)](https://react.dev/)
 
@@ -21,16 +21,16 @@ A lightning-fast floating notes app for capturing thoughts instantly. Built with
 ### Download Binary (Recommended)
 
 Download the latest release for your platform:
-- [macOS (.dmg)](https://github.com/yourusername/lovmind/releases)
-- [Windows (.msi)](https://github.com/yourusername/lovmind/releases)
-- [Linux (.AppImage)](https://github.com/yourusername/lovmind/releases)
+- [macOS (.dmg)](https://github.com/markshawn2020/lovmind/releases)
+- [Windows (.msi)](https://github.com/markshawn2020/lovmind/releases)
+- [Linux (.AppImage)](https://github.com/markshawn2020/lovmind/releases)
 
 ### Build from Source
 
 ```bash
 # Prerequisites: Node.js 18+, pnpm 8+, Rust stable
 
-git clone https://github.com/yourusername/lovmind.git
+git clone https://github.com/markshawn2020/lovmind.git
 cd lovmind
 pnpm install
 pnpm tauri build
@@ -102,7 +102,7 @@ MIT © [Your Name]
 
 ## Support
 
-[Open an issue](https://github.com/yourusername/lovmind/issues) for bugs or feature requests.
+[Open an issue](https://github.com/markshawn2020/lovmind/issues) for bugs or feature requests.
 
 ---
 
