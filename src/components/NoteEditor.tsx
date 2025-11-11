@@ -590,7 +590,7 @@ function NoteEditor({
               alt="Lovmind"
               className="app-logo h-5 w-auto"
             />
-            <h1>Lovmind ({noteStats.total})</h1>
+            <h1>Lovmind #{notes.length + 1}</h1>
           </div>
           <div className="header-stats relative">
             <button
