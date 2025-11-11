@@ -293,17 +293,10 @@ function NoteEditor({
     }
 
     if (!isExpandedRef.current) {
-      // Expanding
+      // Expanding: first expand window, then animate panel sliding down
       isExpandedRef.current = true;
 
-      // Show panel immediately
-      if (panelRef.current) {
-        panelRef.current.classList.remove('hidden', 'collapsed');
-        panelRef.current.classList.add('visible');
-        document.querySelector('.recent-notes-toggle')?.classList.add('active');
-      }
-
-      // Expand window
+      // First, expand window to make room for the panel
       if (isTauri()) {
         try {
           const appWindow = getCurrentWindow();
@@ -321,37 +314,47 @@ function NoteEditor({
         }
       }
 
+      // Then animate panel sliding down from toolbar (h-0 -> h-[250px])
+      requestAnimationFrame(() => {
+        if (panelRef.current) {
+          panelRef.current.classList.remove('hidden');
+          document.querySelector('.recent-notes-toggle')?.classList.add('active');
+          setIsPanelExpanded(true);
+        }
+      });
+
     } else {
-      // Collapsing
+      // Collapsing: first animate panel up, then shrink window
       isExpandedRef.current = false;
 
-      // Hide panel immediately
-      if (panelRef.current) {
-        panelRef.current.classList.remove('visible');
-        panelRef.current.classList.add('hidden');
-        document.querySelector('.recent-notes-toggle')?.classList.remove('active');
-      }
+      // Animate panel sliding up (h-[250px] -> h-0)
+      setIsPanelExpanded(false);
+      document.querySelector('.recent-notes-toggle')?.classList.remove('active');
 
-      // Shrink window immediately (window resize animation provides smoothness)
-      if (isTauri()) {
-        try {
-          const appWindow = getCurrentWindow();
-          const physicalSize = await appWindow.innerSize();
-          const scaleFactor = await appWindow.scaleFactor();
-          const currentSize = physicalSize.toLogical(scaleFactor);
-          const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
-
-          await appWindow.setSize(new LogicalSize(
-            currentSize.width,
-            targetHeight
-          ));
-        } catch (error) {
-          console.warn('Failed to resize window:', error);
+      // Wait for animation to complete, then shrink window
+      setTimeout(async () => {
+        if (panelRef.current) {
+          panelRef.current.classList.add('hidden');
         }
-      }
-    }
 
-    setIsPanelExpanded(isExpandedRef.current);
+        if (isTauri()) {
+          try {
+            const appWindow = getCurrentWindow();
+            const physicalSize = await appWindow.innerSize();
+            const scaleFactor = await appWindow.scaleFactor();
+            const currentSize = physicalSize.toLogical(scaleFactor);
+            const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
+
+            await appWindow.setSize(new LogicalSize(
+              currentSize.width,
+              targetHeight
+            ));
+          } catch (error) {
+            console.warn('Failed to resize window:', error);
+          }
+        }
+      }, 300); // Wait for CSS transition to complete
+    }
   }, []);
 
   return (
