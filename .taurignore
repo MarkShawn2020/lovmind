@@ -14,3 +14,10 @@ node_modules/
 vite.config.ts
 tailwind.config.js
 tsconfig.json
+
+# Ignore version files (auto-updated by git hooks, don't trigger restart)
+package.json
+package-lock.json
+src-tauri/Cargo.toml
+src-tauri/Cargo.lock
+src-tauri/tauri.conf.json
