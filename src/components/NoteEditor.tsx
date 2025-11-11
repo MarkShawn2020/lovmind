@@ -281,77 +281,69 @@ function NoteEditor({
     }
 
     if (!isExpandedRef.current) {
-      // Expanding: show panel content immediately, then animate window expansion
+      // Expanding: show panel content first (instantly), then animate window expansion
       isExpandedRef.current = true;
-      document.querySelector('.recent-notes-toggle')?.classList.add('active');
-      setIsPanelExpanded(true);
 
-      // Animate window expansion over 300ms
-      if (isTauri()) {
-        const appWindow = getCurrentWindow();
-        try {
-          const physicalSize = await appWindow.innerSize();
-          const scaleFactor = await appWindow.scaleFactor();
-          const currentSize = physicalSize.toLogical(scaleFactor);
-          collapsedHeightRef.current = currentSize.height;
-
-          const startHeight = currentSize.height;
-          const targetHeight = currentSize.height + PANEL_HEIGHT;
-          const startTime = performance.now();
-          const duration = 300;
-
-          const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-
-          const animate = (currentTime: number) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const easedProgress = easeOutCubic(progress);
-            const currentHeight = startHeight + (targetHeight - startHeight) * easedProgress;
-
-            appWindow.setSize(new LogicalSize(
-              currentSize.width,
-              currentHeight
-            )).catch(error => {
-              console.warn('Failed to resize window during animation:', error);
-            });
-
-            if (progress < 1) {
-              requestAnimationFrame(animate);
-            }
-          };
-
-          requestAnimationFrame(animate);
-        } catch (error) {
-          console.warn('Failed to start window resize animation:', error);
-        }
+      // Step 1: Show panel content instantly (remove hidden, set full height immediately)
+      if (panelRef.current) {
+        panelRef.current.classList.remove('hidden');
+        document.querySelector('.recent-notes-toggle')?.classList.add('active');
+        setIsPanelExpanded(true);
       }
+
+      // Step 2: After content is visible, animate window expansion
+      // Small delay to ensure DOM updates are applied
+      requestAnimationFrame(() => {
+        if (isTauri()) {
+          const appWindow = getCurrentWindow();
+          appWindow.innerSize().then(physicalSize => {
+            return appWindow.scaleFactor().then(scaleFactor => {
+              const currentSize = physicalSize.toLogical(scaleFactor);
+              collapsedHeightRef.current = currentSize.height;
+              return appWindow.setSize(new LogicalSize(
+                currentSize.width,
+                currentSize.height + PANEL_HEIGHT
+              ));
+            });
+          }).catch(error => {
+            console.warn('Failed to resize window:', error);
+          });
+        }
+      });
 
     } else {
-      // Collapsing: shrink window first, then hide panel content
+      // Collapsing: shrink window first, then hide panel (mirror of expand)
       isExpandedRef.current = false;
-      document.querySelector('.recent-notes-toggle')?.classList.remove('active');
 
+      // Step 1: Shrink window first
       if (isTauri()) {
-        try {
-          const appWindow = getCurrentWindow();
-          const physicalSize = await appWindow.innerSize();
-          const scaleFactor = await appWindow.scaleFactor();
-          const currentSize = physicalSize.toLogical(scaleFactor);
-          const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
-
-          await appWindow.setSize(new LogicalSize(
-            currentSize.width,
-            targetHeight
-          ));
-        } catch (error) {
+        const appWindow = getCurrentWindow();
+        appWindow.innerSize().then(physicalSize => {
+          return appWindow.scaleFactor().then(scaleFactor => {
+            const currentSize = physicalSize.toLogical(scaleFactor);
+            const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
+            return appWindow.setSize(new LogicalSize(
+              currentSize.width,
+              targetHeight
+            ));
+          });
+        }).catch(error => {
           console.warn('Failed to resize window:', error);
-        }
+        });
       }
 
-      // Hide panel content after window shrinks
-      setTimeout(() => {
+      // Step 2: After window starts shrinking, hide panel content
+      requestAnimationFrame(() => {
         setIsPanelExpanded(false);
-      }, 300);
+        document.querySelector('.recent-notes-toggle')?.classList.remove('active');
+
+        // Wait for CSS transition, then set hidden
+        setTimeout(() => {
+          if (panelRef.current) {
+            panelRef.current.classList.add('hidden');
+          }
+        }, 300);
+      });
     }
   }, []);
 
@@ -460,11 +452,11 @@ function NoteEditor({
         </div>
       )}
 
-      {/* Editor Section - acts as viewport that expands */}
-      <div className="editor-section" style={{ position: 'relative', overflow: 'hidden' }}>
-        {/* Editor + Toolbar: fixed height, stays at top */}
-        <div className="flex flex-col" style={{ flexShrink: 0 }}>
-          <div className="editor-area flex-1 overflow-hidden">
+      {/* Editor Section */}
+      <div className="editor-section">
+        {/* Fixed editor + toolbar container - height never changes */}
+        <div className="flex-1 flex-shrink-0 flex flex-col overflow-hidden min-h-0">
+          <div className="editor-area">
             <RenderingWysiwygEditor
               ref={editorRef}
               initialContent={content}
@@ -483,17 +475,12 @@ function NoteEditor({
           />
         </div>
 
-        {/* Panel: always visible right below toolbar, initially clipped by window */}
+        {/* Notes panel - expands below the fixed editor+toolbar */}
         <div
           ref={panelRef}
-          className={`bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden ${
-            isPanelExpanded ? 'opacity-100' : 'opacity-0'
+          className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
+            isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
           }`}
-          style={{
-            height: '250px',
-            flexShrink: 0,
-            transition: 'opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-          }}
         >
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
           {notes.length === 0 ? (
