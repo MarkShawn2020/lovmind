@@ -651,11 +651,11 @@ function NoteEditor({
                 });
 
               if (!currentNote) {
-                return `#${notes.length + 1}. Untitled Note`;
+                return `#${notes.length}. Untitled Note`;
               }
 
-              // Get rank, if not found (new note not yet in notes list), use next available number
-              const rank = noteRanks.get(currentNote.id) || notes.length + 1;
+              // Get rank, if not found (new note not yet in notes list), use total count
+              const rank = noteRanks.get(currentNote.id) || notes.length;
               const isTopThree = rank <= 3;
 
               return (
