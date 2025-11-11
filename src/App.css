@@ -101,7 +101,7 @@ body {
 
 /* Animation for sparkle icon */
 .icon-sparkle {
-  color: hsl(280, 70%, 65%);
+  color: var(--primary);
   animation: sparkle 2s ease-in-out infinite;
 }
 
