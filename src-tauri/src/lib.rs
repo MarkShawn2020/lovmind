@@ -4,6 +4,8 @@ use tauri::{Emitter, Manager, WindowEvent, menu::{MenuBuilder, MenuItemBuilder, 
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
+use std::fs;
+use std::path::PathBuf;
 
 mod note_store;
 use note_store::{store_temp_note, get_temp_note, remove_temp_note, get_all_temp_notes, clear_temp_notes};
@@ -141,6 +143,31 @@ async fn broadcast_note_update(app: tauri::AppHandle, note: note_store::TempNote
 }
 
 #[tauri::command]
+async fn save_uploaded_file(
+    app: tauri::AppHandle,
+    file_name: String,
+    file_data: Vec<u8>,
+) -> Result<String, String> {
+    // Get app data directory
+    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let uploads_dir = app_dir.join("uploads");
+
+    // Create uploads directory if it doesn't exist
+    fs::create_dir_all(&uploads_dir).map_err(|e| e.to_string())?;
+
+    // Generate unique filename
+    let unique_name = format!("{}_{}", Uuid::new_v4(), file_name);
+    let file_path = uploads_dir.join(&unique_name);
+
+    // Write file
+    fs::write(&file_path, file_data).map_err(|e| e.to_string())?;
+
+    // Return the asset protocol URL that can be used in the webview
+    let asset_url = format!("asset://localhost/uploads/{}", unique_name);
+    Ok(asset_url)
+}
+
+#[tauri::command]
 async fn is_ai_enabled(app: tauri::AppHandle) -> Result<bool, String> {
     let store = app.store("settings.json").map_err(|e| e.to_string())?;
     let enabled = store.get("ai_enabled")
@@ -181,6 +208,7 @@ pub fn run() {
             clear_temp_notes,
             open_devtools,
             broadcast_note_update,
+            save_uploaded_file,
             is_ai_enabled,
             set_ai_enabled,
         ])

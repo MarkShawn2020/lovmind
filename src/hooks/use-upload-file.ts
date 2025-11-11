@@ -9,6 +9,7 @@ import type {
 import { generateReactHelpers } from '@uploadthing/react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { invoke } from '@tauri-apps/api/core';
 
 export type UploadedFile<T = unknown> = ClientUploadedFileData<T>;
 
@@ -36,57 +37,75 @@ export function useUploadFile({
     setUploadingFile(file);
 
     try {
-      const res = await uploadFiles('editorUploader', {
-        ...props,
-        files: [file],
-        onUploadProgress: ({ progress }) => {
-          setProgress(Math.min(progress, 100));
-        },
-      });
+      // Check if running in Tauri environment
+      if (window.__TAURI__) {
+        // Read file as ArrayBuffer and convert to bytes array
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = Array.from(new Uint8Array(arrayBuffer));
 
-      setUploadedFile(res[0]);
+        // Simulate upload progress
+        const progressInterval = setInterval(() => {
+          setProgress((prev) => Math.min(prev + 10, 90));
+        }, 50);
 
-      onUploadComplete?.(res[0]);
+        // Save file via Tauri command
+        const assetUrl = await invoke<string>('save_uploaded_file', {
+          fileName: file.name,
+          fileData: bytes,
+        });
 
-      return uploadedFile;
+        clearInterval(progressInterval);
+        setProgress(100);
+
+        const uploadedFile = {
+          key: assetUrl,
+          appUrl: assetUrl,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: assetUrl,
+        } as UploadedFile;
+
+        setUploadedFile(uploadedFile);
+        onUploadComplete?.(uploadedFile);
+
+        return uploadedFile;
+      } else {
+        // Fallback to web environment (uploadthing)
+        const res = await uploadFiles('editorUploader', {
+          ...props,
+          files: [file],
+          onUploadProgress: ({ progress }) => {
+            setProgress(Math.min(progress, 100));
+          },
+        });
+
+        setUploadedFile(res[0]);
+        onUploadComplete?.(res[0]);
+
+        return uploadedFile;
+      }
     } catch (error) {
       const errorMessage = getErrorMessage(error);
-
       const message =
         errorMessage.length > 0
           ? errorMessage
           : 'Something went wrong, please try again later.';
 
       toast.error(message);
-
       onUploadError?.(error);
 
-      // Mock upload for unauthenticated users
-      // toast.info('User not logged in. Mocking upload process.');
+      // Fallback to blob URL
       const mockUploadedFile = {
-        key: 'mock-key-0',
-        appUrl: `https://mock-app-url.com/${file.name}`,
+        key: 'local-blob',
+        appUrl: URL.createObjectURL(file),
         name: file.name,
         size: file.size,
         type: file.type,
         url: URL.createObjectURL(file),
       } as UploadedFile;
 
-      // Simulate upload progress
-      let progress = 0;
-
-      const simulateProgress = async () => {
-        while (progress < 100) {
-          await new Promise((resolve) => setTimeout(resolve, 50));
-          progress += 2;
-          setProgress(Math.min(progress, 100));
-        }
-      };
-
-      await simulateProgress();
-
       setUploadedFile(mockUploadedFile);
-
       return mockUploadedFile;
     } finally {
       setProgress(0);
