@@ -12,6 +12,8 @@ pub struct TempNote {
     pub tags: Vec<String>,
     pub favorite: Option<bool>,
     pub pinned: Option<bool>,
+    #[serde(rename = "richContent")]
+    pub rich_content: Option<serde_json::Value>,
 }
 
 // 全局临时存储，用于在窗口间传递数据
