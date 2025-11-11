@@ -326,8 +326,8 @@ function NoteEditor({
                 </svg>
               </div>
 
-              <div className="flex flex-col gap-2 items-center">
-                <h3 className="inline-flex items-center justify-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0 opacity-0 animate-[fadeInUp_0.5s_ease_forwards_0.15s]">
+              <div className="flex flex-col items-center gap-2 w-fit self-center">
+                <h3 className="text-center flex items-center justify-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0 opacity-0 animate-[fadeInUp_0.5s_ease_forwards_0.15s]">
                   <Sparkles size={16} className="icon-sparkle" />
                   开启灵感之旅
                 </h3>
