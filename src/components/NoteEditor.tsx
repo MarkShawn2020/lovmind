@@ -852,7 +852,7 @@ function NoteEditor({
             Profile
           </button>
           <button
-            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+            className="hidden w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
             onClick={() => {
               setIsUserMenuOpen(false);
               // TODO: Open help
