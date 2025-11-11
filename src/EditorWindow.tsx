@@ -10,6 +10,7 @@ import { isTauri } from './utils/tauri';
 function EditorWindow() {
   const [noteId, setNoteId] = useState<string | null>(null);
   const [, setNotes] = useAtom(notesAtom);
+  const [notesSynced, setNotesSynced] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -26,7 +27,10 @@ function EditorWindow() {
 
   // Sync notes from backend on mount
   useEffect(() => {
-    if (!isTauri()) return;
+    if (!isTauri()) {
+      setNotesSynced(true); // Skip sync in browser mode
+      return;
+    }
 
     const syncWithBackend = async () => {
       try {
@@ -35,8 +39,10 @@ function EditorWindow() {
         if (backendNotes.length > 0) {
           setNotes(backendNotes);
         }
+        setNotesSynced(true); // Mark sync as complete
       } catch (error) {
         console.error('[EditorWindow] Failed to sync with backend:', error);
+        setNotesSynced(true); // Still mark as complete to unblock UI
       }
     };
 
@@ -68,7 +74,7 @@ function EditorWindow() {
     };
   }, [setNotes]);
 
-  if (!noteId) {
+  if (!noteId || !notesSynced) {
     return (
       <div className="app-container">
         <div style={{ padding: '20px', textAlign: 'center' }}>
