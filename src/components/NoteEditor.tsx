@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X, User, Mail, HelpCircle, LogOut, UserCircle, Info } from 'lucide-react';
+import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X, User, Mail, LogOut, UserCircle, Info } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
@@ -79,6 +79,7 @@ function NoteEditor({
   const [isWindowAlwaysOnTop, setIsWindowAlwaysOnTop] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({});
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
 
@@ -841,6 +842,7 @@ function NoteEditor({
             zIndex: 99999
           }}
         >
+          {/* Profile */}
           <button
             className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
             onClick={() => {
@@ -851,16 +853,34 @@ function NoteEditor({
             <UserCircle size={16} />
             Profile
           </button>
+
+          <div className="border-t border-gray-200 my-1" />
+
+          {/* About */}
           <button
-            className="hidden w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
             onClick={() => {
               setIsUserMenuOpen(false);
-              // TODO: Open help
+              setIsAboutModalOpen(true);
             }}
           >
-            <HelpCircle size={16} />
-            Help
+            <Info size={16} />
+            About
           </button>
+
+          {/* Version */}
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between border-none bg-transparent cursor-default"
+            onClick={(e) => e.preventDefault()}
+          >
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} />
+              Version
+            </div>
+            <span className="text-xs text-gray-500">v{packageJson.version}</span>
+          </button>
+
+          {/* Contact */}
           <button
             className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
             onClick={async () => {
@@ -878,19 +898,9 @@ function NoteEditor({
             }}
           >
             <Mail size={16} />
-            Contact Developer
+            Contact
           </button>
-          <div className="border-t border-gray-200 my-1" />
-          <button
-            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center justify-between border-none bg-transparent cursor-default"
-            onClick={(e) => e.preventDefault()}
-          >
-            <div className="flex items-center gap-2">
-              <Info size={16} />
-              Version
-            </div>
-            <span className="text-xs text-gray-500">v{packageJson.version}</span>
-          </button>
+
           <div className="border-t border-gray-200 my-1" />
           <button
             className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
@@ -916,6 +926,73 @@ function NoteEditor({
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
       />
+
+      {/* About Modal */}
+      {isAboutModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100000]"
+          onClick={() => setIsAboutModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-[500px] max-w-[90vw] max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <img src={lovpenLogo} alt="Lovpen Notes" className="w-10 h-10" />
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800">Lovpen Notes</h2>
+                    <p className="text-sm text-gray-500">v{packageJson.version}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsAboutModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <p className="text-gray-600 mb-6">
+                A lightning-fast floating notes app for capturing thoughts instantly. Built with Tauri for native performance.
+              </p>
+
+              <div className="space-y-3 mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Features</h3>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-0.5">•</span>
+                    <span><strong>⌘N Global Hotkey</strong> - Instant access from anywhere</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-0.5">•</span>
+                    <span><strong>Floating Window</strong> - Always-on-top note capture</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-0.5">•</span>
+                    <span><strong>Rich Text Editor</strong> - WYSIWYG editing powered by Plate.js</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-0.5">•</span>
+                    <span><strong>Multi-Window Editing</strong> - Open notes in separate windows</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-0.5">•</span>
+                    <span><strong>100% Local</strong> - Your notes never leave your device</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-500 text-center">
+                  Built with ❤️ using Tauri, React, and TypeScript
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
