@@ -41,7 +41,6 @@
     "store:allow-length",
     "store:allow-load",
     "store:allow-save",
-    "opener:default",
-    "core:path:allow-app-data-dir"
+    "opener:default"
   ]
 }
