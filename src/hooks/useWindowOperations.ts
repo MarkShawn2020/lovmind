@@ -97,9 +97,11 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
           height: 500,
           resizable: true,
           center: true,
-          alwaysOnTop: true,
+          alwaysOnTop: false,
           focus: true,
           skipTaskbar: false,
+          decorations: false,
+          transparent: true,
         });
 
         // Ensure window gets focus
