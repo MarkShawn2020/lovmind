@@ -1,0 +1,16 @@
+# Ignore frontend source files (handled by Vite HMR)
+src/
+*.css
+*.tsx
+*.ts
+*.jsx
+*.js
+
+# Ignore build outputs
+dist/
+node_modules/
+
+# Ignore config files
+vite.config.ts
+tailwind.config.js
+tsconfig.json
