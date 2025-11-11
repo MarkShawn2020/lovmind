@@ -183,35 +183,28 @@ function NoteEditor({
     }
   };
 
-  // Handle manual window resize - adjust editor height only
+  // Handle manual window resize - keep panel fixed, let editor fill space
   useEffect(() => {
     if (!isTauri()) return;
 
     const handleResize = () => {
       if (!editorContainerRef.current || !panelRef.current) return;
 
-      // If panel is expanded, adjust the fixed editor height to fill the remaining space
-      if (isExpandedRef.current) {
-        // Calculate new editor height: window height - panel height - header height
-        const windowHeight = window.innerHeight;
-        const panelHeight = PANEL_HEIGHT;
-        const headerHeight = 48; // Approximate header height
-        const newEditorHeight = windowHeight - panelHeight - headerHeight;
-
-        fixedEditorHeight.current = newEditorHeight;
-        editorContainerRef.current.style.height = `${newEditorHeight}px`;
-        return;
-      }
-
-      // If panel is collapsed, unlock the editor to fill available space
-      if (fixedEditorHeight.current !== undefined) {
-        fixedEditorHeight.current = undefined;
-        editorContainerRef.current.style.height = '';
-        editorContainerRef.current.style.flexGrow = '1';
+      // Always ensure panel stays at exactly PANEL_HEIGHT when expanded
+      if (isExpandedRef.current && panelRef.current) {
+        // Force panel to stay at fixed height
+        panelRef.current.style.flex = 'none';
+        panelRef.current.style.height = `${PANEL_HEIGHT}px`;
+        panelRef.current.style.minHeight = `${PANEL_HEIGHT}px`;
+        panelRef.current.style.maxHeight = `${PANEL_HEIGHT}px`;
       }
     };
 
     window.addEventListener('resize', handleResize);
+
+    // Also run once on mount to ensure panel constraints are set
+    handleResize();
+
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -487,10 +480,23 @@ function NoteEditor({
       requestAnimationFrame(() => {
         if (panelRef.current) {
           panelRef.current.classList.remove('hidden');
+          // Force panel to stay at fixed height
+          panelRef.current.style.flex = 'none';
+          panelRef.current.style.minHeight = `${PANEL_HEIGHT}px`;
+          panelRef.current.style.maxHeight = `${PANEL_HEIGHT}px`;
           document.querySelector('.recent-notes-toggle')?.classList.add('active');
           setIsPanelExpanded(true);
         }
       });
+
+      // Step 4: After animation, unlock editor so it can respond to manual resizes
+      setTimeout(() => {
+        if (editorContainerRef.current) {
+          fixedEditorHeight.current = undefined;
+          editorContainerRef.current.style.height = '';
+          editorContainerRef.current.style.flexGrow = '1';
+        }
+      }, 300);
 
     } else {
       // Collapsing: animate panel and window, then unlock editor height
@@ -526,6 +532,11 @@ function NoteEditor({
       setTimeout(() => {
         if (panelRef.current) {
           panelRef.current.classList.add('hidden');
+          // Clear panel inline styles
+          panelRef.current.style.flex = '';
+          panelRef.current.style.height = '';
+          panelRef.current.style.minHeight = '';
+          panelRef.current.style.maxHeight = '';
         }
 
         // Unlock editor height so it can fill space again
