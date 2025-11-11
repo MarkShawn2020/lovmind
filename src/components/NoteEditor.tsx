@@ -818,9 +818,18 @@ function NoteEditor({
           </button>
           <button
             className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
-            onClick={() => {
+            onClick={async () => {
               setIsUserMenuOpen(false);
-              window.open('mailto:shawninjuly@gmail.com', '_blank');
+              if (isTauri()) {
+                try {
+                  const { openUrl } = await import('@tauri-apps/plugin-opener');
+                  await openUrl('mailto:shawninjuly@gmail.com');
+                } catch (error) {
+                  console.error('Failed to open email client:', error);
+                }
+              } else {
+                window.open('mailto:shawninjuly@gmail.com', '_blank');
+              }
             }}
           >
             <Mail size={16} />
