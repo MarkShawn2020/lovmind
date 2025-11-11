@@ -169,9 +169,18 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
     // Update editor value when initialRichContent changes (e.g., when loading a note)
     useEffect(() => {
+      console.log('[RenderingWysiwygEditor] useEffect 触发:', {
+        hasInitialRichContent: !!initialRichContent,
+        initialRichContentType: typeof initialRichContent,
+        initialRichContent: initialRichContent,
+      });
+
       if (initialRichContent) {
         console.log('[RenderingWysiwygEditor] 更新编辑器内容为 richContent:', initialRichContent);
         editor.tf.setValue(initialRichContent);
+        console.log('[RenderingWysiwygEditor] 编辑器内容已更新');
+      } else {
+        console.log('[RenderingWysiwygEditor] initialRichContent 为空，跳过更新');
       }
     }, [initialRichContent, editor]);
 

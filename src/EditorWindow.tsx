@@ -55,13 +55,17 @@ function EditorWindow() {
         }
 
         if (noteData) {
+          console.log('[EditorWindow] 原始 note 数据:', noteData);
           setNote(noteData);
           setContent(noteData.text);
           setRichContent(noteData.richContent || null);
           console.log('[EditorWindow] 加载 note 数据:', {
             id: noteData.id,
+            text: noteData.text,
             hasRichContent: !!noteData.richContent,
-            richContentPreview: noteData.richContent ? JSON.stringify(noteData.richContent).substring(0, 200) : null,
+            richContentType: typeof noteData.richContent,
+            richContentPreview: noteData.richContent ? JSON.stringify(noteData.richContent).substring(0, 500) : null,
+            richContentFull: noteData.richContent,
           });
         } else {
           console.error('No note found with ID:', noteId);
