@@ -794,16 +794,3 @@ body {
     color: white;
   }
 }
-
-/* Notes panel animation states */
-.hidden {
-  display: none;
-}
-
-.visible {
-  transform: translate3d(0, 0, 0) !important;
-}
-
-.collapsed {
-  transform: translate3d(0, 100%, 0) !important;
-}

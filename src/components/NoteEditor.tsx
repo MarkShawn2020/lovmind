@@ -20,6 +20,9 @@ import packageJson from '../../package.json';
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
+// Panel height constant
+const PANEL_HEIGHT = 250;
+
 // Helper function to check if richContent is truly empty
 const isRichContentEmpty = (richContent: any): boolean => {
   if (!richContent) return true;
@@ -75,10 +78,7 @@ function NoteEditor({
   const internalEditorRef = useRef<RenderingWysiwygEditorRef | null>(null);
   const editorRef = externalEditorRef || internalEditorRef;
   const isExpandedRef = useRef(false);
-  const collapsedHeightRef = useRef<number | null>(null);
-
-  // Constants
-  const PANEL_HEIGHT = 250;
+  const collapsedHeightRef = useRef<number | undefined>(undefined);
 
   // Handle window dragging
   const handleHeaderMouseDown = async () => {
@@ -319,11 +319,10 @@ function NoteEditor({
         if (panelRef.current) {
           panelRef.current.classList.remove('hidden', 'collapsed');
           panelRef.current.classList.add('visible');
+          document.querySelector('.recent-notes-toggle')?.classList.add('active');
         }
-        document.querySelector('.recent-notes-toggle')?.classList.add('active');
       });
 
-      setIsPanelExpanded(true);
     } else {
       // Collapsing
       isExpandedRef.current = false;
@@ -332,10 +331,8 @@ function NoteEditor({
       if (panelRef.current) {
         panelRef.current.classList.remove('visible');
         panelRef.current.classList.add('collapsed');
+        document.querySelector('.recent-notes-toggle')?.classList.remove('active');
       }
-      document.querySelector('.recent-notes-toggle')?.classList.remove('active');
-
-      setIsPanelExpanded(false);
 
       // Resize window after animation
       setTimeout(async () => {
@@ -358,11 +355,12 @@ function NoteEditor({
 
         if (panelRef.current) {
           panelRef.current.classList.add('hidden');
-          panelRef.current.classList.remove('collapsed');
         }
-      }, 300);
+      }, 300); // Match the transition duration
     }
-  }, [PANEL_HEIGHT]);
+
+    setIsPanelExpanded(isExpandedRef.current);
+  }, []);
 
   return (
     <div className="app-container">
@@ -482,19 +480,13 @@ function NoteEditor({
           />
         </div>
 
-        <EditorToolbar
-          mode={mode}
-          onToggleNotes={handleTogglePanel}
-          onSubmit={handleSubmit}
-          submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
-        />
-      </div>
-
-      {/* Notes panel - outside editor-section, grows window downward */}
-      <div
-        ref={panelRef}
-        className="h-[250px] flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform translate-y-full hidden"
-      >
+        {/* Notes panel */}
+        <div
+          ref={panelRef}
+          className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
+            isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
+          }`}
+        >
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
           {notes.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
@@ -620,6 +612,14 @@ function NoteEditor({
             })()
           )}
         </div>
+        </div>
+
+        <EditorToolbar
+          mode={mode}
+          onToggleNotes={handleTogglePanel}
+          onSubmit={handleSubmit}
+          submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
+        />
       </div>
     </div>
   );
