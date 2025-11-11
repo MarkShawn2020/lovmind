@@ -384,7 +384,7 @@ function NoteEditor({
           className="app-header cursor-move"
           onMouseDown={handleHeaderMouseDown}
         >
-          <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1">
+          <div className="text-sm font-semibold text-white flex items-center gap-1">
             {(() => {
               if (!currentNote) return 'Untitled Note';
 
@@ -409,10 +409,10 @@ function NoteEditor({
                     />
                   )}
                   {currentNote.pinned && (
-                    <Pin className="inline-flex align-middle text-[var(--primary)]" size={14} />
+                    <Pin className="inline-flex align-middle text-white" size={14} />
                   )}
                   {currentNote.favorite && (
-                    <Star className="inline-flex align-middle text-[var(--highlight)] fill-[var(--highlight)]" size={14} />
+                    <Star className="inline-flex align-middle text-white fill-white" size={14} />
                   )}
                   {rank}. {currentNote.title}
                 </>
@@ -421,7 +421,7 @@ function NoteEditor({
           </div>
           <div className="flex items-center gap-1">
             <button
-              className={`toolbar-btn always-on-top-toggle ${isWindowAlwaysOnTop ? 'active' : ''}`}
+              className={`toolbar-btn always-on-top-toggle ${isWindowAlwaysOnTop ? 'active' : 'bg-transparent'}`}
               onClick={handleToggleAlwaysOnTop}
               title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
               style={{ opacity: isWindowAlwaysOnTop ? 1 : 0.4 }}
@@ -429,7 +429,7 @@ function NoteEditor({
               <Pin size={16} />
             </button>
             <button
-              className="toolbar-btn close-btn"
+              className="toolbar-btn close-btn bg-transparent"
               onClick={async (e) => {
                 e.stopPropagation();
                 if (isTauri()) {
