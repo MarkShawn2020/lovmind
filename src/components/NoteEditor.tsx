@@ -79,7 +79,6 @@ function NoteEditor({
   const editorRef = externalEditorRef || internalEditorRef;
   const isExpandedRef = useRef(false);
   const collapsedHeightRef = useRef<number | undefined>(undefined);
-  const editorContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Handle window dragging
   const handleHeaderMouseDown = async () => {
@@ -285,14 +284,6 @@ function NoteEditor({
       // Expanding: show panel content first (instantly), then animate window expansion over 300ms
       isExpandedRef.current = true;
 
-      // Step 0: Lock editor container height to prevent layout shift
-      if (editorContainerRef.current) {
-        const currentHeight = editorContainerRef.current.offsetHeight;
-        editorContainerRef.current.style.height = `${currentHeight}px`;
-        editorContainerRef.current.style.flexGrow = '0';
-        editorContainerRef.current.style.flexShrink = '0';
-      }
-
       // Step 1: Show panel content instantly (remove hidden, set full height immediately)
       if (panelRef.current) {
         panelRef.current.classList.remove('hidden');
@@ -332,13 +323,6 @@ function NoteEditor({
 
             if (progress < 1) {
               requestAnimationFrame(animate);
-            } else {
-              // Animation complete: unlock editor container height
-              if (editorContainerRef.current) {
-                editorContainerRef.current.style.height = '';
-                editorContainerRef.current.style.flexGrow = '';
-                editorContainerRef.current.style.flexShrink = '';
-              }
             }
           };
 
@@ -351,14 +335,6 @@ function NoteEditor({
     } else {
       // Collapsing: first animate panel up, then shrink window
       isExpandedRef.current = false;
-
-      // Lock editor container height before collapsing
-      if (editorContainerRef.current) {
-        const currentHeight = editorContainerRef.current.offsetHeight;
-        editorContainerRef.current.style.height = `${currentHeight}px`;
-        editorContainerRef.current.style.flexGrow = '0';
-        editorContainerRef.current.style.flexShrink = '0';
-      }
 
       // Animate panel sliding up (h-[250px] -> h-0)
       setIsPanelExpanded(false);
@@ -382,13 +358,6 @@ function NoteEditor({
               currentSize.width,
               targetHeight
             ));
-
-            // Unlock editor container height after window resize
-            if (editorContainerRef.current) {
-              editorContainerRef.current.style.height = '';
-              editorContainerRef.current.style.flexGrow = '';
-              editorContainerRef.current.style.flexShrink = '';
-            }
           } catch (error) {
             console.warn('Failed to resize window:', error);
           }
@@ -503,10 +472,19 @@ function NoteEditor({
       )}
 
       {/* Editor Section */}
-      <div className="editor-section">
-        {/* Fixed editor + toolbar container - height never changes */}
-        <div ref={editorContainerRef} className="flex-1 flex-shrink-0 flex flex-col overflow-hidden min-h-0">
-          <div className="editor-area">
+      <div className="editor-section" style={{ position: 'relative' }}>
+        {/* Fixed editor + toolbar container - absolutely positioned, never moves */}
+        <div
+          className="flex flex-col overflow-hidden"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        >
+          <div className="editor-area flex-1 overflow-hidden">
             <RenderingWysiwygEditor
               ref={editorRef}
               initialContent={content}
@@ -525,12 +503,21 @@ function NoteEditor({
           />
         </div>
 
-        {/* Notes panel - expands below the fixed editor+toolbar */}
+        {/* Notes panel - absolutely positioned below toolbar, slides up from bottom */}
         <div
           ref={panelRef}
-          className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
-            isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
+          className={`bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden will-change-transform ${
+            isPanelExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: '250px',
+            transform: isPanelExpanded ? 'translateY(0)' : 'translateY(250px)',
+            transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
         >
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
           {notes.length === 0 ? (
