@@ -634,8 +634,6 @@ function NoteEditor({
         >
           <div className="text-sm font-semibold text-white flex items-center gap-1">
             {(() => {
-              if (!currentNote) return 'Untitled Note';
-
               // Calculate rank
               const noteRanks = new Map<string, number>();
               [...notes]
@@ -643,6 +641,10 @@ function NoteEditor({
                 .forEach((note, index) => {
                   noteRanks.set(note.id, notes.length - index);
                 });
+
+              if (!currentNote) {
+                return `#${notes.length + 1}. Untitled Note`;
+              }
 
               const rank = noteRanks.get(currentNote.id);
               const isTopThree = rank && rank <= 3;
