@@ -323,11 +323,11 @@ function NoteEditor({
                   </g>
                 </svg>
               </div>
-              <div className="empty-state-content w-full max-w-[280px] mx-auto flex flex-col items-center">
-                <h3 className="empty-state-title mx-auto">
+              <div className="empty-state-content w-full max-w-[280px] mx-auto flex flex-col items-center justify-center">
+                <div className="empty-state-title">
                   <Sparkles size={16} className="icon-sparkle" />
                   开启灵感之旅
-                </h3>
+                </div>
                 <p className="empty-state-text w-full text-center">快捷键 <kbd>⌘N</kbd> 随时唤起</p>
               </div>
             </div>
