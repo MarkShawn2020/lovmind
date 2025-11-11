@@ -542,6 +542,10 @@ function NoteEditor({
             >
               {userProfile.avatar ? (
                 <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : userProfile.nickname ? (
+                <span className="text-white text-sm font-semibold uppercase">
+                  {userProfile.nickname.charAt(0)}
+                </span>
               ) : (
                 <User size={18} className="text-white" />
               )}
