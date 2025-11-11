@@ -516,16 +516,50 @@ function NoteEditor({
       editorContainerRef.current.style.flexGrow = '0';
       editorContainerRef.current.style.flexShrink = '0';
 
-      // Step 2: Use requestAnimationFrame to ensure panel CSS transition starts in sync
-      requestAnimationFrame(() => {
-        setIsPanelExpanded(false);
-        document.querySelector('.recent-notes-toggle')?.classList.remove('active');
-      });
+      // Step 2: Remove CSS transition temporarily and use JS animation for panel height
+      if (panelRef.current) {
+        panelRef.current.style.transition = 'none';
+      }
 
-      // Step 3: Start window resize animation (also on next frame to sync with panel)
-      requestAnimationFrame(() => {
-        if (!isTauri()) return;
+      document.querySelector('.recent-notes-toggle')?.classList.remove('active');
 
+      // Step 3: Simultaneously animate panel height and window size with JS
+      const startTime = performance.now();
+      const duration = 300;
+
+      const animateCollapse = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Cubic bezier easing (0.4, 0, 0.2, 1)
+        const eased = progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+        // Animate panel height from 250 to 0
+        const currentPanelHeight = PANEL_HEIGHT * (1 - eased);
+        if (panelRef.current) {
+          panelRef.current.style.height = `${currentPanelHeight}px`;
+          panelRef.current.style.opacity = String(1 - eased);
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animateCollapse);
+        } else {
+          // Animation complete
+          setIsPanelExpanded(false);
+          if (panelRef.current) {
+            panelRef.current.style.transition = '';
+            panelRef.current.style.height = '';
+            panelRef.current.style.opacity = '';
+          }
+        }
+      };
+
+      requestAnimationFrame(animateCollapse);
+
+      // Start window resize animation simultaneously
+      if (isTauri()) {
         const appWindow = getCurrentWindow();
         appWindow.innerSize().then(physicalSize => {
           return appWindow.scaleFactor().then(scaleFactor => {
@@ -543,7 +577,7 @@ function NoteEditor({
         }).catch(error => {
           console.warn('Failed to start window resize animation:', error);
         });
-      });
+      }
 
       // Step 4: After animations complete, hide panel and unlock editor
       setTimeout(() => {
