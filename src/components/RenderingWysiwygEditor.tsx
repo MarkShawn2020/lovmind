@@ -11,7 +11,8 @@ import type { THashtagElement } from '@/components/editor/plugins/hashtag-base-k
 
 interface RenderingWysiwygEditorProps {
   initialContent?: string;
-  onChange?: (content: string, tags?: string[]) => void;
+  initialRichContent?: any; // Plate.js Value
+  onChange?: (content: string, tags?: string[], richContent?: any) => void;
   onSubmit?: () => void;
   placeholder?: string;
 }
@@ -105,6 +106,13 @@ const extractTextContent = (value: Value): { text: string; tags: string[] } => {
       if (node.type === 'blockquote') return `> ${childText}`;
       if (node.type === 'code_block') return `\`\`\`\n${childText}\n\`\`\``;
 
+      // Image nodes - represent as markdown
+      if (node.type === 'img') {
+        const url = node.url || '';
+        const name = node.name || 'image';
+        return `![${name}](${url})`;
+      }
+
       return childText;
     }
 
@@ -143,6 +151,7 @@ const extractTextContent = (value: Value): { text: string; tags: string[] } => {
 const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWysiwygEditorProps>(
   function RenderingWysiwygEditor({
     initialContent = '',
+    initialRichContent,
     onChange,
     onSubmit,
     placeholder = "Type your amazing content here..."
@@ -150,9 +159,12 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     // Ensure initialContent is a string
     const safeInitialContent = typeof initialContent === 'string' ? initialContent : '';
 
+    // Use richContent if available, otherwise fallback to text content
+    const initialValue = initialRichContent || createInitialValue(safeInitialContent);
+
     const editor = usePlateEditor({
       plugins: EditorKit,
-      value: createInitialValue(safeInitialContent),
+      value: initialValue,
     });
 
     // Expose resetAndFocus method to parent
@@ -186,7 +198,8 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
           textPreview: text.substring(0, 200),
           tags,
         });
-        onChange(text, tags);
+        // Pass both text content and rich content (for images)
+        onChange(text, tags, value);
       }
     };
 

@@ -13,7 +13,8 @@ dayjs.locale('zh-cn');
 
 interface NoteEditorProps {
   content: string;
-  onContentChange: (content: string, tags?: string[]) => void;
+  richContent?: any;
+  onContentChange: (content: string, tags?: string[], richContent?: any) => void;
   onSubmit: () => void;
   placeholder?: string;
   isPanelExpanded: boolean;
@@ -32,6 +33,7 @@ interface NoteEditorProps {
 
 function NoteEditor({
   content,
+  richContent,
   onContentChange,
   onSubmit,
   placeholder = "此时此刻，你在想什么呢？",
@@ -75,6 +77,7 @@ function NoteEditor({
         <RenderingWysiwygEditor
           ref={editorRef}
           initialContent={content}
+          initialRichContent={richContent}
           onChange={onContentChange}
           onSubmit={onSubmit}
           placeholder={placeholder}

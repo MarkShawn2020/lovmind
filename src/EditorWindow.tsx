@@ -21,6 +21,7 @@ function EditorWindow() {
   const [notes, setNotes] = useAtom(notesAtom);
   const [note, setNote] = useState<Note | null>(null);
   const [content, setContent] = useState('');
+  const [richContent, setRichContent] = useState<any>(null);
   const [currentTags, setCurrentTags] = useState<string[]>([]);
   const [isPanelExpanded, setIsPanelExpanded] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -82,7 +83,8 @@ function EditorWindow() {
         text: content,
         title: content.split('\n')[0].substring(0, 50) || 'Untitled Note',
         time: new Date().toLocaleString(),
-        tags: currentTags.length > 0 ? currentTags : note.tags
+        tags: currentTags.length > 0 ? currentTags : note.tags,
+        richContent: richContent, // Save rich content for images
       };
 
       console.log('[EditorWindow] 准备保存的 note 内容:', {
@@ -91,6 +93,8 @@ function EditorWindow() {
         textLength: updatedNote.text.length,
         textPreview: updatedNote.text.substring(0, 200),
         tags: updatedNote.tags,
+        hasRichContent: !!updatedNote.richContent,
+        richContentPreview: updatedNote.richContent ? JSON.stringify(updatedNote.richContent).substring(0, 200) : null,
       });
 
       if (isTauri()) {
@@ -291,9 +295,11 @@ function EditorWindow() {
     <div className="app-container">
       <NoteEditor
         content={content}
-        onContentChange={(newContent, tags) => {
+        richContent={note.richContent}
+        onContentChange={(newContent, tags, newRichContent) => {
           setContent(newContent);
           if (tags) setCurrentTags(tags);
+          if (newRichContent) setRichContent(newRichContent);
         }}
         onSubmit={handleSave}
         placeholder="此时此刻，你在想什么呢？"

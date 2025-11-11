@@ -11,6 +11,7 @@ export interface Note {
   tags: string[];
   favorite?: boolean;
   pinned?: boolean;
+  richContent?: any; // Plate.js Value (JSON) for rich text with images
 }
 
 // Check if running in Tauri environment
