@@ -372,25 +372,25 @@ function NoteEditor({
       {/* Editor Section */}
       <div className="editor-section">
         <div className="editor-area">
-        <RenderingWysiwygEditor
-          ref={editorRef}
-          initialContent={content}
-          initialRichContent={richContent}
-          onChange={handleContentChange}
-          onSubmit={handleSubmit}
-          placeholder={placeholder}
-        />
-      </div>
+          <RenderingWysiwygEditor
+            ref={editorRef}
+            initialContent={content}
+            initialRichContent={richContent}
+            onChange={handleContentChange}
+            onSubmit={handleSubmit}
+            placeholder={placeholder}
+          />
+        </div>
 
-      {/* Notes panel - only in create mode */}
-      {mode === 'create' && (
-        <div
-          ref={panelRef}
-          className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
-            isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
-          }`}
-        >
-        <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
+        {/* Notes panel - only in create mode */}
+        {mode === 'create' && (
+          <div
+            ref={panelRef}
+            className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
+              isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
+            }`}
+          >
+            <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
           {notes.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
               <div className="relative w-16 h-16">
@@ -514,18 +514,18 @@ function NoteEditor({
               });
             })()
           )}
-        </div>
-        </div>
-      )}
+            </div>
+          </div>
+        )}
 
-      <EditorToolbar
-        mode={mode}
-        onToggleNotes={mode === 'create' ? handleTogglePanel : undefined}
-        onTogglePin={mode === 'edit' ? handleTogglePin : undefined}
-        isPinned={currentNote?.pinned}
-        onSubmit={handleSubmit}
-        submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
-      />
+        <EditorToolbar
+          mode={mode}
+          onToggleNotes={mode === 'create' ? handleTogglePanel : undefined}
+          onTogglePin={mode === 'edit' ? handleTogglePin : undefined}
+          isPinned={currentNote?.pinned}
+          onSubmit={handleSubmit}
+          submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
+        />
       </div>
     </div>
   );
