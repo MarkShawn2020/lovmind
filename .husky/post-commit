@@ -5,6 +5,12 @@ if [ "$SKIP_POST_COMMIT" = "1" ]; then
   exit 0
 fi
 
+# Check if tauri dev is running (to avoid triggering reload during development)
+if pgrep -f "tauri dev" > /dev/null 2>&1 || pgrep -f "cargo.*run.*lovpen-notes" > /dev/null 2>&1; then
+  echo "⏭️  Skipping version update (tauri dev is running)"
+  exit 0
+fi
+
 # Check if this is an amend commit by checking if version files are already staged
 if git diff --cached --name-only | grep -q "package.json\|tauri.conf.json\|Cargo.toml"; then
   exit 0
