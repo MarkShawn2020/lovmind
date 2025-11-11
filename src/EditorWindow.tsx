@@ -49,10 +49,10 @@ function EditorWindow() {
     <div className="app-container">
       <button
         onClick={toggleAlwaysOnTop}
-        className={`fixed top-4 right-4 z-50 p-2 rounded-lg transition-colors ${
+        className={`fixed top-2 right-2 z-[100] p-2 rounded-lg transition-colors shadow-md ${
           alwaysOnTop
             ? 'bg-blue-500 text-white hover:bg-blue-600'
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            : 'bg-white/90 text-gray-700 hover:bg-white border border-gray-300'
         }`}
         title={alwaysOnTop ? '取消置顶' : '窗口置顶'}
       >
