@@ -482,11 +482,19 @@ function NoteEditor({
           />
         </div>
 
-        {/* Notes panel */}
-        <div
-          ref={panelRef}
-          className="h-[250px] flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform translate-y-full hidden"
-        >
+        <EditorToolbar
+          mode={mode}
+          onToggleNotes={handleTogglePanel}
+          onSubmit={handleSubmit}
+          submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
+        />
+      </div>
+
+      {/* Notes panel - outside editor-section, grows window downward */}
+      <div
+        ref={panelRef}
+        className="h-[250px] flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform translate-y-full hidden"
+      >
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
           {notes.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
@@ -612,14 +620,6 @@ function NoteEditor({
             })()
           )}
         </div>
-        </div>
-
-        <EditorToolbar
-          mode={mode}
-          onToggleNotes={handleTogglePanel}
-          onSubmit={handleSubmit}
-          submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
-        />
       </div>
     </div>
   );
