@@ -392,11 +392,11 @@ pub fn run() {
 
             // Cmd+N: Toggle editor windows
             let shortcut_cmd_n = Shortcut::new(Some(Modifiers::SUPER), Code::KeyN);
-            // Shift+O: Toggle main window
-            let shortcut_shift_o = Shortcut::new(Some(Modifiers::SHIFT), Code::KeyO);
+            // Cmd+O: Toggle main window
+            let shortcut_cmd_o = Shortcut::new(Some(Modifiers::SUPER), Code::KeyO);
 
             app.global_shortcut().on_shortcuts(
-                vec![shortcut_cmd_n.clone(), shortcut_shift_o.clone()],
+                vec![shortcut_cmd_n.clone(), shortcut_cmd_o.clone()],
                 move |app, shortcut, event| {
                     if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
                         // Cmd+N: Toggle editor windows
@@ -406,8 +406,8 @@ pub fn run() {
                                 let _ = toggle_editor_windows(app_clone).await;
                             });
                         }
-                        // Shift+O: Toggle main window
-                        else if shortcut == &Shortcut::new(Some(Modifiers::SHIFT), Code::KeyO) {
+                        // Cmd+O: Toggle main window
+                        else if shortcut == &Shortcut::new(Some(Modifiers::SUPER), Code::KeyO) {
                             let _ = window_clone_main.emit("toggle-window", ());
                             if window_clone_main.is_visible().unwrap_or(false) {
                                 let _ = window_clone_main.hide();
