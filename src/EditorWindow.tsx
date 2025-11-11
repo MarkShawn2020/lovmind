@@ -331,9 +331,19 @@ function EditorWindow() {
         content={content}
         richContent={note.richContent}
         onContentChange={(newContent, tags, newRichContent) => {
+          console.log('[EditorWindow] onContentChange 被调用:', {
+            newContentLength: newContent?.length,
+            newContentPreview: newContent?.substring(0, 100),
+            tags,
+            hasNewRichContent: newRichContent !== undefined,
+            newRichContentPreview: newRichContent ? JSON.stringify(newRichContent).substring(0, 200) : null,
+          });
           setContent(newContent);
           if (tags) setCurrentTags(tags);
-          if (newRichContent) setRichContent(newRichContent);
+          // Always update richContent when provided (even if undefined/null)
+          if (newRichContent !== undefined) {
+            setRichContent(newRichContent);
+          }
         }}
         onSubmit={handleSave}
         placeholder="此时此刻，你在想什么呢？"
