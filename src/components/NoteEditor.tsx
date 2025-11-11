@@ -463,25 +463,28 @@ function NoteEditor({
 
       {/* Editor Section */}
       <div className="editor-section">
-        <div className="editor-area">
-          <RenderingWysiwygEditor
-            ref={editorRef}
-            initialContent={content}
-            initialRichContent={richContent}
-            onChange={handleContentChange}
+        {/* Fixed editor + toolbar container */}
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+          <div className="editor-area">
+            <RenderingWysiwygEditor
+              ref={editorRef}
+              initialContent={content}
+              initialRichContent={richContent}
+              onChange={handleContentChange}
+              onSubmit={handleSubmit}
+              placeholder={placeholder}
+            />
+          </div>
+
+          <EditorToolbar
+            mode={mode}
+            onToggleNotes={handleTogglePanel}
             onSubmit={handleSubmit}
-            placeholder={placeholder}
+            submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
           />
         </div>
 
-        <EditorToolbar
-          mode={mode}
-          onToggleNotes={handleTogglePanel}
-          onSubmit={handleSubmit}
-          submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
-        />
-
-        {/* Notes panel */}
+        {/* Notes panel - expands below the fixed editor+toolbar */}
         <div
           ref={panelRef}
           className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
