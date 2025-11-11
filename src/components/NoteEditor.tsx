@@ -506,39 +506,32 @@ function NoteEditor({
       }, 300);
 
     } else {
-      // Collapsing: LOCK editor height first, then animate panel and window
+      // Collapsing: Mirror the expanding logic - lock editor, animate everything, then unlock
       isExpandedRef.current = false;
 
-      // Step 1: Lock the editor container to its current height (prevent it from growing during collapse)
-      if (editorContainerRef.current) {
-        const currentEditorHeight = editorContainerRef.current.clientHeight;
-        fixedEditorHeight.current = currentEditorHeight;
-        editorContainerRef.current.style.height = `${currentEditorHeight}px`;
-        editorContainerRef.current.style.flexGrow = '0';
-        editorContainerRef.current.style.flexShrink = '0';
-      }
+      // Step 1: Lock editor height to prevent layout shifts during animation
+      const currentEditorHeight = editorContainerRef.current.clientHeight;
+      fixedEditorHeight.current = currentEditorHeight;
+      editorContainerRef.current.style.height = `${currentEditorHeight}px`;
+      editorContainerRef.current.style.flexGrow = '0';
+      editorContainerRef.current.style.flexShrink = '0';
 
-      // Step 2: Fade out panel content but keep its height (maintain layout during window resize)
-      if (panelRef.current) {
-        // Override transition to only animate opacity, not height
-        panelRef.current.style.transition = 'opacity 0.3s ease';
-        panelRef.current.style.opacity = '0';
-        // Keep height fixed during animation to prevent toolbar jump
-        panelRef.current.style.height = `${PANEL_HEIGHT}px`;
-        panelRef.current.style.minHeight = `${PANEL_HEIGHT}px`;
-        panelRef.current.style.maxHeight = `${PANEL_HEIGHT}px`;
-      }
-      document.querySelector('.recent-notes-toggle')?.classList.remove('active');
+      // Step 2: Use requestAnimationFrame to ensure panel CSS transition starts in sync
+      requestAnimationFrame(() => {
+        setIsPanelExpanded(false);
+        document.querySelector('.recent-notes-toggle')?.classList.remove('active');
+      });
 
-      // Step 3: Start animated window collapse simultaneously
-      if (isTauri()) {
+      // Step 3: Start window resize animation (also on next frame to sync with panel)
+      requestAnimationFrame(() => {
+        if (!isTauri()) return;
+
         const appWindow = getCurrentWindow();
         appWindow.innerSize().then(physicalSize => {
           return appWindow.scaleFactor().then(scaleFactor => {
             const currentSize = physicalSize.toLogical(scaleFactor);
             const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
 
-            // Animate window height from current to target
             animateWindowResize(
               appWindow,
               currentSize.height,
@@ -550,38 +543,25 @@ function NoteEditor({
         }).catch(error => {
           console.warn('Failed to start window resize animation:', error);
         });
-      }
+      });
 
-      // Step 4: After window animation completes, actually collapse panel height and cleanup
+      // Step 4: After animations complete, hide panel and unlock editor
       setTimeout(() => {
-        // Now trigger the height collapse (0ms transition since window is already resized)
-        setIsPanelExpanded(false);
-
         if (panelRef.current) {
-          // Clear the fixed height constraints to allow CSS transition to h-0
+          panelRef.current.classList.add('hidden');
+          panelRef.current.style.flex = '';
           panelRef.current.style.height = '';
           panelRef.current.style.minHeight = '';
           panelRef.current.style.maxHeight = '';
+          panelRef.current.style.opacity = '';
         }
 
-        // After height transition completes, hide panel and cleanup
-        setTimeout(() => {
-          if (panelRef.current) {
-            panelRef.current.classList.add('hidden');
-            // Clear all panel inline styles
-            panelRef.current.style.flex = '';
-            panelRef.current.style.opacity = '';
-            panelRef.current.style.transition = '';
-          }
-
-          // Unlock editor height so it can fill space again
-          if (editorContainerRef.current) {
-            fixedEditorHeight.current = undefined;
-            editorContainerRef.current.style.height = '';
-            editorContainerRef.current.style.flexGrow = '1';
-            editorContainerRef.current.style.flexShrink = '0';
-          }
-        }, 50); // Short delay for height collapse
+        if (editorContainerRef.current) {
+          fixedEditorHeight.current = undefined;
+          editorContainerRef.current.style.height = '';
+          editorContainerRef.current.style.flexGrow = '1';
+          editorContainerRef.current.style.flexShrink = '0';
+        }
       }, 300);
     }
   }, [animateWindowResize]);
