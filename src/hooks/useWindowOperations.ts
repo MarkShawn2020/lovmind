@@ -5,7 +5,6 @@ import {
 } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
-import { load } from '@tauri-apps/plugin-store';
 import { Note } from '../store';
 import { isTauri } from '../utils/tauri';
 import { WINDOW_CONFIG } from '../constants/window';
@@ -91,56 +90,16 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
 
         console.log('Opening window with URL:', url);
 
-        // Load per-note window bounds from store
-        interface WindowBounds {
-          x: number;
-          y: number;
-          width: number;
-          height: number;
-        }
-
-        let windowWidth = WINDOW_CONFIG.EDITOR.WIDTH;
-        let windowHeight = WINDOW_CONFIG.EDITOR.HEIGHT;
-        let windowX: number | undefined;
-        let windowY: number | undefined;
-        let shouldCenter = true;
-
-        try {
-          const store = await load('settings.json');
-          const boundsKey = `editor_window_bounds_${note.id}`;
-          const savedBounds = await store.get<WindowBounds>(boundsKey);
-
-          if (savedBounds) {
-            // Validate saved bounds
-            if (savedBounds.width >= WINDOW_CONFIG.EDITOR.MIN_WIDTH) {
-              windowWidth = savedBounds.width;
-            }
-            if (savedBounds.height >= WINDOW_CONFIG.EDITOR.MIN_HEIGHT) {
-              windowHeight = savedBounds.height;
-            }
-            // Use saved position
-            windowX = savedBounds.x;
-            windowY = savedBounds.y;
-            shouldCenter = false;
-            console.log('Restored window bounds for note:', note.id, savedBounds);
-          } else {
-            console.log('No saved bounds found, will center window with default size');
-          }
-        } catch (error) {
-          console.log('Could not load window bounds from store, using defaults:', error);
-        }
-
         // Create new editor window
         const webview = new WebviewWindow(windowLabel, {
           url: url,
           title: `Edit: ${noteToOpen.title}`,
-          width: windowWidth,
-          height: windowHeight,
-          ...(windowX !== undefined && windowY !== undefined ? { x: windowX, y: windowY } : {}),
+          width: WINDOW_CONFIG.EDITOR.WIDTH,
+          height: WINDOW_CONFIG.EDITOR.HEIGHT,
           minWidth: WINDOW_CONFIG.EDITOR.MIN_WIDTH,
           minHeight: WINDOW_CONFIG.EDITOR.MIN_HEIGHT,
           resizable: true,
-          center: shouldCenter,
+          center: true,
           alwaysOnTop: false,
           focus: true,
           skipTaskbar: false,
@@ -152,48 +111,6 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
         await webview.once('tauri://created', async () => {
           await webview.setFocus();
           console.log('Editor window created and focused for note:', note.id);
-        });
-
-        // Save window bounds (position + size) to store
-        const saveBounds = async () => {
-          try {
-            const scaleFactor = await webview.scaleFactor();
-            const position = await webview.outerPosition();
-            const size = await webview.outerSize();
-
-            // Convert physical pixels to logical pixels
-            const bounds: WindowBounds = {
-              x: Math.round(position.x / scaleFactor),
-              y: Math.round(position.y / scaleFactor),
-              width: Math.round(size.width / scaleFactor),
-              height: Math.round(size.height / scaleFactor),
-            };
-
-            const store = await load('settings.json');
-            const boundsKey = `editor_window_bounds_${note.id}`;
-            await store.set(boundsKey, bounds);
-            await store.save();
-            console.log('Saved window bounds for note:', note.id, bounds, 'scaleFactor:', scaleFactor);
-          } catch (error) {
-            console.error('Failed to save window bounds:', error);
-          }
-        };
-
-        // Listen for window resize
-        const unlistenResize = await webview.onResized(async () => {
-          await saveBounds();
-        });
-
-        // Listen for window move
-        const unlistenMove = await webview.onMoved(async () => {
-          await saveBounds();
-        });
-
-        // Listen for window close event
-        await webview.once('tauri://destroyed', async () => {
-          console.log('Editor window closed for note:', note.id);
-          unlistenResize();
-          unlistenMove();
         });
       } catch (error) {
         console.error('Failed to open editor window:', error);
