@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "lovpen-notes",
   "version": "0.46.1",
-  "identifier": "dev.neurora.lovpen-notes",
+  "identifier": "app.lovpen.notes",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
