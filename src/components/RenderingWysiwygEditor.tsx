@@ -148,6 +148,26 @@ const extractTextContent = (value: Value): { text: string; tags: string[] } => {
   };
 };
 
+// Helper to check if richContent is truly empty (not just null/undefined)
+const isRichContentEmpty = (richContent: any): boolean => {
+  if (!richContent) return true;
+  if (!Array.isArray(richContent)) return false;
+
+  // Check if all blocks are empty
+  return richContent.every((node: any) => {
+    if (!node.children || !Array.isArray(node.children)) return true;
+
+    // Check if all children are empty text nodes
+    return node.children.every((child: any) => {
+      if (typeof child.text === 'string') {
+        return !child.text.trim();
+      }
+      // If it's not a text node (e.g., image, hashtag), consider it non-empty
+      return false;
+    });
+  });
+};
+
 const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWysiwygEditorProps>(
   function RenderingWysiwygEditor({
     initialContent = '',
@@ -159,8 +179,10 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     // Ensure initialContent is a string
     const safeInitialContent = typeof initialContent === 'string' ? initialContent : '';
 
-    // Use richContent if available, otherwise fallback to text content
-    const initialValue = initialRichContent || createInitialValue(safeInitialContent);
+    // Use richContent if available AND non-empty, otherwise fallback to text content
+    const initialValue = (initialRichContent && !isRichContentEmpty(initialRichContent))
+      ? initialRichContent
+      : createInitialValue(safeInitialContent);
 
     const editor = usePlateEditor({
       plugins: EditorKit,
@@ -174,21 +196,36 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     useEffect(() => {
       console.log('[RenderingWysiwygEditor] useEffect 触发:', {
         hasInitialRichContent: !!initialRichContent,
+        hasInitialContent: !!safeInitialContent,
+        safeInitialContentTrimmed: safeInitialContent?.trim(),
         hasLoadedBefore: hasLoadedInitialContent.current,
-        initialRichContentType: typeof initialRichContent,
+        editorCurrentValue: editor.children,
       });
 
-      // Only load initialRichContent once, when component mounts
-      if (initialRichContent && !hasLoadedInitialContent.current) {
-        console.log('[RenderingWysiwygEditor] 首次加载，更新编辑器内容为 richContent:', initialRichContent);
-        editor.tf.setValue(initialRichContent);
-        hasLoadedInitialContent.current = true;
-        console.log('[RenderingWysiwygEditor] 编辑器内容已更新');
+      // Only load initial content once, when component first receives non-empty data
+      if (!hasLoadedInitialContent.current) {
+        if (initialRichContent && !isRichContentEmpty(initialRichContent)) {
+          console.log('[RenderingWysiwygEditor] 首次加载，更新编辑器内容为 richContent:', initialRichContent);
+          editor.tf.setValue(initialRichContent);
+          hasLoadedInitialContent.current = true;
+          console.log('[RenderingWysiwygEditor] 编辑器内容已更新 (richContent)');
+        } else if (safeInitialContent && safeInitialContent.trim()) {
+          console.log('[RenderingWysiwygEditor] 首次加载，从文本内容创建 richContent:', safeInitialContent);
+          editor.tf.setValue(createInitialValue(safeInitialContent));
+          hasLoadedInitialContent.current = true;
+          console.log('[RenderingWysiwygEditor] 编辑器内容已更新 (text)');
+        } else {
+          console.log('[RenderingWysiwygEditor] 跳过更新 (无有效内容)', {
+            hasInitialRichContent: !!initialRichContent,
+            isRichContentEmpty: initialRichContent ? isRichContentEmpty(initialRichContent) : 'N/A',
+            hasText: !!safeInitialContent?.trim(),
+          });
+        }
       } else {
-        console.log('[RenderingWysiwygEditor] 跳过更新 (已加载过或无内容)');
+        console.log('[RenderingWysiwygEditor] 跳过更新 (已加载过)');
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initialRichContent]); // Only depend on initialRichContent, not editor
+    }, [initialRichContent, safeInitialContent]); // Depend on both richContent and text content
 
     // Expose resetAndFocus method to parent
     useImperativeHandle(ref, () => ({
