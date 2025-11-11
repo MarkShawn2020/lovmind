@@ -402,203 +402,141 @@ function NoteEditor({
     }
   }, [mode, isWindowAlwaysOnTop]);
 
-  // Animate window resize smoothly
-  const animateWindowResize = useCallback((
-    appWindow: any,
-    startHeight: number,
-    endHeight: number,
-    width: number,
-    duration: number = 300
-  ) => {
-    const startTime = performance.now();
-    const delta = endHeight - startHeight;
-
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Cubic bezier easing (0.4, 0, 0.2, 1) - matches CSS transition
-      const eased = progress < 0.5
-        ? 4 * progress * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-      const currentHeight = startHeight + delta * eased;
-
-      appWindow.setSize(new LogicalSize(width, Math.round(currentHeight))).catch((err: any) => {
-        console.warn('Failed to resize window during animation:', err);
-      });
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    requestAnimationFrame(animate);
-  }, []);
-
-  // Toggle panel
-  const handleTogglePanel = useCallback(async () => {
+  // Unified animation function for panel expand/collapse
+  const animatePanelToggle = useCallback((expanding: boolean) => {
     if (!panelRef.current || !editorContainerRef.current) {
       console.warn('Panel or editor container ref not initialized');
       return;
     }
 
-    if (!isExpandedRef.current) {
-      // Expanding: LOCK editor height first, then animate window and panel
-      isExpandedRef.current = true;
+    const duration = 300;
+    const easing = (t: number) => t < 0.5
+      ? 4 * t * t * t
+      : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
-      // Step 1: Lock the editor container to its current height (prevent it from growing)
-      const currentEditorHeight = editorContainerRef.current.clientHeight;
-      fixedEditorHeight.current = currentEditorHeight;
-      editorContainerRef.current.style.height = `${currentEditorHeight}px`;
-      editorContainerRef.current.style.flexGrow = '0';
-      editorContainerRef.current.style.flexShrink = '0';
+    // Step 1: Lock editor height
+    const currentEditorHeight = editorContainerRef.current.clientHeight;
+    fixedEditorHeight.current = currentEditorHeight;
+    editorContainerRef.current.style.height = `${currentEditorHeight}px`;
+    editorContainerRef.current.style.flexGrow = '0';
+    editorContainerRef.current.style.flexShrink = '0';
 
-      // Step 2: Start animated window expansion
-      if (isTauri()) {
-        const appWindow = getCurrentWindow();
-        appWindow.innerSize().then(physicalSize => {
-          return appWindow.scaleFactor().then(scaleFactor => {
-            const currentSize = physicalSize.toLogical(scaleFactor);
-            collapsedHeightRef.current = currentSize.height;
-
-            // Animate window height from current to current + PANEL_HEIGHT
-            animateWindowResize(
-              appWindow,
-              currentSize.height,
-              currentSize.height + PANEL_HEIGHT,
-              currentSize.width,
-              300
-            );
-          });
-        }).catch(error => {
-          console.warn('Failed to start window resize animation:', error);
-        });
+    // Step 2: Setup panel for animation
+    if (panelRef.current) {
+      panelRef.current.style.transition = 'none';
+      if (expanding) {
+        panelRef.current.classList.remove('hidden');
       }
+    }
 
-      // Step 3: Simultaneously animate panel sliding down (h-0 -> h-[250px])
-      requestAnimationFrame(() => {
-        if (panelRef.current) {
-          panelRef.current.classList.remove('hidden');
-          // Force panel to stay at fixed height
-          panelRef.current.style.flex = 'none';
-          panelRef.current.style.minHeight = `${PANEL_HEIGHT}px`;
-          panelRef.current.style.maxHeight = `${PANEL_HEIGHT}px`;
-          // Ensure opacity is set for visibility
-          panelRef.current.style.opacity = '1';
-          document.querySelector('.recent-notes-toggle')?.classList.add('active');
-          setIsPanelExpanded(true);
-        }
-      });
+    const toggleBtn = document.querySelector('.recent-notes-toggle');
+    if (toggleBtn) {
+      if (expanding) {
+        toggleBtn.classList.add('active');
+      } else {
+        toggleBtn.classList.remove('active');
+      }
+    }
 
-      // Step 4: After animation, unlock editor and clear panel opacity override
-      setTimeout(() => {
-        if (panelRef.current) {
-          // Clear opacity override to let CSS class control it
-          panelRef.current.style.opacity = '';
-        }
+    // Step 3: Synchronized animation
+    const startTime = performance.now();
 
-        if (editorContainerRef.current) {
-          fixedEditorHeight.current = undefined;
-          editorContainerRef.current.style.height = '';
-          editorContainerRef.current.style.flexGrow = '1';
-        }
-      }, 300);
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easing(progress);
 
-    } else {
-      // Collapsing: Mirror the expanding logic - lock editor, animate everything, then unlock
-      isExpandedRef.current = false;
-
-      // Step 1: Lock editor height to prevent layout shifts during animation
-      const currentEditorHeight = editorContainerRef.current.clientHeight;
-      fixedEditorHeight.current = currentEditorHeight;
-      editorContainerRef.current.style.height = `${currentEditorHeight}px`;
-      editorContainerRef.current.style.flexGrow = '0';
-      editorContainerRef.current.style.flexShrink = '0';
-
-      // Step 2: Remove CSS transition temporarily and use JS animation for panel height
+      // Animate panel height and opacity
+      const panelProgress = expanding ? eased : (1 - eased);
       if (panelRef.current) {
-        panelRef.current.style.transition = 'none';
+        panelRef.current.style.height = `${PANEL_HEIGHT * panelProgress}px`;
+        panelRef.current.style.opacity = String(panelProgress);
       }
 
-      document.querySelector('.recent-notes-toggle')?.classList.remove('active');
-
-      // Step 3: Simultaneously animate panel height and window size with JS
-      const startTime = performance.now();
-      const duration = 300;
-
-      const animateCollapse = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        // Cubic bezier easing (0.4, 0, 0.2, 1)
-        const eased = progress < 0.5
-          ? 4 * progress * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-        // Animate panel height from 250 to 0
-        const currentPanelHeight = PANEL_HEIGHT * (1 - eased);
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Animation complete
         if (panelRef.current) {
-          panelRef.current.style.height = `${currentPanelHeight}px`;
-          panelRef.current.style.opacity = String(1 - eased);
-        }
+          panelRef.current.style.transition = '';
+          panelRef.current.style.height = '';
+          panelRef.current.style.opacity = '';
 
-        if (progress < 1) {
-          requestAnimationFrame(animateCollapse);
-        } else {
-          // Animation complete
-          setIsPanelExpanded(false);
-          if (panelRef.current) {
-            panelRef.current.style.transition = '';
-            panelRef.current.style.height = '';
-            panelRef.current.style.opacity = '';
+          if (expanding) {
+            // Lock panel at fixed height after expansion
+            panelRef.current.style.flex = 'none';
+            panelRef.current.style.minHeight = `${PANEL_HEIGHT}px`;
+            panelRef.current.style.maxHeight = `${PANEL_HEIGHT}px`;
+          } else {
+            // Hide panel after collapse
+            panelRef.current.classList.add('hidden');
+            panelRef.current.style.flex = '';
+            panelRef.current.style.minHeight = '';
+            panelRef.current.style.maxHeight = '';
           }
         }
-      };
 
-      requestAnimationFrame(animateCollapse);
-
-      // Start window resize animation simultaneously
-      if (isTauri()) {
-        const appWindow = getCurrentWindow();
-        appWindow.innerSize().then(physicalSize => {
-          return appWindow.scaleFactor().then(scaleFactor => {
-            const currentSize = physicalSize.toLogical(scaleFactor);
-            const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
-
-            animateWindowResize(
-              appWindow,
-              currentSize.height,
-              targetHeight,
-              currentSize.width,
-              300
-            );
-          });
-        }).catch(error => {
-          console.warn('Failed to start window resize animation:', error);
-        });
-      }
-
-      // Step 4: After animations complete, hide panel and unlock editor
-      setTimeout(() => {
-        if (panelRef.current) {
-          panelRef.current.classList.add('hidden');
-          panelRef.current.style.flex = '';
-          panelRef.current.style.height = '';
-          panelRef.current.style.minHeight = '';
-          panelRef.current.style.maxHeight = '';
-          panelRef.current.style.opacity = '';
-        }
-
+        // Unlock editor
         if (editorContainerRef.current) {
           fixedEditorHeight.current = undefined;
           editorContainerRef.current.style.height = '';
           editorContainerRef.current.style.flexGrow = '1';
           editorContainerRef.current.style.flexShrink = '0';
         }
-      }, 300);
+      }
+    };
+
+    requestAnimationFrame(animate);
+
+    // Step 4: Animate window size simultaneously
+    if (isTauri()) {
+      const appWindow = getCurrentWindow();
+      appWindow.innerSize().then(physicalSize => {
+        return appWindow.scaleFactor().then(scaleFactor => {
+          const currentSize = physicalSize.toLogical(scaleFactor);
+
+          let startHeight: number, endHeight: number;
+          if (expanding) {
+            collapsedHeightRef.current = currentSize.height;
+            startHeight = currentSize.height;
+            endHeight = currentSize.height + PANEL_HEIGHT;
+          } else {
+            startHeight = currentSize.height;
+            endHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
+          }
+
+          // Window animation with same timing
+          const animateWindow = (currentTime: number) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = easing(progress);
+            const currentHeight = startHeight + (endHeight - startHeight) * eased;
+
+            appWindow.setSize(new LogicalSize(currentSize.width, Math.round(currentHeight))).catch((err: any) => {
+              console.warn('Failed to resize window during animation:', err);
+            });
+
+            if (progress < 1) {
+              requestAnimationFrame(animateWindow);
+            }
+          };
+
+          requestAnimationFrame(animateWindow);
+        });
+      }).catch(error => {
+        console.warn('Failed to start window resize animation:', error);
+      });
     }
-  }, [animateWindowResize]);
+
+    // Update state
+    setIsPanelExpanded(expanding);
+    isExpandedRef.current = expanding;
+  }, []);
+
+  // Toggle panel
+  const handleTogglePanel = useCallback(() => {
+    animatePanelToggle(!isExpandedRef.current);
+  }, [animatePanelToggle]);
 
   return (
     <div className="app-container">
