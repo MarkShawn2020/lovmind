@@ -324,36 +324,35 @@ function NoteEditor({
       });
 
     } else {
-      // Collapsing: first animate panel up, then shrink window
+      // Collapsing: first shrink window, then hide panel content
       isExpandedRef.current = false;
 
-      // Animate panel sliding up (h-[250px] -> h-0)
-      setIsPanelExpanded(false);
-      document.querySelector('.recent-notes-toggle')?.classList.remove('active');
-
-      // Wait for animation to complete, then shrink window
-      setTimeout(async () => {
-        if (panelRef.current) {
-          panelRef.current.classList.add('hidden');
-        }
-
-        if (isTauri()) {
-          try {
-            const appWindow = getCurrentWindow();
-            const physicalSize = await appWindow.innerSize();
-            const scaleFactor = await appWindow.scaleFactor();
+      // Step 1: Shrink window first
+      if (isTauri()) {
+        const appWindow = getCurrentWindow();
+        appWindow.innerSize().then(physicalSize => {
+          return appWindow.scaleFactor().then(scaleFactor => {
             const currentSize = physicalSize.toLogical(scaleFactor);
             const targetHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
-
-            await appWindow.setSize(new LogicalSize(
+            return appWindow.setSize(new LogicalSize(
               currentSize.width,
               targetHeight
             ));
-          } catch (error) {
-            console.warn('Failed to resize window:', error);
-          }
+          });
+        }).catch(error => {
+          console.warn('Failed to resize window:', error);
+        });
+      }
+
+      // Step 2: After window shrinks, instantly hide panel content
+      // Wait for window resize animation to complete
+      setTimeout(() => {
+        setIsPanelExpanded(false);
+        document.querySelector('.recent-notes-toggle')?.classList.remove('active');
+        if (panelRef.current) {
+          panelRef.current.classList.add('hidden');
         }
-      }, 300); // Wait for CSS transition to complete
+      }, 200); // Wait for window resize to complete
     }
   }, []);
 
@@ -488,7 +487,7 @@ function NoteEditor({
         {/* Notes panel - expands below the fixed editor+toolbar */}
         <div
           ref={panelRef}
-          className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
+          className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
             isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
           }`}
         >
