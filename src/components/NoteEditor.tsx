@@ -421,13 +421,13 @@ function NoteEditor({
           </div>
           <div className="flex items-center gap-1">
             <button
-              className={`toolbar-btn always-on-top-toggle ${isWindowAlwaysOnTop ? 'active' : ''}`}
+              className="toolbar-btn always-on-top-toggle"
               onClick={handleToggleAlwaysOnTop}
               title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
               style={{
-                opacity: isWindowAlwaysOnTop ? 1 : 0.4,
-                background: isWindowAlwaysOnTop ? undefined : 'transparent',
-                border: isWindowAlwaysOnTop ? undefined : 'none'
+                background: 'transparent',
+                border: isWindowAlwaysOnTop ? '1px solid white' : 'none',
+                color: isWindowAlwaysOnTop ? 'white' : 'rgba(255, 255, 255, 0.5)'
               }}
             >
               <Pin size={16} />
@@ -442,7 +442,11 @@ function NoteEditor({
                 }
               }}
               title="Close window"
-              style={{ opacity: 0.4, background: 'transparent', border: 'none' }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.5)'
+              }}
             >
               <X size={16} />
             </button>
