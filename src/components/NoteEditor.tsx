@@ -293,28 +293,27 @@ function NoteEditor({
     }
 
     if (!isExpandedRef.current) {
-      // Expanding: first expand window, then animate panel sliding down
+      // Expanding: expand window and animate panel simultaneously
       isExpandedRef.current = true;
 
-      // First, expand window to make room for the panel
+      // Start expanding window (don't await - let it run in parallel with panel animation)
       if (isTauri()) {
-        try {
-          const appWindow = getCurrentWindow();
-          const physicalSize = await appWindow.innerSize();
-          const scaleFactor = await appWindow.scaleFactor();
-          const currentSize = physicalSize.toLogical(scaleFactor);
-          collapsedHeightRef.current = currentSize.height;
-
-          await appWindow.setSize(new LogicalSize(
-            currentSize.width,
-            currentSize.height + PANEL_HEIGHT
-          ));
-        } catch (error) {
+        const appWindow = getCurrentWindow();
+        appWindow.innerSize().then(physicalSize => {
+          return appWindow.scaleFactor().then(scaleFactor => {
+            const currentSize = physicalSize.toLogical(scaleFactor);
+            collapsedHeightRef.current = currentSize.height;
+            return appWindow.setSize(new LogicalSize(
+              currentSize.width,
+              currentSize.height + PANEL_HEIGHT
+            ));
+          });
+        }).catch(error => {
           console.warn('Failed to resize window:', error);
-        }
+        });
       }
 
-      // Then animate panel sliding down from toolbar (h-0 -> h-[250px])
+      // Simultaneously animate panel sliding down (h-0 -> h-[250px])
       requestAnimationFrame(() => {
         if (panelRef.current) {
           panelRef.current.classList.remove('hidden');
