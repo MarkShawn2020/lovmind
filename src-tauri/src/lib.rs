@@ -224,6 +224,11 @@ pub fn run() {
                 .checked(ai_enabled)
                 .build(app)?;
 
+            // Create App menu with Quit option (macOS standard)
+            let app_menu = SubmenuBuilder::new(app, "Lovpen Notes")
+                .item(&PredefinedMenuItem::quit(app, None)?)
+                .build()?;
+
             // Create Edit menu with standard clipboard operations for macOS
             let edit_menu = SubmenuBuilder::new(app, "Edit")
                 .item(&PredefinedMenuItem::undo(app, None)?)
@@ -236,6 +241,7 @@ pub fn run() {
                 .build()?;
 
             let menu = MenuBuilder::new(app)
+                .item(&app_menu)
                 .item(&edit_menu)
                 .item(&ai_toggle)
                 .build()?;
