@@ -25,6 +25,7 @@ function App() {
   const [content, setContent] = useAtom(contentAtom);
   const [notes, setNotes] = useAtom(notesAtom);
   const [currentTags, setCurrentTags] = useState<string[]>([]);
+  const [richContent, setRichContent] = useState<any>(null);
   const notesListRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
@@ -200,25 +201,34 @@ function App() {
   }, []); // 只在组件挂载时运行一次
 
   const handleSubmit = async () => {
-    if (content && typeof content === 'string' && content.trim()) {
+    // Allow saving if either has text content or has rich content (e.g., images)
+    if ((content && typeof content === 'string' && content.trim()) || richContent) {
       // 生成标题和标签
-      const firstLine = content.split("\n")[0].substring(0, 50);
+      const firstLine = content ? content.split("\n")[0].substring(0, 50) : "Image Note";
       const title = firstLine || "Untitled Note";
       // Use tags extracted from the editor, fallback to empty array
       const tags = currentTags.length > 0 ? currentTags : [];
 
       const newNote: Note = {
         id: Date.now().toString(),
-        text: content,
+        text: content || "",
         title,
         time: new Date().toLocaleString(),
         tags,
+        richContent: richContent, // Save rich content for images
       };
+
+      console.log('[App] 创建新 note:', {
+        id: newNote.id,
+        textLength: newNote.text.length,
+        hasRichContent: !!newNote.richContent,
+      });
 
       setNotes([...notes, newNote]);
 
       // Reset editor and focus - unified handling for both button and keyboard submit
       setContent("");
+      setRichContent(null);
       editorRef.current?.resetAndFocus();
 
       // 触发confetti动画
@@ -521,9 +531,17 @@ function App() {
 
       <NoteEditor
         content={content}
-        onContentChange={(newContent, tags) => {
+        richContent={richContent}
+        onContentChange={(newContent, tags, newRichContent) => {
+          console.log('[App] NoteEditor onContentChange:', {
+            newContentLength: newContent?.length,
+            hasNewRichContent: newRichContent !== undefined,
+          });
           setContent(newContent);
           if (tags) setCurrentTags(tags);
+          if (newRichContent !== undefined) {
+            setRichContent(newRichContent);
+          }
         }}
         onSubmit={handleSubmit}
         placeholder="此时此刻，你在想什么呢？"
