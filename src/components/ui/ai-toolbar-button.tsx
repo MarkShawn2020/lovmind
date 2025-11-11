@@ -59,7 +59,7 @@ export function AIToolbarButton(
       {...props}
       disabled={!aiEnabled}
       tooltip={!aiEnabled ? "正在开发，敬请期待" : props.tooltip}
-      className={!aiEnabled ? "pointer-events-auto cursor-not-allowed" : props.className}
+      className={!aiEnabled ? "pointer-events-auto cursor-not-allowed text-muted-foreground opacity-50" : props.className}
       onClick={() => {
         if (aiEnabled) {
           api.aiChat.show();
