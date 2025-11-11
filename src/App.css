@@ -150,6 +150,7 @@ body {
 
 .note-item.pinned {
   background: var(--secondary);
+  border: 1px solid var(--border);
   border-left: 3px solid var(--primary);
   order: -1;
 }
@@ -797,8 +798,12 @@ body {
 /* Active note indicator in editor window */
 .note-item.active {
   background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
-  border-color: #667eea;
-  border-width: 2px;
+  border: 1px solid #667eea;
+}
+
+.note-item.active.pinned {
+  border: 1px solid #667eea;
+  border-left: 3px solid var(--primary);
 }
 
 .note-item.active .note-title {
