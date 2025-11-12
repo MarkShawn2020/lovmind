@@ -70,7 +70,7 @@ export function FixedToolbarButtons({ wrap = false }: FixedToolbarButtonsProps) 
           <ToolbarGroup>
             <AIToolbarButton tooltip="Ask AI">
               <WandSparklesIcon />
-              <span className="hidden sm:inline">Ask AI</span>
+              <span className="hidden md:inline">Ask AI</span>
             </AIToolbarButton>
           </ToolbarGroup>
 

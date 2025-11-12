@@ -808,7 +808,7 @@ function NoteEditor({
       {/* Main Content Area - contains sidebar + editor */}
       <div className="flex-1 flex min-h-0">
         {/* Left Sidebar - only visible on md+ screens */}
-        <aside className="hidden md:flex w-80 border-r border-border bg-muted flex-shrink-0 overflow-hidden flex-col">
+        <aside className="hidden sm:flex w-80 border-r border-border bg-muted flex-shrink-0 overflow-hidden flex-col">
           <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
             {renderNotesList()}
           </div>
