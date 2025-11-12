@@ -193,6 +193,28 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       value: initialValue,
     });
     console.timeEnd('[Perf] usePlateEditor init');
+
+    // Parse markdown content if it contains markdown syntax (e.g., images)
+    // Only run once on mount to avoid re-parsing during editing
+    const hasProcessedMarkdown = useRef(false);
+    useEffect(() => {
+      if (hasProcessedMarkdown.current) return;
+
+      if (!initialRichContent && safeInitialContent && safeInitialContent.includes('![')) {
+        try {
+          // Use markdown plugin to deserialize the content
+          const markdownValue = editor.api.markdown?.deserialize?.(safeInitialContent);
+          if (markdownValue) {
+            editor.tf.setValue(markdownValue);
+            hasProcessedMarkdown.current = true;
+          }
+        } catch (error) {
+          console.error('Failed to parse markdown:', error);
+        }
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     console.timeEnd('[Perf] RenderingWysiwygEditor init');
 
     // Update editor value when initialRichContent changes (e.g., when loading a note)
