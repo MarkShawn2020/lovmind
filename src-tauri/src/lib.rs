@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tauri::{Emitter, Manager, WindowEvent, menu::{MenuBuilder, CheckMenuItemBuilder, SubmenuBuilder, PredefinedMenuItem}};
+use std::sync::Mutex;
+use tauri::{Emitter, Manager, WindowEvent, menu::{MenuBuilder, CheckMenuItemBuilder, SubmenuBuilder, PredefinedMenuItem, MenuItem}};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
@@ -9,6 +10,9 @@ use std::fs;
 
 mod note_store;
 use note_store::{store_temp_note, get_temp_note, remove_temp_note, get_all_temp_notes, clear_temp_notes};
+
+// Global state to hold reference to the main window menu item
+struct MainWindowMenuItem(Mutex<Option<MenuItem<tauri::Wry>>>);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Note {
@@ -190,35 +194,15 @@ async fn set_ai_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), Stri
 fn update_main_window_menu_text<R: tauri::Runtime>(app: &tauri::AppHandle<R>, is_visible: bool) {
     println!("[Menu Update] Called with is_visible={}", is_visible);
 
-    let Some(menu) = app.menu() else {
-        println!("[Menu Update] ERROR: app.menu() returned None");
-        return;
-    };
-    println!("[Menu Update] Got root menu");
+    // Get the saved menu item reference from app state
+    let state = app.state::<MainWindowMenuItem>();
+    let menu_item_guard = state.0.lock().unwrap();
 
-    let Some(window_menu) = menu.get("Window") else {
-        println!("[Menu Update] ERROR: menu.get('Window') returned None");
+    let Some(ref menu_item) = *menu_item_guard else {
+        println!("[Menu Update] ERROR: No menu item reference saved in state");
         return;
     };
-    println!("[Menu Update] Got Window menu");
-
-    let Some(submenu) = window_menu.as_submenu() else {
-        println!("[Menu Update] ERROR: window_menu.as_submenu() failed");
-        return;
-    };
-    println!("[Menu Update] Window menu is a submenu");
-
-    let Some(item) = submenu.get("toggle_main_window") else {
-        println!("[Menu Update] ERROR: submenu.get('toggle_main_window') returned None");
-        return;
-    };
-    println!("[Menu Update] Got toggle_main_window item");
-
-    let Some(menu_item) = item.as_menuitem() else {
-        println!("[Menu Update] ERROR: item.as_menuitem() failed");
-        return;
-    };
-    println!("[Menu Update] Item is a MenuItem");
+    println!("[Menu Update] Got menu item from state");
 
     let text = if is_visible {
         "Hide Main Window"
@@ -513,6 +497,7 @@ async fn reset_shortcut_settings(app: tauri::AppHandle) -> Result<ShortcutSettin
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(MainWindowMenuItem(Mutex::new(None)))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::new().build())
@@ -618,6 +603,11 @@ pub fn run() {
                 .id("toggle_main_window")
                 .accelerator(&toggle_main_accelerator)
                 .build(app)?;
+
+            // Save menu item reference to app state for later updates
+            println!("[Setup] Saving main window menu item to state");
+            let menu_item_state = app.state::<MainWindowMenuItem>();
+            *menu_item_state.0.lock().unwrap() = Some(show_main_window_item.clone());
 
             // Show Float Windows item with shortcut
             let toggle_float_accelerator = shortcut_settings.shortcuts.get("toggle_float_windows")
