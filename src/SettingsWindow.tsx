@@ -49,6 +49,25 @@ export default function SettingsWindow() {
     loadSettings();
   }, []);
 
+  // Auto-focus window after component mounts
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    const focusWindow = async () => {
+      try {
+        const window = getCurrentWindow();
+        await window.setFocus();
+        console.log('[SettingsWindow] Window focused after mount');
+      } catch (error) {
+        console.error('[SettingsWindow] Failed to focus window:', error);
+      }
+    };
+
+    // Small delay to ensure window is fully ready
+    const timer = setTimeout(focusWindow, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
   const loadSettings = async () => {
     if (isTauri()) {
       try {
