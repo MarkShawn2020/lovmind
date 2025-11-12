@@ -209,7 +209,15 @@ async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
         let note_id = Uuid::new_v4().to_string();
         let window_label = format!("note-editor-{}", note_id);
 
-        // Create a blank note
+        // Calculate rank: max existing rank + 1
+        let all_notes = get_all_temp_notes(app.clone())?;
+        let max_rank = all_notes.iter()
+            .filter_map(|n| n.rank)
+            .max()
+            .unwrap_or(0);
+        let new_rank = std::cmp::max(max_rank + 1, all_notes.len() as i32 + 1);
+
+        // Create a blank note with rank
         let blank_note = note_store::TempNote {
             id: note_id.clone(),
             text: String::new(),
@@ -219,7 +227,10 @@ async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
             favorite: Some(false),
             pinned: Some(false),
             rich_content: None,
+            rank: Some(new_rank),
         };
+
+        println!("[toggle_editor_windows] Creating new note with rank: id={}, rank={}", note_id, new_rank);
 
         // Store the blank note
         store_temp_note(app.clone(), blank_note)?;
