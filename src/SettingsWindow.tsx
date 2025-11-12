@@ -125,6 +125,19 @@ export default function SettingsWindow() {
     }
   }, [editingAction, handleKeyDown]);
 
+  // Add Cmd+W to close window
+  useEffect(() => {
+    const handleWindowClose = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'w') {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleWindowClose);
+    return () => window.removeEventListener('keydown', handleWindowClose);
+  }, []);
+
   const applyRecordedShortcut = () => {
     if (!editingAction || !recordingKeys) return;
 
@@ -155,7 +168,7 @@ export default function SettingsWindow() {
   };
 
   // Define shortcut order and grouping
-  const basicShortcuts = ['toggle_main_window', 'toggle_float_windows', 'submit_note'];
+  const basicShortcuts = ['toggle_main_window', 'toggle_float_windows', 'submit_note', 'close_window'];
   const advancedShortcuts = ['open_devtools'];
 
   // Sort shortcuts according to defined order

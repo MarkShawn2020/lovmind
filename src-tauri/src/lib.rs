@@ -394,6 +394,15 @@ impl Default for ShortcutSettings {
             },
         );
         shortcuts.insert(
+            "close_window".to_string(),
+            ShortcutConfig {
+                key: "KeyW".to_string(),
+                modifiers: vec!["SUPER".to_string()],
+                label: "Close Window".to_string(),
+                action: "close_window".to_string(),
+            },
+        );
+        shortcuts.insert(
             "open_devtools".to_string(),
             ShortcutConfig {
                 key: "KeyI".to_string(),

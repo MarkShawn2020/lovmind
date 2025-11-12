@@ -202,27 +202,39 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         editorCurrentValue: editor.children,
       });
 
-      // Only load initial content once, when component first receives non-empty data
-      if (!hasLoadedInitialContent.current) {
-        if (initialRichContent && !isRichContentEmpty(initialRichContent)) {
-          console.log('[RenderingWysiwygEditor] 首次加载，更新编辑器内容为 richContent:', initialRichContent);
-          editor.tf.setValue(initialRichContent);
-          hasLoadedInitialContent.current = true;
-          console.log('[RenderingWysiwygEditor] 编辑器内容已更新 (richContent)');
-        } else if (safeInitialContent && safeInitialContent.trim()) {
-          console.log('[RenderingWysiwygEditor] 首次加载，从文本内容创建 richContent:', safeInitialContent);
-          editor.tf.setValue(createInitialValue(safeInitialContent));
-          hasLoadedInitialContent.current = true;
-          console.log('[RenderingWysiwygEditor] 编辑器内容已更新 (text)');
-        } else {
-          console.log('[RenderingWysiwygEditor] 跳过更新 (无有效内容)', {
-            hasInitialRichContent: !!initialRichContent,
-            isRichContentEmpty: initialRichContent ? isRichContentEmpty(initialRichContent) : 'N/A',
-            hasText: !!safeInitialContent?.trim(),
-          });
-        }
-      } else {
+      if (hasLoadedInitialContent.current) {
         console.log('[RenderingWysiwygEditor] 跳过更新 (已加载过)');
+        return;
+      }
+
+      // Check if editor already has content (user has typed)
+      const editorIsEmpty =
+        editor.children.length === 1 &&
+        editor.children[0].type === 'p' &&
+        editor.children[0].children?.length === 1 &&
+        editor.children[0].children[0].text === '';
+
+      if (!editorIsEmpty) {
+        // Editor has content - user has started typing, don't overwrite
+        console.log('[RenderingWysiwygEditor] 编辑器已有内容，标记为已加载 (防止覆盖用户输入)');
+        hasLoadedInitialContent.current = true;
+        return;
+      }
+
+      // Editor is empty - try to load initial content
+      if (initialRichContent && !isRichContentEmpty(initialRichContent)) {
+        console.log('[RenderingWysiwygEditor] 首次加载，更新编辑器内容为 richContent:', initialRichContent);
+        editor.tf.setValue(initialRichContent);
+        hasLoadedInitialContent.current = true;
+        console.log('[RenderingWysiwygEditor] 编辑器内容已更新 (richContent)');
+      } else if (safeInitialContent && safeInitialContent.trim()) {
+        console.log('[RenderingWysiwygEditor] 首次加载，从文本内容创建 richContent:', safeInitialContent);
+        editor.tf.setValue(createInitialValue(safeInitialContent));
+        hasLoadedInitialContent.current = true;
+        console.log('[RenderingWysiwygEditor] 编辑器内容已更新 (text)');
+      } else {
+        console.log('[RenderingWysiwygEditor] 无初始内容需要加载');
+        hasLoadedInitialContent.current = true;
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialRichContent, safeInitialContent]); // Depend on both richContent and text content
