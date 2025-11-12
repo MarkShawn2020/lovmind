@@ -318,18 +318,20 @@ function NoteEditor({
       // Store to backend
       await invoke("store_temp_note", { note: newNote });
 
-      // Try to generate title using AI
-      try {
-        const [generatedTitle, generatedTags] = await invoke<[string, string[]]>(
-          "generate_title_and_tags",
-          { content: content }
-        );
-        newNote.title = generatedTitle;
-        newNote.tags = generatedTags;
-        setNotes((prev) => [...prev.slice(0, -1), newNote]);
-        await invoke("store_temp_note", { note: newNote });
-      } catch (error) {
-        console.log("Using local title generation");
+      // Try to generate title using AI only if there's actual text content
+      if (content && content.trim()) {
+        try {
+          const [generatedTitle, generatedTags] = await invoke<[string, string[]]>(
+            "generate_title_and_tags",
+            { content: content }
+          );
+          newNote.title = generatedTitle;
+          newNote.tags = generatedTags;
+          setNotes((prev) => [...prev.slice(0, -1), newNote]);
+          await invoke("store_temp_note", { note: newNote });
+        } catch (error) {
+          console.log("Using local title generation");
+        }
       }
     } else if (mode === 'edit' && currentNote) {
       // Update existing note
