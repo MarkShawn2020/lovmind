@@ -641,7 +641,7 @@ function NoteEditor({
   }, [notes, currentNoteId, openNoteInNewWindow, togglePin, toggleFavorite, deleteNote]);
 
   return (
-    <div className="h-screen flex flex-col relative overflow-hidden bg-transparent">
+    <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">
       {/* Header */}
       {mode === 'create' ? (
         <div
