@@ -202,11 +202,19 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
       if (!initialRichContent && safeInitialContent && safeInitialContent.includes('![')) {
         try {
+          console.log('[Markdown] Parsing content with images...');
           // Use markdown plugin to deserialize the content
           const markdownValue = editor.api.markdown?.deserialize?.(safeInitialContent);
           if (markdownValue) {
+            console.log('[Markdown] Parsed value:', markdownValue);
             editor.tf.setValue(markdownValue);
             hasProcessedMarkdown.current = true;
+            // CRITICAL: Mark as loaded to prevent content loading useEffect from overwriting
+            hasLoadedInitialContent.current = true;
+            // Blur editor to prevent first block from being treated as "editing"
+            setTimeout(() => {
+              editor.tf.blur();
+            }, 0);
           }
         } catch (error) {
           console.error('Failed to parse markdown:', error);
