@@ -80,7 +80,6 @@ function NoteEditor({
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
-  const [isSidebarLayout, setIsSidebarLayout] = useState(false);
 
   // Refs
   const notesListRef = useRef<HTMLDivElement | null>(null);
@@ -167,25 +166,6 @@ function NoteEditor({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isUserMenuOpen]);
-
-  // Responsive layout detection (md breakpoint = 768px)
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(min-width: 768px)');
-
-    const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsSidebarLayout(e.matches);
-    };
-
-    // Set initial value
-    handleMediaChange(mediaQuery);
-
-    // Listen for changes
-    mediaQuery.addEventListener('change', handleMediaChange);
-
-    return () => {
-      mediaQuery.removeEventListener('change', handleMediaChange);
-    };
-  }, []);
 
   // Handle window dragging
   const handleHeaderMouseDown = async () => {
@@ -828,13 +808,11 @@ function NoteEditor({
       {/* Main Content Area - contains sidebar + editor */}
       <div className="flex-1 flex min-h-0">
         {/* Left Sidebar - only visible on md+ screens */}
-        {isSidebarLayout && (
-          <aside className="w-80 border-r border-border bg-muted flex-shrink-0 overflow-hidden flex flex-col">
-            <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
-              {renderNotesList()}
-            </div>
-          </aside>
-        )}
+        <aside className="hidden md:flex w-80 border-r border-border bg-muted flex-shrink-0 overflow-hidden flex-col">
+          <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
+            {renderNotesList()}
+          </div>
+        </aside>
 
         {/* Editor + Toolbar Container */}
         <div className="flex-1 flex flex-col min-w-0">
