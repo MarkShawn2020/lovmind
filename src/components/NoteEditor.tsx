@@ -824,13 +824,13 @@ function NoteEditor({
                     />
                   ) : (
                     <span
-                      className="cursor-pointer hover:underline"
+                      className="cursor-pointer hover:underline truncate max-w-[300px] inline-block"
                       onClick={(e) => {
                         e.stopPropagation();
                         setEditingTitle(currentNote.title);
                         setIsEditingTitle(true);
                       }}
-                      title="Click to edit title"
+                      title={currentNote.title}
                     >
                       {currentNote.title}
                     </span>
