@@ -503,22 +503,23 @@ function NoteEditor({
   }, [isPanelExpanded]);
 
   return (
-    <div className="app-container">
+    <div className="h-screen flex flex-col relative overflow-hidden bg-transparent">
       {/* Header */}
       {mode === 'create' ? (
         <div
-          className="app-header cursor-move"
+          className="h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center rounded-t-xl select-none flex-shrink-0 cursor-move"
           onMouseDown={handleHeaderMouseDown}
         >
           <div className="flex items-center gap-2">
             <img
               src={lovpenLogo}
               alt="Lovmind"
-              className="app-logo h-5 w-auto"
+              className="h-5 w-auto brightness-0 invert select-none"
+              draggable={false}
             />
-            <h1>Lovmind ({noteStats.total})</h1>
+            <h1 className="text-lg font-semibold tracking-tight">Lovmind ({noteStats.total})</h1>
           </div>
-          <div className="header-stats relative">
+          <div className="absolute right-[var(--spacing-text)] top-1/2 -translate-y-1/2 flex gap-2 items-center">
             <button
               ref={userButtonRef}
               className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer border-none overflow-hidden"
@@ -547,7 +548,7 @@ function NoteEditor({
             </button>
 
             {noteStats.streak > 2 && (
-              <span className="header-stat-badge streak-badge ml-2" title={`${noteStats.streak} day streak!`}>
+              <span className="px-2.5 py-1 bg-gradient-to-br from-[#ff6b6b] to-[#ffd93d] text-white rounded-xl text-xs font-medium tracking-tight backdrop-blur-lg streak-badge ml-2" title={`${noteStats.streak} day streak!`}>
                 🔥 {noteStats.streak}d
               </span>
             )}
@@ -555,7 +556,7 @@ function NoteEditor({
         </div>
       ) : (
         <div
-          className="app-header cursor-move"
+          className="h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center rounded-t-xl select-none flex-shrink-0 cursor-move"
           onMouseDown={handleHeaderMouseDown}
         >
           <div className="text-sm font-semibold text-white flex items-center gap-1">
@@ -611,7 +612,7 @@ function NoteEditor({
                 <>
                   {isTopThree && (
                     <Crown
-                      className={`icon-inline rank-badge rank-${rank}`}
+                      className={`inline-flex align-middle rank-badge rank-${rank}`}
                       size={16}
                       fill="currentColor"
                     />
@@ -660,19 +661,17 @@ function NoteEditor({
           </div>
           <div className="flex items-center gap-1">
             <button
-              className="toolbar-btn always-on-top-toggle"
+              className="w-9 h-9 bg-transparent border-none flex items-center justify-center cursor-pointer transition-colors duration-150"
               onClick={handleToggleAlwaysOnTop}
               title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
               style={{
-                background: 'transparent',
-                border: 'none',
                 color: isWindowAlwaysOnTop ? 'white' : 'rgba(255, 255, 255, 0.5)'
               }}
             >
               <Pin size={16} />
             </button>
             <button
-              className="toolbar-btn close-btn"
+              className="w-9 h-9 bg-transparent border-none flex items-center justify-center cursor-pointer transition-colors duration-150 text-white/50 hover:text-white"
               onClick={async (e) => {
                 e.stopPropagation();
                 if (isTauri()) {
@@ -681,11 +680,6 @@ function NoteEditor({
                 }
               }}
               title="Close window"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'rgba(255, 255, 255, 0.5)'
-              }}
             >
               <X size={16} />
             </button>
@@ -694,7 +688,7 @@ function NoteEditor({
       )}
 
       {/* Editor Area - grows to fill space */}
-      <div className="editor-area" ref={editorContainerRef}>
+      <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background" ref={editorContainerRef}>
         <RenderingWysiwygEditor
           ref={editorRef}
           initialContent={content}
@@ -724,7 +718,7 @@ function NoteEditor({
           {notes.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
               <div className="relative w-16 h-16">
-                <svg className="floating-logo" viewBox="0 0 986.05 1080" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-full h-full text-primary opacity-20 drop-shadow-[0_8px_16px_rgba(0,0,0,0.1)] transition-[opacity,transform,color] duration-300 ease-in-out hover:opacity-35 hover:scale-105 floating-logo" viewBox="0 0 986.05 1080" xmlns="http://www.w3.org/2000/svg">
                   <g fill="currentColor">
                     <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z"/>
                     <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z"/>
@@ -735,7 +729,7 @@ function NoteEditor({
 
               <div className="flex flex-col items-center gap-2 opacity-0 animate-[fadeInUpCentered_0.5s_ease_forwards_0.15s]">
                 <h3 className="inline-flex items-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0">
-                  <Sparkles size={16} className="icon-sparkle" />
+                  <Sparkles size={16} className="text-primary icon-sparkle" />
                   开启灵感之旅
                 </h3>
                 <p className="text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0">
@@ -802,7 +796,7 @@ function NoteEditor({
                         <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1">
                           {isTopThree && (
                             <Crown
-                              className={`icon-inline rank-badge rank-${rank}`}
+                              className={`inline-flex align-middle rank-badge rank-${rank}`}
                               size={16}
                               fill="currentColor"
                             />
