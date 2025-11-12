@@ -286,11 +286,11 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     return (
       <div className="w-full flex flex-col flex-1 min-h-0">
         <Plate editor={editor} onChange={handleChange}>
-          <EditorContainer className="w-full flex flex-col flex-1 min-h-0">
+          <EditorContainer>
             <Editor
               placeholder={placeholder}
-              variant="none"
-              className="w-full flex-1 min-h-0 px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
+              variant="default"
+              className="px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
               onKeyDown={handleKeyDown}
             />
           </EditorContainer>

@@ -237,8 +237,7 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   min-height: 0;
   background: var(--background);
 }
