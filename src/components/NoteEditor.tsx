@@ -84,6 +84,7 @@ function NoteEditor({
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
+  const [isSidebarLayout, setIsSidebarLayout] = useState(false);
 
   // Refs
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -173,6 +174,25 @@ function NoteEditor({
     };
   }, [isUserMenuOpen]);
 
+  // Responsive layout detection (md breakpoint = 768px)
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 768px)');
+
+    const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsSidebarLayout(e.matches);
+    };
+
+    // Set initial value
+    handleMediaChange(mediaQuery);
+
+    // Listen for changes
+    mediaQuery.addEventListener('change', handleMediaChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleMediaChange);
+    };
+  }, []);
+
   // Handle window dragging
   const handleHeaderMouseDown = async () => {
     if (!isTauri()) return;
@@ -188,12 +208,18 @@ function NoteEditor({
   // Load note in edit mode
   useEffect(() => {
     if (mode === 'edit' && noteId) {
+      const perfLabel = `[Perf] NoteEditor load note ${noteId}`;
+      const perfInvokeLabel = `[Perf] Invoke get_temp_note ${noteId}`;
+
+      console.time(perfLabel);
       const loadNote = async () => {
         try {
           let noteData: Note | null = null;
 
           if (isTauri()) {
+            console.time(perfInvokeLabel);
             noteData = await invoke<Note | null>('get_temp_note', { id: noteId });
+            console.timeEnd(perfInvokeLabel);
             console.log('Retrieved note from Tauri backend:', noteData);
 
             // Check current window always-on-top status
@@ -250,6 +276,8 @@ function NoteEditor({
           }
         } catch (error) {
           console.error('Failed to load note:', error);
+        } finally {
+          console.timeEnd(perfLabel);
         }
       };
 
@@ -502,6 +530,158 @@ function NoteEditor({
     }
   }, [isPanelExpanded]);
 
+  // Render notes list content (used in both sidebar and bottom panel)
+  const renderNotesList = useCallback(() => {
+    if (notes.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
+          <div className="relative w-16 h-16">
+            <svg className="w-full h-full text-primary opacity-20 drop-shadow-[0_8px_16px_rgba(0,0,0,0.1)] transition-[opacity,transform,color] duration-300 ease-in-out hover:opacity-35 hover:scale-105 floating-logo" viewBox="0 0 986.05 1080" xmlns="http://www.w3.org/2000/svg">
+              <g fill="currentColor">
+                <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z"/>
+                <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z"/>
+                <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z"/>
+              </g>
+            </svg>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 opacity-0 animate-[fadeInUpCentered_0.5s_ease_forwards_0.15s]">
+            <h3 className="inline-flex items-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0">
+              <Sparkles size={16} className="text-primary icon-sparkle" />
+              开启灵感之旅
+            </h3>
+            <p className="text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0">
+              快捷键 <kbd className="inline-block px-1.5 py-0.5 text-xs font-mono bg-[var(--muted)] border border-[var(--border)] rounded mx-0.5">⌘N</kbd> 随时唤起
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    const sortedNotes = [...notes].sort((a, b) => {
+      // Pinned notes always come first
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+
+      // Then sort by creation time (newest first)
+      const aNum = Number(a.id);
+      const bNum = Number(b.id);
+
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return bNum - aNum;
+      }
+
+      return b.id.localeCompare(a.id);
+    });
+
+    // Build dynamic rank map for notes without stored rank (backward compatibility)
+    const noteRanks = new Map<string, number>();
+
+    // Sort notes for rank calculation - handle both timestamp IDs and UUIDs
+    const rankedNotes = [...notes].sort((a, b) => {
+      const aNum = Number(a.id);
+      const bNum = Number(b.id);
+
+      // If both are valid numbers (timestamp IDs), compare numerically
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return bNum - aNum;
+      }
+
+      // Otherwise, compare as strings (for UUID or mixed cases)
+      return b.id.localeCompare(a.id);
+    });
+
+    rankedNotes.forEach((note, index) => {
+      noteRanks.set(note.id, notes.length - index);
+    });
+
+    return sortedNotes.map((note) => {
+      // Use stored rank if available, otherwise fall back to dynamic calculation
+      const rank = note.rank ?? noteRanks.get(note.id)!;
+      const isTopThree = rank <= 3;
+
+      return (
+        <div
+          key={note.id}
+          className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary group ${
+            currentNoteId === note.id ? 'active' : ''
+          } ${note.favorite ? 'favorite' : ''} ${
+            note.pinned ? 'pinned' : ''
+          }`}
+          onClick={() => openNoteInNewWindow(note)}
+        >
+          <div className="flex flex-col h-full">
+            <div className="flex justify-between mb-0.5">
+              <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1">
+                {isTopThree && (
+                  <Crown
+                    className={`inline-flex align-middle rank-badge rank-${rank}`}
+                    size={16}
+                    fill="currentColor"
+                  />
+                )}
+                {note.pinned && (
+                  <Pin className="inline-flex align-middle text-[var(--primary)]" size={14} />
+                )}
+                {note.favorite && (
+                  <Star className="inline-flex align-middle text-[var(--highlight)] fill-[var(--highlight)]" size={14} />
+                )}
+                {rank}. {note.title}
+              </div>
+              <span className="text-[0.625rem] text-[var(--muted-foreground)]">{dayjs(note.time).fromNow()}</span>
+            </div>
+            <p className="text-[0.8125rem] text-[var(--muted-foreground)] leading-6 mb-1 line-clamp-2 overflow-hidden text-ellipsis break-words">
+              {note.text.replace(/\n/g, ' ').substring(0, 100)}
+              {note.text.length > 100 ? '...' : ''}
+            </p>
+            <div className="flex gap-[3px] mt-auto mb-1">
+              {note.tags.map((tag, i) => (
+                <span key={i} className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--secondary)] text-[var(--primary)] rounded-full font-medium border border-[var(--border)]">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+            <div
+              className="note-actions flex flex-col gap-0 items-stretch opacity-0 transition-opacity duration-200 absolute top-0 right-0 bottom-0 bg-white/95 p-0 rounded-r-[var(--radius)] border-l border-[var(--border)] shadow-[-2px_0_8px_rgba(0,0,0,0.05)] justify-center w-9 overflow-hidden group-hover:opacity-100"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                className={`action-btn pin-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--primary)] hover:bg-[rgba(217,119,87,0.08)] ${
+                  note.pinned ? 'active text-[var(--primary)] bg-[rgba(217,119,87,0.12)] border-[var(--primary)]' : ''
+                }`}
+                onClick={() => togglePin(note.id)}
+                title={note.pinned ? 'Unpin note' : 'Pin note'}
+              >
+                <Pin size={18} strokeWidth={2} />
+              </button>
+              <button
+                className={`action-btn favorite-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--highlight)] hover:bg-[rgba(194,192,125,0.08)] ${
+                  note.favorite ? 'active text-[var(--highlight)] bg-[rgba(194,192,125,0.12)] border-[var(--highlight)]' : ''
+                }`}
+                onClick={() => toggleFavorite(note.id)}
+                title={
+                  note.favorite ? 'Unfavorite note' : 'Favorite note'
+                }
+              >
+                <Star size={18} strokeWidth={2} className={note.favorite ? 'fill-[var(--highlight)]' : ''} />
+              </button>
+              <button
+                className="action-btn delete-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--destructive)] hover:bg-[rgba(200,84,80,0.08)]"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await deleteNote(note.id);
+                }}
+                title="Delete note"
+              >
+                <Trash2 size={18} strokeWidth={2} />
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    });
+  }, [notes, currentNoteId, openNoteInNewWindow, togglePin, toggleFavorite, deleteNote]);
+
   return (
     <div className="h-screen flex flex-col relative overflow-hidden bg-transparent">
       {/* Header */}
@@ -687,181 +867,52 @@ function NoteEditor({
         </div>
       )}
 
-      {/* Editor Area - grows to fill space */}
-      <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background" ref={editorContainerRef}>
-        <RenderingWysiwygEditor
-          ref={editorRef}
-          initialContent={content}
-          initialRichContent={richContent}
-          onChange={handleContentChange}
-          onSubmit={handleSubmit}
-          placeholder={placeholder}
-        />
-      </div>
-
-      {/* Toolbar - fixed height */}
-      <EditorToolbar
-        mode={mode}
-        onToggleNotes={handleTogglePanel}
-        onSubmit={handleSubmit}
-        submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
-      />
-
-      {/* Notes Panel - expands below toolbar */}
-      <div
-        ref={panelRef}
-        className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
-          isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
-        }`}
-      >
+      {/* Main Content Area - contains sidebar + editor */}
+      <div className="flex-1 flex min-h-0">
+        {/* Left Sidebar - only visible on md+ screens */}
+        {isSidebarLayout && (
+          <aside className="w-80 border-r border-border bg-muted flex-shrink-0 overflow-hidden flex flex-col">
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
-          {notes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
-              <div className="relative w-16 h-16">
-                <svg className="w-full h-full text-primary opacity-20 drop-shadow-[0_8px_16px_rgba(0,0,0,0.1)] transition-[opacity,transform,color] duration-300 ease-in-out hover:opacity-35 hover:scale-105 floating-logo" viewBox="0 0 986.05 1080" xmlns="http://www.w3.org/2000/svg">
-                  <g fill="currentColor">
-                    <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z"/>
-                    <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z"/>
-                    <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z"/>
-                  </g>
-                </svg>
-              </div>
+              {renderNotesList()}
+            </div>
+          </aside>
+        )}
 
-              <div className="flex flex-col items-center gap-2 opacity-0 animate-[fadeInUpCentered_0.5s_ease_forwards_0.15s]">
-                <h3 className="inline-flex items-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0">
-                  <Sparkles size={16} className="text-primary icon-sparkle" />
-                  开启灵感之旅
-                </h3>
-                <p className="text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0">
-                  快捷键 <kbd className="inline-block px-1.5 py-0.5 text-xs font-mono bg-[var(--muted)] border border-[var(--border)] rounded mx-0.5">⌘N</kbd> 随时唤起
-                </p>
+        {/* Editor + Toolbar Container */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Editor Area - grows to fill space */}
+          <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background" ref={editorContainerRef}>
+            <RenderingWysiwygEditor
+              ref={editorRef}
+              initialContent={content}
+              initialRichContent={richContent}
+              onChange={handleContentChange}
+              onSubmit={handleSubmit}
+              placeholder={placeholder}
+            />
+          </div>
+
+          {/* Toolbar - fixed height */}
+          <EditorToolbar
+            mode={mode}
+            onToggleNotes={handleTogglePanel}
+            onSubmit={handleSubmit}
+            submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
+            showNotesButton={!isSidebarLayout}
+          />
+
+          {/* Bottom Panel - only visible on small screens when not in sidebar layout */}
+          {!isSidebarLayout && (
+            <div
+              ref={panelRef}
+              className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
+                isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
+              }`}
+            >
+              <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]">
+                {renderNotesList()}
               </div>
             </div>
-          ) : (
-            (() => {
-              const sortedNotes = [...notes].sort((a, b) => {
-                // Pinned notes always come first
-                if (a.pinned && !b.pinned) return -1;
-                if (!a.pinned && b.pinned) return 1;
-
-                // Then sort by creation time (newest first)
-                const aNum = Number(a.id);
-                const bNum = Number(b.id);
-
-                if (!isNaN(aNum) && !isNaN(bNum)) {
-                  return bNum - aNum;
-                }
-
-                return b.id.localeCompare(a.id);
-              });
-
-              // Build dynamic rank map for notes without stored rank (backward compatibility)
-              const noteRanks = new Map<string, number>();
-
-              // Sort notes for rank calculation - handle both timestamp IDs and UUIDs
-              const rankedNotes = [...notes].sort((a, b) => {
-                const aNum = Number(a.id);
-                const bNum = Number(b.id);
-
-                // If both are valid numbers (timestamp IDs), compare numerically
-                if (!isNaN(aNum) && !isNaN(bNum)) {
-                  return bNum - aNum;
-                }
-
-                // Otherwise, compare as strings (for UUID or mixed cases)
-                return b.id.localeCompare(a.id);
-              });
-
-              rankedNotes.forEach((note, index) => {
-                noteRanks.set(note.id, notes.length - index);
-              });
-
-              return sortedNotes.map((note) => {
-                // Use stored rank if available, otherwise fall back to dynamic calculation
-                const rank = note.rank ?? noteRanks.get(note.id)!;
-                const isTopThree = rank <= 3;
-
-                return (
-                  <div
-                    key={note.id}
-                    className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary group ${
-                      currentNoteId === note.id ? 'active' : ''
-                    } ${note.favorite ? 'favorite' : ''} ${
-                      note.pinned ? 'pinned' : ''
-                    }`}
-                    onClick={() => openNoteInNewWindow(note)}
-                  >
-                    <div className="flex flex-col h-full">
-                      <div className="flex justify-between mb-0.5">
-                        <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1">
-                          {isTopThree && (
-                            <Crown
-                              className={`inline-flex align-middle rank-badge rank-${rank}`}
-                              size={16}
-                              fill="currentColor"
-                            />
-                          )}
-                          {note.pinned && (
-                            <Pin className="inline-flex align-middle text-[var(--primary)]" size={14} />
-                          )}
-                          {note.favorite && (
-                            <Star className="inline-flex align-middle text-[var(--highlight)] fill-[var(--highlight)]" size={14} />
-                          )}
-                          {rank}. {note.title}
-                        </div>
-                        <span className="text-[0.625rem] text-[var(--muted-foreground)]">{dayjs(note.time).fromNow()}</span>
-                      </div>
-                      <p className="text-[0.8125rem] text-[var(--muted-foreground)] leading-6 mb-1 line-clamp-2 overflow-hidden text-ellipsis break-words">
-                        {note.text.replace(/\n/g, ' ').substring(0, 100)}
-                        {note.text.length > 100 ? '...' : ''}
-                      </p>
-                      <div className="flex gap-[3px] mt-auto mb-1">
-                        {note.tags.map((tag, i) => (
-                          <span key={i} className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--secondary)] text-[var(--primary)] rounded-full font-medium border border-[var(--border)]">
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                      <div
-                        className="note-actions flex flex-col gap-0 items-stretch opacity-0 transition-opacity duration-200 absolute top-0 right-0 bottom-0 bg-white/95 p-0 rounded-r-[var(--radius)] border-l border-[var(--border)] shadow-[-2px_0_8px_rgba(0,0,0,0.05)] justify-center w-9 overflow-hidden group-hover:opacity-100"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          className={`action-btn pin-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--primary)] hover:bg-[rgba(217,119,87,0.08)] ${
-                            note.pinned ? 'active text-[var(--primary)] bg-[rgba(217,119,87,0.12)] border-[var(--primary)]' : ''
-                          }`}
-                          onClick={() => togglePin(note.id)}
-                          title={note.pinned ? 'Unpin note' : 'Pin note'}
-                        >
-                          <Pin size={18} strokeWidth={2} />
-                        </button>
-                        <button
-                          className={`action-btn favorite-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--highlight)] hover:bg-[rgba(194,192,125,0.08)] ${
-                            note.favorite ? 'active text-[var(--highlight)] bg-[rgba(194,192,125,0.12)] border-[var(--highlight)]' : ''
-                          }`}
-                          onClick={() => toggleFavorite(note.id)}
-                          title={
-                            note.favorite ? 'Unfavorite note' : 'Favorite note'
-                          }
-                        >
-                          <Star size={18} strokeWidth={2} className={note.favorite ? 'fill-[var(--highlight)]' : ''} />
-                        </button>
-                        <button
-                          className="action-btn delete-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--destructive)] hover:bg-[rgba(200,84,80,0.08)]"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            await deleteNote(note.id);
-                          }}
-                          title="Delete note"
-                        >
-                          <Trash2 size={18} strokeWidth={2} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              });
-            })()
           )}
         </div>
       </div>

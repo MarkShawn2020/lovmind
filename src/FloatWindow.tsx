@@ -1,21 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import './App.css';
 import NoteEditor from './components/NoteEditor';
 
 function FloatWindow() {
-  const [noteId, setNoteId] = useState<string | null>(null);
-
-  useEffect(() => {
+  // Extract noteId synchronously to avoid double-render
+  const noteId = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('noteId');
 
     if (!id) {
       console.error('No noteId in URL parameters');
-      return;
+      return null;
     }
 
     console.log('Float window loading note with ID:', id);
-    setNoteId(id);
+    return id;
   }, []);
 
   if (!noteId) {
@@ -28,6 +27,7 @@ function FloatWindow() {
     );
   }
 
+  console.log('[Perf] FloatWindow rendering NoteEditor with noteId:', noteId);
   return <NoteEditor mode="edit" noteId={noteId} currentNoteId={noteId} />;
 }
 

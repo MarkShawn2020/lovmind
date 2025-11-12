@@ -176,6 +176,8 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     onSubmit,
     placeholder = "Type your amazing content here..."
   }, ref) {
+    console.time('[Perf] RenderingWysiwygEditor init');
+
     // Ensure initialContent is a string
     const safeInitialContent = typeof initialContent === 'string' ? initialContent : '';
 
@@ -184,10 +186,13 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       ? initialRichContent
       : createInitialValue(safeInitialContent);
 
+    console.time('[Perf] usePlateEditor init');
     const editor = usePlateEditor({
       plugins: EditorKit,
       value: initialValue,
     });
+    console.timeEnd('[Perf] usePlateEditor init');
+    console.timeEnd('[Perf] RenderingWysiwygEditor init');
 
     // Update editor value when initialRichContent changes (e.g., when loading a note)
     // Use a ref to track if we've already loaded the initial content
@@ -202,39 +207,40 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         editorCurrentValue: editor.children,
       });
 
-      if (hasLoadedInitialContent.current) {
-        console.log('[RenderingWysiwygEditor] 跳过更新 (已加载过)');
-        return;
-      }
-
-      // Check if editor already has content (user has typed)
+      // Check if editor already has user-entered content
       const editorIsEmpty =
         editor.children.length === 1 &&
         editor.children[0].type === 'p' &&
         editor.children[0].children?.length === 1 &&
         editor.children[0].children[0].text === '';
 
-      if (!editorIsEmpty) {
-        // Editor has content - user has started typing, don't overwrite
-        console.log('[RenderingWysiwygEditor] 编辑器已有内容，标记为已加载 (防止覆盖用户输入)');
-        hasLoadedInitialContent.current = true;
+      // If we've already loaded content AND editor has content, don't overwrite
+      if (hasLoadedInitialContent.current && !editorIsEmpty) {
+        console.log('[RenderingWysiwygEditor] 编辑器已有用户内容，跳过更新 (防止覆盖)');
         return;
       }
 
-      // Editor is empty - try to load initial content
+      // Check if there's new content to load
+      const hasContentToLoad =
+        (initialRichContent && !isRichContentEmpty(initialRichContent)) ||
+        (safeInitialContent && safeInitialContent.trim());
+
+      if (!hasContentToLoad) {
+        console.log('[RenderingWysiwygEditor] 无内容需要加载，等待数据...');
+        return; // Don't mark as loaded - wait for real content
+      }
+
+      // Load the content
       if (initialRichContent && !isRichContentEmpty(initialRichContent)) {
-        console.log('[RenderingWysiwygEditor] 首次加载，更新编辑器内容为 richContent:', initialRichContent);
+        console.log('[RenderingWysiwygEditor] 加载 richContent:', initialRichContent);
         editor.tf.setValue(initialRichContent);
         hasLoadedInitialContent.current = true;
         console.log('[RenderingWysiwygEditor] 编辑器内容已更新 (richContent)');
       } else if (safeInitialContent && safeInitialContent.trim()) {
-        console.log('[RenderingWysiwygEditor] 首次加载，从文本内容创建 richContent:', safeInitialContent);
+        console.log('[RenderingWysiwygEditor] 从文本创建 richContent:', safeInitialContent);
         editor.tf.setValue(createInitialValue(safeInitialContent));
         hasLoadedInitialContent.current = true;
         console.log('[RenderingWysiwygEditor] 编辑器内容已更新 (text)');
-      } else {
-        console.log('[RenderingWysiwygEditor] 无初始内容需要加载');
-        hasLoadedInitialContent.current = true;
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialRichContent, safeInitialContent]); // Depend on both richContent and text content

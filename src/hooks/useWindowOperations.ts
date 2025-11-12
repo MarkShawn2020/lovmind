@@ -41,60 +41,32 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
         return;
       }
 
+      console.time(`[Perf] Open window ${note.id}`);
       try {
         // Check if window already exists
+        console.time(`[Perf] Check existing windows`);
         const windowLabel = `note-editor-${note.id}`;
         const existingWindows = await getAllWebviewWindows();
         const existingWindow = existingWindows.find(
           (w) => w.label === windowLabel
         );
+        console.timeEnd(`[Perf] Check existing windows`);
 
         if (existingWindow) {
           // Focus existing window
           await existingWindow.setFocus();
           console.log('Focusing existing float window for note:', note.id);
+          console.timeEnd(`[Perf] Open window ${note.id}`);
           return;
         }
 
-        // Check backend for existing note data
-        let noteToOpen: Note;
-        try {
-          const backendNote = await invoke<Note | null>('get_temp_note', {
-            id: note.id,
-          });
-          if (backendNote) {
-            console.log('[useWindowOperations] Found existing note in backend:', {
-              id: backendNote.id,
-              rank: backendNote.rank,
-              hasRank: backendNote.rank !== undefined,
-            });
-            noteToOpen = backendNote;
-            // Sync state with backend data
-            setNotes((prevNotes) =>
-              prevNotes.map((n) => (n.id === note.id ? backendNote : n))
-            );
-          } else {
-            // Use current note data if not in backend
-            noteToOpen = notes.find((n) => n.id === note.id) || note;
-            console.log('[useWindowOperations] Storing new note to backend:', {
-              id: noteToOpen.id,
-              rank: noteToOpen.rank,
-              hasRank: noteToOpen.rank !== undefined,
-              fromArray: notes.find((n) => n.id === note.id) !== undefined,
-            });
-            await invoke('store_temp_note', { note: noteToOpen });
-          }
-        } catch (error) {
-          console.error('Error checking backend storage:', error);
-          // Fallback to current data
-          noteToOpen = notes.find((n) => n.id === note.id) || note;
-          console.log('[useWindowOperations] Fallback to current data:', {
-            id: noteToOpen.id,
-            rank: noteToOpen.rank,
-            hasRank: noteToOpen.rank !== undefined,
-          });
-          await invoke('store_temp_note', { note: noteToOpen });
-        }
+        // Ensure note is in backend (NoteEditor will load it)
+        // Quick fire-and-forget store to ensure data availability
+        console.time(`[Perf] Store note to backend`);
+        invoke('store_temp_note', { note }).catch((error) => {
+          console.warn('Failed to pre-store note:', error);
+        });
+        console.timeEnd(`[Perf] Store note to backend`);
 
         // Determine URL based on environment
         const isDev = window.location.protocol === 'http:';
@@ -104,10 +76,11 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
 
         console.log('Opening window with URL:', url);
 
-        // Create new float window
+        // Create new float window (non-blocking)
+        console.time(`[Perf] Create WebviewWindow`);
         const webview = new WebviewWindow(windowLabel, {
           url: url,
-          title: `Edit: ${noteToOpen.title}`,
+          title: `Edit: ${note.title}`,
           width: WINDOW_CONFIG.EDITOR.WIDTH,
           height: WINDOW_CONFIG.EDITOR.HEIGHT,
           minWidth: WINDOW_CONFIG.EDITOR.MIN_WIDTH,
@@ -120,14 +93,17 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
           decorations: false,
           transparent: true,
         });
+        console.timeEnd(`[Perf] Create WebviewWindow`);
 
-        // Ensure window gets focus
-        await webview.once('tauri://created', async () => {
+        // Focus window asynchronously (don't block)
+        webview.once('tauri://created', async () => {
           await webview.setFocus();
           console.log('Float window created and focused for note:', note.id);
+          console.timeEnd(`[Perf] Open window ${note.id}`);
         });
       } catch (error) {
         console.error('Failed to open float window:', error);
+        console.timeEnd(`[Perf] Open window ${note.id}`);
         alert(`Failed to open float window: ${error}`);
       }
     },
