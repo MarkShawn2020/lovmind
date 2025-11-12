@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X, User, Mail, LogOut, UserCircle, Info } from 'lucide-react';
+import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X, User, Mail, LogOut, UserCircle, Info, Settings } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import confetti from 'canvas-confetti';
 import { Note, noteStatsAtom } from '../store';
 import RenderingWysiwygEditor, { RenderingWysiwygEditorRef } from './RenderingWysiwygEditor';
 import EditorToolbar from './EditorToolbar';
 import ProfileModal from './ProfileModal';
+import ShortcutSettingsModal from './ShortcutSettingsModal';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -79,6 +81,7 @@ function NoteEditor({
   const [isWindowAlwaysOnTop, setIsWindowAlwaysOnTop] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isShortcutSettingsOpen, setIsShortcutSettingsOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({});
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
@@ -152,6 +155,19 @@ function NoteEditor({
       loadProfile();
     }
   }, [isProfileModalOpen]);
+
+  // Listen for menu bar event to open keyboard shortcuts
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    const unlisten = listen('open-keyboard-shortcuts', () => {
+      setIsShortcutSettingsOpen(true);
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   // Handle click outside to close user menu
   useEffect(() => {
@@ -1008,6 +1024,18 @@ function NoteEditor({
             Profile
           </button>
 
+          {/* Keyboard Shortcuts */}
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              setIsShortcutSettingsOpen(true);
+            }}
+          >
+            <Settings size={16} />
+            Keyboard Shortcuts
+          </button>
+
           <div className="border-t border-gray-200 my-1" />
 
           {/* About */}
@@ -1079,6 +1107,12 @@ function NoteEditor({
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
+      />
+
+      {/* Shortcut Settings Modal */}
+      <ShortcutSettingsModal
+        isOpen={isShortcutSettingsOpen}
+        onClose={() => setIsShortcutSettingsOpen(false)}
       />
 
       {/* About Modal */}

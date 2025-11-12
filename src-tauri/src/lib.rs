@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tauri::{Emitter, Manager, WindowEvent, menu::{MenuBuilder, CheckMenuItemBuilder, SubmenuBuilder, PredefinedMenuItem}};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use tauri_plugin_store::StoreExt;
@@ -299,6 +300,44 @@ pub struct UserProfile {
     avatar: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShortcutConfig {
+    key: String,
+    modifiers: Vec<String>,
+    label: String,
+    action: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShortcutSettings {
+    shortcuts: HashMap<String, ShortcutConfig>,
+}
+
+impl Default for ShortcutSettings {
+    fn default() -> Self {
+        let mut shortcuts = HashMap::new();
+        shortcuts.insert(
+            "toggle_main_window".to_string(),
+            ShortcutConfig {
+                key: "KeyO".to_string(),
+                modifiers: vec!["SUPER".to_string()],
+                label: "Toggle Main Window".to_string(),
+                action: "toggle_main_window".to_string(),
+            },
+        );
+        shortcuts.insert(
+            "toggle_editor_windows".to_string(),
+            ShortcutConfig {
+                key: "KeyN".to_string(),
+                modifiers: vec!["SUPER".to_string()],
+                label: "Toggle Editor Windows".to_string(),
+                action: "toggle_editor_windows".to_string(),
+            },
+        );
+        ShortcutSettings { shortcuts }
+    }
+}
+
 #[tauri::command]
 async fn get_user_profile(app: tauri::AppHandle) -> Result<Option<UserProfile>, String> {
     let store = app.store("settings.json").map_err(|e| e.to_string())?;
@@ -313,6 +352,38 @@ async fn save_user_profile(app: tauri::AppHandle, profile: UserProfile) -> Resul
     store.set("user_profile", serde_json::to_value(&profile).map_err(|e| e.to_string())?);
     store.save().map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+async fn get_shortcut_settings(app: tauri::AppHandle) -> Result<ShortcutSettings, String> {
+    let store = app.store("settings.json").map_err(|e| e.to_string())?;
+    let settings = store.get("shortcut_settings")
+        .and_then(|v| serde_json::from_value::<ShortcutSettings>(v.clone()).ok())
+        .unwrap_or_default();
+    Ok(settings)
+}
+
+#[tauri::command]
+async fn save_shortcut_settings(app: tauri::AppHandle, settings: ShortcutSettings) -> Result<(), String> {
+    let store = app.store("settings.json").map_err(|e| e.to_string())?;
+    store.set("shortcut_settings", serde_json::to_value(&settings).map_err(|e| e.to_string())?);
+    store.save().map_err(|e| e.to_string())?;
+
+    // Broadcast settings change to all windows
+    app.emit("shortcut-settings-changed", &settings).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn reset_shortcut_settings(app: tauri::AppHandle) -> Result<ShortcutSettings, String> {
+    let default_settings = ShortcutSettings::default();
+    let store = app.store("settings.json").map_err(|e| e.to_string())?;
+    store.set("shortcut_settings", serde_json::to_value(&default_settings).map_err(|e| e.to_string())?);
+    store.save().map_err(|e| e.to_string())?;
+
+    // Broadcast settings change to all windows
+    app.emit("shortcut-settings-changed", &default_settings).map_err(|e| e.to_string())?;
+    Ok(default_settings)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -344,6 +415,9 @@ pub fn run() {
             get_user_profile,
             save_user_profile,
             toggle_editor_windows,
+            get_shortcut_settings,
+            save_shortcut_settings,
+            reset_shortcut_settings,
         ])
         .setup(|app| {
             // Create menu with AI toggle
@@ -360,9 +434,16 @@ pub fn run() {
             // Get version from Cargo.toml
             let version = env!("CARGO_PKG_VERSION");
 
+            // Create Settings menu item
+            let settings_item = tauri::menu::MenuItemBuilder::new("Keyboard Shortcuts...")
+                .id("keyboard_shortcuts")
+                .build(app)?;
+
             // Create App menu with Quit option (macOS standard)
             let app_menu = SubmenuBuilder::new(app, "Lovmind")
                 .text("version", format!("Version {}", version))
+                .separator()
+                .item(&settings_item)
                 .separator()
                 .item(&PredefinedMenuItem::quit(app, None)?)
                 .build()?;
@@ -399,38 +480,78 @@ pub fn run() {
                             .unwrap_or(false);
                         let _ = set_ai_enabled(app_clone, !current).await;
                     });
+                } else if event.id() == "keyboard_shortcuts" {
+                    // Emit event to open keyboard shortcuts settings in frontend
+                    let _ = app.emit("open-keyboard-shortcuts", ());
                 }
             });
 
-            // Register global shortcuts
+            // Load and register global shortcuts from settings
             let window = app.get_webview_window("main").unwrap();
             let window_clone_main = window.clone();
             let app_handle_editors = app.handle().clone();
 
-            // Cmd+N: Toggle editor windows
-            let shortcut_cmd_n = Shortcut::new(Some(Modifiers::SUPER), Code::KeyN);
-            // Cmd+O: Toggle main window
-            let shortcut_cmd_o = Shortcut::new(Some(Modifiers::SUPER), Code::KeyO);
+            // Load shortcut settings
+            let shortcut_settings = store.get("shortcut_settings")
+                .and_then(|v| serde_json::from_value::<ShortcutSettings>(v.clone()).ok())
+                .unwrap_or_default();
+
+            // Parse shortcuts from settings
+            let mut shortcuts_to_register = Vec::new();
+
+            for (action, config) in &shortcut_settings.shortcuts {
+                // Parse modifiers
+                let mut mods = Modifiers::empty();
+                for m in &config.modifiers {
+                    match m.as_str() {
+                        "SUPER" | "Super" => mods |= Modifiers::SUPER,
+                        "CONTROL" | "Control" => mods |= Modifiers::CONTROL,
+                        "ALT" | "Alt" => mods |= Modifiers::ALT,
+                        "SHIFT" | "Shift" => mods |= Modifiers::SHIFT,
+                        _ => {}
+                    }
+                }
+
+                // Parse key code
+                if let Ok(code) = config.key.parse::<Code>() {
+                    let shortcut = if mods.is_empty() {
+                        Shortcut::new(None, code)
+                    } else {
+                        Shortcut::new(Some(mods), code)
+                    };
+                    shortcuts_to_register.push((action.clone(), shortcut));
+                }
+            }
+
+            // Build shortcuts vec for registration
+            let shortcuts_vec: Vec<Shortcut> = shortcuts_to_register.iter().map(|(_, s)| s.clone()).collect();
 
             app.global_shortcut().on_shortcuts(
-                vec![shortcut_cmd_n.clone(), shortcut_cmd_o.clone()],
+                shortcuts_vec,
                 move |app, shortcut, event| {
                     if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-                        // Cmd+N: Toggle editor windows
-                        if shortcut == &Shortcut::new(Some(Modifiers::SUPER), Code::KeyN) {
-                            let app_clone = app_handle_editors.clone();
-                            tauri::async_runtime::spawn(async move {
-                                let _ = toggle_editor_windows(app_clone).await;
-                            });
-                        }
-                        // Cmd+O: Toggle main window
-                        else if shortcut == &Shortcut::new(Some(Modifiers::SUPER), Code::KeyO) {
-                            let _ = window_clone_main.emit("toggle-window", ());
-                            if window_clone_main.is_visible().unwrap_or(false) {
-                                let _ = window_clone_main.hide();
-                            } else {
-                                let _ = window_clone_main.show();
-                                let _ = window_clone_main.set_focus();
+                        // Find which action this shortcut corresponds to
+                        for (action, registered_shortcut) in &shortcuts_to_register {
+                            if shortcut == registered_shortcut {
+                                match action.as_str() {
+                                    "toggle_editor_windows" => {
+                                        let app_clone = app_handle_editors.clone();
+                                        tauri::async_runtime::spawn(async move {
+                                            let _ = toggle_editor_windows(app_clone).await;
+                                        });
+                                    }
+                                    "toggle_main_window" => {
+                                        let _ = window_clone_main.emit("toggle-window", ());
+                                        if window_clone_main.is_visible().unwrap_or(false) {
+                                            let _ = window_clone_main.hide();
+                                        } else {
+                                            let _ = window_clone_main.show();
+                                            let _ = window_clone_main.set_focus();
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                                break;
                             }
                         }
                     }
