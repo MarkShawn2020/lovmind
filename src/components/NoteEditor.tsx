@@ -87,6 +87,7 @@ function NoteEditor({
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
 
   // Refs
   const notesListRef = useRef<HTMLDivElement | null>(null);
@@ -537,10 +538,12 @@ function NoteEditor({
       );
     }
 
-    // Filter out archived notes
-    const activeNotes = notes.filter(note => !note.archived);
+    // Filter notes based on view mode
+    const filteredNotes = showArchived
+      ? notes.filter(note => note.archived)
+      : notes.filter(note => !note.archived);
 
-    const sortedNotes = [...activeNotes].sort((a, b) => {
+    const sortedNotes = [...filteredNotes].sort((a, b) => {
       // Pinned notes always come first
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -660,7 +663,7 @@ function NoteEditor({
               }}
             >
               <Archive className="mr-2 h-4 w-4" />
-              归档
+              {showArchived ? '取消归档' : '归档'}
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem
@@ -677,7 +680,7 @@ function NoteEditor({
         </ContextMenu>
       );
     });
-  }, [notes, currentNoteId, openNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote]);
+  }, [notes, currentNoteId, openNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote, showArchived]);
 
   return (
     <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">
@@ -935,6 +938,18 @@ function NoteEditor({
           >
             <Settings size={16} />
             Keyboard Shortcuts
+          </button>
+
+          {/* Archive */}
+          <button
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+            onClick={() => {
+              setIsUserMenuOpen(false);
+              setShowArchived(!showArchived);
+            }}
+          >
+            <Archive size={16} />
+            {showArchived ? '活跃笔记' : '档案库'}
           </button>
 
           <div className="border-t border-gray-200 my-1" />
