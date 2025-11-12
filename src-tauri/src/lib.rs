@@ -607,6 +607,19 @@ pub fn run() {
             let window_clone_main = window.clone();
             let app_handle_editors = app.handle().clone();
 
+            // Setup main window close behavior: hide instead of destroy
+            // This allows the window to be reopened via Dock icon or Cmd+Tab
+            let main_window_for_close = window.clone();
+            window.on_window_event(move |event| {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    println!("[Main Window] Close requested - hiding instead of destroying");
+                    // Hide window instead of closing (destroying) it
+                    let _ = main_window_for_close.hide();
+                    api.prevent_close();
+                    println!("[Main Window] Window hidden successfully");
+                }
+            });
+
             // Load shortcut settings
             let shortcut_settings = store.get("shortcut_settings")
                 .and_then(|v| serde_json::from_value::<ShortcutSettings>(v.clone()).ok())
@@ -710,9 +723,14 @@ pub fn run() {
                 }
                 // Reopen main window when user clicks Dock icon or Cmd+Tab (macOS)
                 tauri::RunEvent::Reopen { .. } => {
+                    println!("[Reopen Event] Triggered - attempting to show main window");
                     if let Some(main_window) = app_handle.get_webview_window("main") {
+                        println!("[Reopen Event] Main window found, showing...");
                         let _ = main_window.show();
                         let _ = main_window.set_focus();
+                        println!("[Reopen Event] Main window shown and focused");
+                    } else {
+                        println!("[Reopen Event] ERROR: Main window not found!");
                     }
                 }
                 _ => {}
