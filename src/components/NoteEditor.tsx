@@ -674,18 +674,35 @@ function NoteEditor({
                 });
               } else {
                 const noteRanks = new Map<string, number>();
-                [...notes]
-                  .sort((a, b) => Number(b.id) - Number(a.id))
-                  .forEach((note, index) => {
-                    noteRanks.set(note.id, notes.length - index);
-                  });
+
+                // Try to sort by numeric ID first (timestamp-based), fallback to string comparison for UUIDs
+                const sortedNotes = [...notes].sort((a, b) => {
+                  const aNum = Number(a.id);
+                  const bNum = Number(b.id);
+
+                  // If both are valid numbers (timestamp IDs), compare numerically
+                  if (!isNaN(aNum) && !isNaN(bNum)) {
+                    return bNum - aNum;
+                  }
+
+                  // Otherwise, compare as strings (for UUID or mixed cases)
+                  return b.id.localeCompare(a.id);
+                });
+
+                sortedNotes.forEach((note, index) => {
+                  noteRanks.set(note.id, notes.length - index);
+                });
+
                 rank = noteRanks.get(currentNote.id);
+
                 console.log('[NoteEditor] Calculated dynamic rank:', {
                   noteId: currentNote.id,
                   rank,
                   title: currentNote.title,
                   totalNotes: notes.length,
                   noteHasRank: currentNote.rank !== undefined,
+                  noteFoundInArray: notes.some(n => n.id === currentNote.id),
+                  firstFewNoteIds: notes.slice(0, 3).map(n => n.id),
                 });
               }
 
@@ -848,11 +865,24 @@ function NoteEditor({
 
               // Build dynamic rank map for notes without stored rank (backward compatibility)
               const noteRanks = new Map<string, number>();
-              [...notes]
-                .sort((a, b) => Number(b.id) - Number(a.id))
-                .forEach((note, index) => {
-                  noteRanks.set(note.id, notes.length - index);
-                });
+
+              // Sort notes for rank calculation - handle both timestamp IDs and UUIDs
+              const rankedNotes = [...notes].sort((a, b) => {
+                const aNum = Number(a.id);
+                const bNum = Number(b.id);
+
+                // If both are valid numbers (timestamp IDs), compare numerically
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                  return bNum - aNum;
+                }
+
+                // Otherwise, compare as strings (for UUID or mixed cases)
+                return b.id.localeCompare(a.id);
+              });
+
+              rankedNotes.forEach((note, index) => {
+                noteRanks.set(note.id, notes.length - index);
+              });
 
               return sortedNotes.map((note) => {
                 // Use stored rank if available, otherwise fall back to dynamic calculation
