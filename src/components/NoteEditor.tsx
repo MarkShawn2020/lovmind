@@ -621,30 +621,6 @@ function NoteEditor({
                 </span>
               ))}
             </div>
-            <div
-              className="note-actions flex flex-col gap-0 items-stretch opacity-0 transition-opacity duration-200 absolute top-0 right-0 bottom-0 bg-white/95 p-0 rounded-r-[var(--radius)] border-l border-[var(--border)] shadow-[-2px_0_8px_rgba(0,0,0,0.05)] justify-center w-9 overflow-hidden group-hover:opacity-100"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                className={`action-btn pin-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--primary)] hover:bg-[rgba(217,119,87,0.08)] ${
-                  note.pinned ? 'active text-[var(--primary)] bg-[rgba(217,119,87,0.12)] border-[var(--primary)]' : ''
-                }`}
-                onClick={() => togglePin(note.id)}
-                title={note.pinned ? 'Unpin note' : 'Pin note'}
-              >
-                <Pin size={18} strokeWidth={2} />
-              </button>
-              <button
-                className="action-btn delete-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--destructive)] hover:bg-[rgba(200,84,80,0.08)]"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  await deleteNote(note.id);
-                }}
-                title="Delete note"
-              >
-                <Trash2 size={18} strokeWidth={2} />
-              </button>
-            </div>
           </div>
             </div>
           </ContextMenuTrigger>
