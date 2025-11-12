@@ -193,6 +193,52 @@ async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::{Manager, WebviewWindowBuilder, WebviewUrl};
+
+    // Check if settings window already exists
+    if let Some(existing_window) = app.get_webview_window("settings") {
+        let _ = existing_window.show();
+        let _ = existing_window.set_focus();
+        return Ok(());
+    }
+
+    // Determine URL based on environment
+    #[cfg(debug_assertions)]
+    let webview_url = {
+        let url_str = "http://localhost:1420/?window=settings";
+        WebviewUrl::External(url_str.parse().expect("Invalid URL format"))
+    };
+
+    #[cfg(not(debug_assertions))]
+    let webview_url = {
+        let url_str = "index.html?window=settings";
+        WebviewUrl::App(url_str.into())
+    };
+
+    // Create settings window
+    WebviewWindowBuilder::new(
+        &app,
+        "settings",
+        webview_url
+    )
+    .title("Keyboard Shortcuts")
+    .inner_size(750.0, 600.0)
+    .min_inner_size(650.0, 500.0)
+    .resizable(true)
+    .center()
+    .always_on_top(false)
+    .focused(true)
+    .skip_taskbar(false)
+    .decorations(true)
+    .transparent(false)
+    .build()
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
 async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
     use tauri::{Manager, WebviewWindowBuilder, WebviewUrl};
 
@@ -441,6 +487,7 @@ pub fn run() {
             get_shortcut_settings,
             save_shortcut_settings,
             reset_shortcut_settings,
+            open_settings_window,
         ])
         .setup(|app| {
             // Create menu with AI toggle
@@ -504,8 +551,11 @@ pub fn run() {
                         let _ = set_ai_enabled(app_clone, !current).await;
                     });
                 } else if event.id() == "keyboard_shortcuts" {
-                    // Emit event to open keyboard shortcuts settings in frontend
-                    let _ = app.emit("open-keyboard-shortcuts", ());
+                    // Open settings window
+                    let app_clone = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let _ = open_settings_window(app_clone).await;
+                    });
                 }
             });
 
