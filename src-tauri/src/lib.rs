@@ -538,14 +538,21 @@ pub fn run() {
                 .item(&PredefinedMenuItem::select_all(app, None)?)
                 .build()?;
 
-            // Create Window menu with standard macOS window management
+            // Create Window menu with custom items for frameless window support
+            // PredefinedMenuItem doesn't work reliably with decorations:false
+            let close_window_item = tauri::menu::MenuItemBuilder::new("Close Window")
+                .id("close_window")
+                .accelerator("CmdOrCtrl+W")
+                .build(app)?;
+
+            let minimize_window_item = tauri::menu::MenuItemBuilder::new("Minimize")
+                .id("minimize_window")
+                .accelerator("CmdOrCtrl+M")
+                .build(app)?;
+
             let window_menu = SubmenuBuilder::new(app, "Window")
-                .item(&PredefinedMenuItem::minimize(app, None)?)
-                .item(&PredefinedMenuItem::close_window(app, None)?)
-                .separator()
-                .item(&PredefinedMenuItem::hide(app, None)?)
-                .item(&PredefinedMenuItem::hide_others(app, None)?)
-                .item(&PredefinedMenuItem::show_all(app, None)?)
+                .item(&minimize_window_item)
+                .item(&close_window_item)
                 .build()?;
 
             let menu = MenuBuilder::new(app)
@@ -576,6 +583,16 @@ pub fn run() {
                     tauri::async_runtime::spawn(async move {
                         let _ = open_settings_window(app_clone).await;
                     });
+                } else if event.id() == "close_window" {
+                    // Close the currently focused window
+                    if let Some(window) = app.get_focused_webview_window() {
+                        let _ = window.close();
+                    }
+                } else if event.id() == "minimize_window" {
+                    // Minimize the currently focused window
+                    if let Some(window) = app.get_focused_webview_window() {
+                        let _ = window.minimize();
+                    }
                 }
             });
 
