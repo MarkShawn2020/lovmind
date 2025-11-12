@@ -188,19 +188,47 @@ async fn set_ai_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), Stri
 
 // Helper function to update menu item text based on window visibility
 fn update_main_window_menu_text<R: tauri::Runtime>(app: &tauri::AppHandle<R>, is_visible: bool) {
-    if let Some(menu) = app.menu() {
-        if let Some(window_menu) = menu.get("Window") {
-            if let Some(menu_item) = window_menu.as_submenu() {
-                if let Some(item) = menu_item.get("toggle_main_window") {
-                    let text = if is_visible {
-                        "Hide Main Window"
-                    } else {
-                        "Show Main Window"
-                    };
-                    let _ = item.as_menuitem().map(|mi| mi.set_text(text));
-                }
-            }
-        }
+    println!("[Menu Update] Called with is_visible={}", is_visible);
+
+    let Some(menu) = app.menu() else {
+        println!("[Menu Update] ERROR: app.menu() returned None");
+        return;
+    };
+    println!("[Menu Update] Got root menu");
+
+    let Some(window_menu) = menu.get("Window") else {
+        println!("[Menu Update] ERROR: menu.get('Window') returned None");
+        return;
+    };
+    println!("[Menu Update] Got Window menu");
+
+    let Some(submenu) = window_menu.as_submenu() else {
+        println!("[Menu Update] ERROR: window_menu.as_submenu() failed");
+        return;
+    };
+    println!("[Menu Update] Window menu is a submenu");
+
+    let Some(item) = submenu.get("toggle_main_window") else {
+        println!("[Menu Update] ERROR: submenu.get('toggle_main_window') returned None");
+        return;
+    };
+    println!("[Menu Update] Got toggle_main_window item");
+
+    let Some(menu_item) = item.as_menuitem() else {
+        println!("[Menu Update] ERROR: item.as_menuitem() failed");
+        return;
+    };
+    println!("[Menu Update] Item is a MenuItem");
+
+    let text = if is_visible {
+        "Hide Main Window"
+    } else {
+        "Show Main Window"
+    };
+
+    match menu_item.set_text(text) {
+        Ok(_) => println!("[Menu Update] SUCCESS: Set text to '{}'", text),
+        Err(e) => println!("[Menu Update] ERROR: Failed to set text: {:?}", e),
     }
 }
 
