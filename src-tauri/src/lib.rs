@@ -695,6 +695,17 @@ pub fn run() {
             
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, event| {
+            // Prevent app from exiting when last window is closed (macOS behavior)
+            // Only Cmd+Q (Quit menu) should exit the app
+            if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
+                // If code is None, it's triggered by closing all windows
+                // If code is Some(0), it's an explicit quit (Cmd+Q)
+                if code.is_none() {
+                    api.prevent_exit();
+                }
+            }
+        });
 }
