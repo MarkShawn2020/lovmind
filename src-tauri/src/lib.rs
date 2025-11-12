@@ -239,14 +239,14 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
+async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
     use tauri::{Manager, WebviewWindowBuilder, WebviewUrl};
 
-    println!("[toggle_editor_windows] Function called");
+    println!("[toggle_float_windows] Function called");
 
     // Get all windows
     let windows = app.webview_windows();
-    println!("[toggle_editor_windows] Total windows: {}", windows.len());
+    println!("[toggle_float_windows] Total windows: {}", windows.len());
 
     // Filter for float windows (those starting with "note-editor-")
     let float_windows: Vec<_> = windows.iter()
@@ -254,10 +254,10 @@ async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
         .map(|(_, window)| window.clone())
         .collect();
 
-    println!("[toggle_editor_windows] Float windows count: {}", float_windows.len());
+    println!("[toggle_float_windows] Float windows count: {}", float_windows.len());
 
     if float_windows.is_empty() {
-        println!("[toggle_editor_windows] No float windows, creating new one...");
+        println!("[toggle_float_windows] No float windows, creating new one...");
         // No float windows exist, create a new blank one
         let note_id = Uuid::new_v4().to_string();
         let window_label = format!("note-editor-{}", note_id);
@@ -283,7 +283,7 @@ async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
             rank: Some(new_rank),
         };
 
-        println!("[toggle_editor_windows] Creating new note with rank: id={}, rank={}", note_id, new_rank);
+        println!("[toggle_float_windows] Creating new note with rank: id={}, rank={}", note_id, new_rank);
 
         // Store the blank note
         store_temp_note(app.clone(), blank_note)?;
@@ -374,12 +374,12 @@ impl Default for ShortcutSettings {
             },
         );
         shortcuts.insert(
-            "toggle_editor_windows".to_string(),
+            "toggle_float_windows".to_string(),
             ShortcutConfig {
                 key: "KeyN".to_string(),
                 modifiers: vec!["SUPER".to_string()],
                 label: "Toggle Float Windows".to_string(),
-                action: "toggle_editor_windows".to_string(),
+                action: "toggle_float_windows".to_string(),
             },
         );
 
@@ -483,7 +483,7 @@ pub fn run() {
             quit_app,
             get_user_profile,
             save_user_profile,
-            toggle_editor_windows,
+            toggle_float_windows,
             get_shortcut_settings,
             save_shortcut_settings,
             reset_shortcut_settings,
@@ -571,7 +571,7 @@ pub fn run() {
 
             // Parse shortcuts from settings - only register GLOBAL shortcuts
             let mut shortcuts_to_register = Vec::new();
-            let global_actions = vec!["toggle_main_window", "toggle_editor_windows"];
+            let global_actions = vec!["toggle_main_window", "toggle_float_windows"];
 
             for (action, config) in &shortcut_settings.shortcuts {
                 // Skip non-global shortcuts (handled in frontend)
@@ -613,10 +613,10 @@ pub fn run() {
                         for (action, registered_shortcut) in &shortcuts_to_register {
                             if shortcut == registered_shortcut {
                                 match action.as_str() {
-                                    "toggle_editor_windows" => {
+                                    "toggle_float_windows" => {
                                         let app_clone = app_handle_editors.clone();
                                         tauri::async_runtime::spawn(async move {
-                                            let _ = toggle_editor_windows(app_clone).await;
+                                            let _ = toggle_float_windows(app_clone).await;
                                         });
                                     }
                                     "toggle_main_window" => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import EditorWindow from './EditorWindow';
+import FloatWindow from './FloatWindow';
 import SettingsWindow from './SettingsWindow';
 import './index.css';
 
@@ -13,7 +13,7 @@ const rootElement = document.getElementById('root');
 if (rootElement) {
   let component;
   if (windowType === 'editor') {
-    component = <EditorWindow />;
+    component = <FloatWindow />;
   } else if (windowType === 'settings') {
     component = <SettingsWindow />;
   } else {

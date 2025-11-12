@@ -155,7 +155,7 @@ export default function SettingsWindow() {
   };
 
   // Define shortcut order and grouping
-  const basicShortcuts = ['toggle_main_window', 'toggle_editor_windows', 'submit_note'];
+  const basicShortcuts = ['toggle_main_window', 'toggle_float_windows', 'submit_note'];
   const advancedShortcuts = ['open_devtools'];
 
   // Sort shortcuts according to defined order

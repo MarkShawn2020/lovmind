@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import NoteEditor from './components/NoteEditor';
 
-function EditorWindow() {
+function FloatWindow() {
   const [noteId, setNoteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,4 +31,4 @@ function EditorWindow() {
   return <NoteEditor mode="edit" noteId={noteId} currentNoteId={noteId} />;
 }
 
-export default EditorWindow;
+export default FloatWindow;
