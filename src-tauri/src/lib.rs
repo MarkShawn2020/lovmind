@@ -657,6 +657,7 @@ pub fn run() {
 
             // Handle menu events
             app.on_menu_event(move |app, event| {
+                println!("[Menu Event] Received event with id: {}", event.id().as_ref());
                 if event.id() == "ai_toggle" {
                     let app_clone = app.clone();
                     tauri::async_runtime::spawn(async move {
@@ -674,17 +675,27 @@ pub fn run() {
                         let _ = open_settings_window(app_clone).await;
                     });
                 } else if event.id() == "toggle_main_window" {
+                    println!("[Menu Event] toggle_main_window clicked");
                     // Show/toggle main window
                     if let Some(main_window) = app.get_webview_window("main") {
                         let is_visible = main_window.is_visible().unwrap_or(false);
+                        println!("[Menu Event] Main window is_visible={}", is_visible);
                         if is_visible {
+                            println!("[Menu Event] Hiding main window");
                             let _ = main_window.hide();
+                            println!("[Menu Event] About to call update_main_window_menu_text(false)");
                             update_main_window_menu_text(&app, false);
+                            println!("[Menu Event] Finished calling update_main_window_menu_text");
                         } else {
+                            println!("[Menu Event] Showing main window");
                             let _ = main_window.show();
                             let _ = main_window.set_focus();
+                            println!("[Menu Event] About to call update_main_window_menu_text(true)");
                             update_main_window_menu_text(&app, true);
+                            println!("[Menu Event] Finished calling update_main_window_menu_text");
                         }
+                    } else {
+                        println!("[Menu Event] ERROR: Main window not found!");
                     }
                 } else if event.id() == "toggle_float_windows" {
                     // Toggle float windows
@@ -729,7 +740,9 @@ pub fn run() {
                     api.prevent_close();
                     println!("[Main Window] Window hidden successfully");
                     // Update menu text to "Show Main Window"
+                    println!("[Main Window] About to call update_main_window_menu_text(false)");
                     update_main_window_menu_text(&app_handle_for_menu, false);
+                    println!("[Main Window] Finished calling update_main_window_menu_text");
                 }
             });
 
@@ -843,7 +856,9 @@ pub fn run() {
                         let _ = main_window.set_focus();
                         println!("[Reopen Event] Main window shown and focused");
                         // Update menu text to "Hide Main Window"
+                        println!("[Reopen Event] About to call update_main_window_menu_text(true)");
                         update_main_window_menu_text(&app_handle, true);
+                        println!("[Reopen Event] Finished calling update_main_window_menu_text");
                     } else {
                         println!("[Reopen Event] ERROR: Main window not found!");
                     }
