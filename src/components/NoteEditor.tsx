@@ -466,8 +466,8 @@ function NoteEditor({
     }
   }, [currentNote, editingTitle, updateNote]);
 
-  // Synchronized panel toggle: window resize first, then CSS transition
-  const handleTogglePanel = useCallback(async () => {
+  // Panel toggle: no window resize needed (panel slides within window)
+  const handleTogglePanel = useCallback(() => {
     const expanding = !isPanelExpanded;
 
     // Update button state
@@ -480,30 +480,9 @@ function NoteEditor({
       }
     }
 
-    // Step 1: Adjust window size FIRST (if in Tauri)
-    if (isTauri()) {
-      try {
-        const appWindow = getCurrentWindow();
-        const physicalSize = await appWindow.innerSize();
-        const scaleFactor = await appWindow.scaleFactor();
-        const currentSize = physicalSize.toLogical(scaleFactor);
-
-        const delta = expanding ? PANEL_HEIGHT : -PANEL_HEIGHT;
-        const newHeight = currentSize.height + delta;
-
-        // Resize window instantly
-        await appWindow.setSize(new LogicalSize(currentSize.width, newHeight));
-      } catch (error) {
-        console.warn('Failed to resize window:', error);
-      }
-    }
-
-    // Step 2: Then trigger Panel CSS transition
-    // Use requestAnimationFrame to ensure window resize completes first
-    requestAnimationFrame(() => {
-      setIsPanelExpanded(expanding);
-      isExpandedRef.current = expanding;
-    });
+    // Trigger Panel CSS transition
+    setIsPanelExpanded(expanding);
+    isExpandedRef.current = expanding;
   }, [isPanelExpanded]);
 
   return (
@@ -698,14 +677,7 @@ function NoteEditor({
       )}
 
       {/* Editor Area - grows to fill space */}
-      <div
-        className="editor-area"
-        ref={editorContainerRef}
-        style={{
-          paddingBottom: isPanelExpanded ? '250px' : '0px',
-          transition: 'padding-bottom 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-      >
+      <div className="editor-area" ref={editorContainerRef}>
         <RenderingWysiwygEditor
           ref={editorRef}
           initialContent={content}
@@ -724,11 +696,11 @@ function NoteEditor({
         submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
       />
 
-      {/* Notes Panel - slides up from below toolbar */}
+      {/* Notes Panel - slides up from bottom, stops below toolbar */}
       <div
         ref={panelRef}
         style={{
-          position: 'fixed',
+          position: 'absolute',
           bottom: '48px',
           left: 0,
           right: 0,
@@ -737,7 +709,7 @@ function NoteEditor({
           transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms',
           backfaceVisibility: 'hidden',
           contain: 'layout style paint',
-          zIndex: 5,
+          zIndex: 10,
         }}
         className={`bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden ${
           isPanelExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
