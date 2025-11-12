@@ -466,7 +466,7 @@ function NoteEditor({
     }
   }, [currentNote, editingTitle, updateNote]);
 
-  // Simplified panel toggle with CSS transitions
+  // Synchronized panel toggle: window resize first, then CSS transition
   const handleTogglePanel = useCallback(async () => {
     const expanding = !isPanelExpanded;
 
@@ -480,11 +480,7 @@ function NoteEditor({
       }
     }
 
-    // Update state - CSS transition handles animation
-    setIsPanelExpanded(expanding);
-    isExpandedRef.current = expanding;
-
-    // Adjust window size if in Tauri
+    // Step 1: Adjust window size FIRST (if in Tauri)
     if (isTauri()) {
       try {
         const appWindow = getCurrentWindow();
@@ -495,11 +491,19 @@ function NoteEditor({
         const delta = expanding ? PANEL_HEIGHT : -PANEL_HEIGHT;
         const newHeight = currentSize.height + delta;
 
+        // Resize window instantly
         await appWindow.setSize(new LogicalSize(currentSize.width, newHeight));
       } catch (error) {
         console.warn('Failed to resize window:', error);
       }
     }
+
+    // Step 2: Then trigger Panel CSS transition
+    // Use requestAnimationFrame to ensure window resize completes first
+    requestAnimationFrame(() => {
+      setIsPanelExpanded(expanding);
+      isExpandedRef.current = expanding;
+    });
   }, [isPanelExpanded]);
 
   return (
@@ -716,6 +720,11 @@ function NoteEditor({
       {/* Notes Panel - expands below toolbar */}
       <div
         ref={panelRef}
+        style={{
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+          contain: 'layout style paint',
+        }}
         className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
           isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
         }`}
