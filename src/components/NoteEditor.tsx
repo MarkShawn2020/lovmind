@@ -26,9 +26,6 @@ interface UserProfile {
   avatar?: string;
 }
 
-// Panel height constant
-const PANEL_HEIGHT = 250;
-
 // Helper function to check if richContent is truly empty
 const isRichContentEmpty = (richContent: any): boolean => {
   if (!richContent) return true;
@@ -74,7 +71,6 @@ function NoteEditor({
   const [content, setContent] = useState('');
   const [richContent, setRichContent] = useState<any>(null);
   const [currentTags, setCurrentTags] = useState<string[]>([]);
-  const [isPanelExpanded, setIsPanelExpanded] = useState(false);
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
   const [isWindowAlwaysOnTop, setIsWindowAlwaysOnTop] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -87,11 +83,9 @@ function NoteEditor({
   const [isSidebarLayout, setIsSidebarLayout] = useState(false);
 
   // Refs
-  const panelRef = useRef<HTMLDivElement | null>(null);
   const notesListRef = useRef<HTMLDivElement | null>(null);
   const internalEditorRef = useRef<RenderingWysiwygEditorRef | null>(null);
   const editorRef = externalEditorRef || internalEditorRef;
-  const isExpandedRef = useRef(false);
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -494,43 +488,7 @@ function NoteEditor({
     }
   }, [currentNote, editingTitle, updateNote]);
 
-  // Simplified panel toggle with CSS transitions
-  const handleTogglePanel = useCallback(async () => {
-    const expanding = !isPanelExpanded;
-
-    // Update button state
-    const toggleBtn = document.querySelector('.recent-notes-toggle');
-    if (toggleBtn) {
-      if (expanding) {
-        toggleBtn.classList.add('active');
-      } else {
-        toggleBtn.classList.remove('active');
-      }
-    }
-
-    // Update state - CSS transition handles animation
-    setIsPanelExpanded(expanding);
-    isExpandedRef.current = expanding;
-
-    // Adjust window size if in Tauri
-    if (isTauri()) {
-      try {
-        const appWindow = getCurrentWindow();
-        const physicalSize = await appWindow.innerSize();
-        const scaleFactor = await appWindow.scaleFactor();
-        const currentSize = physicalSize.toLogical(scaleFactor);
-
-        const delta = expanding ? PANEL_HEIGHT : -PANEL_HEIGHT;
-        const newHeight = currentSize.height + delta;
-
-        await appWindow.setSize(new LogicalSize(currentSize.width, newHeight));
-      } catch (error) {
-        console.warn('Failed to resize window:', error);
-      }
-    }
-  }, [isPanelExpanded]);
-
-  // Render notes list content (used in both sidebar and bottom panel)
+  // Render notes list content for sidebar
   const renderNotesList = useCallback(() => {
     if (notes.length === 0) {
       return (
@@ -895,25 +853,9 @@ function NoteEditor({
           {/* Toolbar - fixed height */}
           <EditorToolbar
             mode={mode}
-            onToggleNotes={handleTogglePanel}
             onSubmit={handleSubmit}
             submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
-            showNotesButton={!isSidebarLayout}
           />
-
-          {/* Bottom Panel - only visible on small screens when not in sidebar layout */}
-          {!isSidebarLayout && (
-            <div
-              ref={panelRef}
-              className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
-                isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
-              }`}
-            >
-              <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]">
-                {renderNotesList()}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

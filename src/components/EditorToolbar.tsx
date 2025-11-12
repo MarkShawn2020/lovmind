@@ -1,19 +1,5 @@
 import { memo } from 'react';
-import { Clock, Send, Pin } from 'lucide-react';
-
-const RecentNotesButton = memo(({
-  onClick
-}: {
-  onClick: () => void;
-}) => (
-  <button
-    className="w-9 h-9 rounded-[var(--radius)] border border-border bg-background text-muted-foreground flex items-center justify-center cursor-pointer transition-[background-color,color,border-color,transform] duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] transform-gpu will-change-auto contain-[layout_style_paint] hover:bg-secondary hover:text-foreground hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] active:bg-primary active:text-primary-foreground active:border-primary recent-notes-toggle"
-    onClick={onClick}
-    title="Toggle Recent Notes"
-  >
-    <Clock size={18} />
-  </button>
-));
+import { Send, Pin } from 'lucide-react';
 
 const PinButton = memo(({
   onClick,
@@ -50,25 +36,19 @@ const SendButton = memo(({
 
 interface EditorToolbarProps {
   mode: 'create' | 'edit';
-  onToggleNotes?: () => void;
   onSubmit: () => void;
   submitDisabled: boolean;
-  showNotesButton?: boolean;
 }
 
 // Memoized toolbar to prevent any re-renders
 const EditorToolbar = memo(({
   mode,
-  onToggleNotes,
   onSubmit,
-  submitDisabled,
-  showNotesButton = true
+  submitDisabled
 }: EditorToolbarProps) => (
   <div className={`flex-shrink-0 bg-card border-t border-border flex justify-between items-center px-[var(--spacing-s)] z-10 will-change-contents transform-gpu backface-hidden ${mode === 'edit' ? 'h-11 bg-muted border-t-border opacity-95' : 'h-12'}`}>
     <div className="flex gap-2 items-center">
-      {onToggleNotes && showNotesButton && (
-        <RecentNotesButton onClick={onToggleNotes} />
-      )}
+      {/* Notes list is now shown in sidebar on md+ screens */}
     </div>
     <div className="flex gap-2 items-center">
       <SendButton disabled={submitDisabled} onClick={onSubmit} />
