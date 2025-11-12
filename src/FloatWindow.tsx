@@ -26,6 +26,8 @@ function FloatWindow() {
     const focusWindow = async () => {
       try {
         const window = getCurrentWindow();
+        // Ensure window is shown and focused
+        await window.show();
         await window.setFocus();
         console.log('[FloatWindow] Window focused after mount');
       } catch (error) {
@@ -33,8 +35,8 @@ function FloatWindow() {
       }
     };
 
-    // Small delay to ensure window is fully ready
-    const timer = setTimeout(focusWindow, 50);
+    // Delay to ensure window and content are fully ready
+    const timer = setTimeout(focusWindow, 150);
     return () => clearTimeout(timer);
   }, []);
 

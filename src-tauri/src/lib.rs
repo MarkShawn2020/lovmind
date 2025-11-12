@@ -318,7 +318,7 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
         };
 
         // Create new float window
-        WebviewWindowBuilder::new(
+        let window = WebviewWindowBuilder::new(
             &app,
             window_label,
             webview_url
@@ -335,6 +335,10 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
         .transparent(true)
         .build()
         .map_err(|e| e.to_string())?;
+
+        // Ensure window is shown and focused
+        let _ = window.show();
+        let _ = window.set_focus();
 
         return Ok(());
     }
