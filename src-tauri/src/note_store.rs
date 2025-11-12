@@ -13,6 +13,7 @@ pub struct TempNote {
     pub pinned: Option<bool>,
     #[serde(rename = "richContent")]
     pub rich_content: Option<serde_json::Value>,
+    pub rank: Option<i32>,
 }
 
 #[tauri::command]
