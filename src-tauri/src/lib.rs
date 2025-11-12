@@ -565,7 +565,6 @@ pub fn run() {
             app.set_menu(menu)?;
 
             // Handle menu events
-            let app_handle = app.handle().clone();
             app.on_menu_event(move |app, event| {
                 if event.id() == "ai_toggle" {
                     let app_clone = app.clone();
@@ -585,13 +584,20 @@ pub fn run() {
                     });
                 } else if event.id() == "close_window" {
                     // Close the currently focused window
-                    if let Some(window) = app.get_focused_webview_window() {
-                        let _ = window.close();
+                    // Find focused window by iterating through all windows
+                    for (_, window) in app.webview_windows() {
+                        if window.is_focused().unwrap_or(false) {
+                            let _ = window.close();
+                            break;
+                        }
                     }
                 } else if event.id() == "minimize_window" {
                     // Minimize the currently focused window
-                    if let Some(window) = app.get_focused_webview_window() {
-                        let _ = window.minimize();
+                    for (_, window) in app.webview_windows() {
+                        if window.is_focused().unwrap_or(false) {
+                            let _ = window.minimize();
+                            break;
+                        }
                     }
                 }
             });
@@ -644,7 +650,7 @@ pub fn run() {
 
             app.global_shortcut().on_shortcuts(
                 shortcuts_vec,
-                move |app, shortcut, event| {
+                move |_app, shortcut, event| {
                     if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
                         // Find which action this shortcut corresponds to
                         for (action, registered_shortcut) in &shortcuts_to_register {
