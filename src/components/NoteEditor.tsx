@@ -530,7 +530,7 @@ function NoteEditor({
     });
 
     rankedNotes.forEach((note, index) => {
-      noteRanks.set(note.id, notes.length - index);
+      noteRanks.set(note.id, index + 1);
     });
 
     return sortedNotes.map((note) => {
@@ -708,7 +708,7 @@ function NoteEditor({
                 });
 
                 sortedNotes.forEach((note, index) => {
-                  noteRanks.set(note.id, notes.length - index);
+                  noteRanks.set(note.id, index + 1);
                 });
 
                 rank = noteRanks.get(currentNote.id);
