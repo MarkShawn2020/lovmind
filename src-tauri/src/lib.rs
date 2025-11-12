@@ -316,6 +316,8 @@ pub struct ShortcutSettings {
 impl Default for ShortcutSettings {
     fn default() -> Self {
         let mut shortcuts = HashMap::new();
+
+        // Global shortcuts (system-wide)
         shortcuts.insert(
             "toggle_main_window".to_string(),
             ShortcutConfig {
@@ -334,6 +336,27 @@ impl Default for ShortcutSettings {
                 action: "toggle_editor_windows".to_string(),
             },
         );
+
+        // App-context shortcuts (display only, handled in frontend)
+        shortcuts.insert(
+            "submit_note".to_string(),
+            ShortcutConfig {
+                key: "Enter".to_string(),
+                modifiers: vec!["SUPER".to_string()],
+                label: "Submit Note".to_string(),
+                action: "submit_note".to_string(),
+            },
+        );
+        shortcuts.insert(
+            "open_devtools".to_string(),
+            ShortcutConfig {
+                key: "KeyI".to_string(),
+                modifiers: vec!["SUPER".to_string(), "SHIFT".to_string()],
+                label: "Open Developer Tools".to_string(),
+                action: "open_devtools".to_string(),
+            },
+        );
+
         ShortcutSettings { shortcuts }
     }
 }
@@ -496,10 +519,16 @@ pub fn run() {
                 .and_then(|v| serde_json::from_value::<ShortcutSettings>(v.clone()).ok())
                 .unwrap_or_default();
 
-            // Parse shortcuts from settings
+            // Parse shortcuts from settings - only register GLOBAL shortcuts
             let mut shortcuts_to_register = Vec::new();
+            let global_actions = vec!["toggle_main_window", "toggle_editor_windows"];
 
             for (action, config) in &shortcut_settings.shortcuts {
+                // Skip non-global shortcuts (handled in frontend)
+                if !global_actions.contains(&action.as_str()) {
+                    continue;
+                }
+
                 // Parse modifiers
                 let mut mods = Modifiers::empty();
                 for m in &config.modifiers {

@@ -162,67 +162,68 @@ export default function ShortcutSettingsModal({ isOpen, onClose }: ShortcutSetti
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-[600px] max-w-[90vw] max-h-[80vh] overflow-hidden flex flex-col"
+        className="bg-[#F9F9F7] rounded-3xl shadow-2xl w-[700px] max-w-[90vw] max-h-[85vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
+        <div className="px-8 py-6 border-b border-[#E8E6DC]">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Keyboard size={24} className="text-blue-600" />
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-[#C2C07D]/10 rounded-xl">
+                <Keyboard size={28} className="text-[#C2C07D]" />
               </div>
-              <h2 className="text-xl font-bold text-gray-800">Keyboard Shortcuts</h2>
+              <h2 className="text-2xl font-semibold text-[#181818]">Keyboard Shortcuts</h2>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors border-none bg-transparent cursor-pointer"
+              className="p-2.5 hover:bg-[#E8E6DC] rounded-xl transition-all border-none bg-transparent cursor-pointer"
+              aria-label="Close"
             >
-              <X size={20} />
+              <X size={22} className="text-[#87867F]" />
             </button>
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto px-8 py-6">
           <div className="space-y-3">
             {Object.entries(settings.shortcuts).map(([action, config]) => (
               <div
                 key={action}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-between p-5 bg-white/60 rounded-2xl hover:bg-white/80 transition-all border border-transparent hover:border-[#E8E6DC]"
               >
-                <div>
-                  <div className="font-medium text-gray-800">{config.label}</div>
-                  <div className="text-sm text-gray-500">{action}</div>
+                <div className="flex-1">
+                  <div className="font-medium text-[#181818] text-base mb-1">{config.label}</div>
+                  <div className="text-sm text-[#87867F]">{action}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   {editingAction === action ? (
                     <>
-                      <div className="px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-mono text-sm min-w-[150px] text-center">
+                      <div className="px-5 py-2.5 bg-[#C2C07D]/15 text-[#181818] rounded-xl font-mono text-sm min-w-[160px] text-center border border-[#C2C07D]/30">
                         {recordingKeys ? formatShortcut({ ...config, ...recordingKeys }) : 'Press keys...'}
                       </div>
                       <button
                         onClick={applyRecordedShortcut}
                         disabled={!recordingKeys}
-                        className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed border-none cursor-pointer text-sm"
+                        className="px-4 py-2 bg-[#D97757] text-white rounded-xl hover:opacity-90 disabled:bg-[#87867F]/30 disabled:cursor-not-allowed border-none cursor-pointer text-sm font-medium transition-all shadow-sm"
                       >
                         Apply
                       </button>
                       <button
                         onClick={cancelRecording}
-                        className="px-3 py-1 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 border-none cursor-pointer text-sm"
+                        className="px-4 py-2 bg-transparent border border-[#87867F] text-[#181818] rounded-xl hover:bg-[#E8E6DC] border-none cursor-pointer text-sm font-medium transition-all"
                       >
                         Cancel
                       </button>
                     </>
                   ) : (
                     <>
-                      <div className="px-4 py-2 bg-white border border-gray-300 rounded-lg font-mono text-sm min-w-[150px] text-center">
+                      <div className="px-5 py-2.5 bg-white border border-[#E8E6DC] rounded-xl font-mono text-sm min-w-[160px] text-center text-[#181818] shadow-sm">
                         {formatShortcut(config)}
                       </div>
                       <button
                         onClick={() => startRecording(action)}
-                        className="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 border-none cursor-pointer text-sm"
+                        className="px-4 py-2 bg-white border border-[#87867F] text-[#181818] rounded-xl hover:bg-[#E8E6DC] cursor-pointer text-sm font-medium transition-all"
                       >
                         Change
                       </button>
@@ -235,25 +236,25 @@ export default function ShortcutSettingsModal({ isOpen, onClose }: ShortcutSetti
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50">
+        <div className="px-8 py-6 border-t border-[#E8E6DC] bg-[#F0EEE6]">
           <div className="flex items-center justify-between">
             <button
               onClick={handleReset}
-              className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors border-none bg-transparent cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 text-[#181818] hover:bg-[#E8E6DC] rounded-xl transition-all border-none bg-transparent cursor-pointer font-medium"
             >
-              <RotateCcw size={16} />
+              <RotateCcw size={18} />
               Reset to Defaults
             </button>
             <div className="flex gap-3">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors border-none bg-transparent cursor-pointer"
+                className="px-6 py-3 text-[#181818] hover:bg-[#E8E6DC] rounded-xl transition-all border-none bg-transparent cursor-pointer font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors border-none cursor-pointer font-medium"
+                className="px-8 py-3 bg-[#D97757] text-white rounded-xl hover:opacity-90 transition-all border-none cursor-pointer font-medium shadow-sm"
               >
                 Save
               </button>
