@@ -698,7 +698,14 @@ function NoteEditor({
       )}
 
       {/* Editor Area - grows to fill space */}
-      <div className="editor-area" ref={editorContainerRef}>
+      <div
+        className="editor-area"
+        ref={editorContainerRef}
+        style={{
+          paddingBottom: isPanelExpanded ? '250px' : '0px',
+          transition: 'padding-bottom 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
         <RenderingWysiwygEditor
           ref={editorRef}
           initialContent={content}
@@ -717,16 +724,23 @@ function NoteEditor({
         submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
       />
 
-      {/* Notes Panel - expands below toolbar */}
+      {/* Notes Panel - slides up from bottom, toolbar stays fixed */}
       <div
         ref={panelRef}
         style={{
-          transform: 'translateZ(0)',
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '250px',
+          transform: isPanelExpanded ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms',
           backfaceVisibility: 'hidden',
           contain: 'layout style paint',
+          zIndex: 100,
         }}
-        className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
-          isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
+        className={`bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden ${
+          isPanelExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
