@@ -699,7 +699,7 @@ function NoteEditor({
             />
             <h1 className="text-lg font-semibold tracking-tight">Lovmind ({noteStats.total})</h1>
           </div>
-          <div className="absolute right-[var(--spacing-text)] top-1/2 -translate-y-1/2 flex gap-2 items-center">
+          <div className="flex gap-2 items-center">
             <button
               ref={userButtonRef}
               className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer border-none overflow-hidden"
