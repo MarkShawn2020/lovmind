@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X, User, Mail, LogOut, UserCircle, Info, Settings } from 'lucide-react';
+import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X, User, Mail, LogOut, UserCircle, Info, Settings, Copy } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
@@ -17,6 +17,13 @@ import { isTauri } from '../utils/tauri';
 import { useAtomValue } from 'jotai';
 import lovpenLogo from '../assets/lovpen-logo.svg';
 import packageJson from '../../package.json';
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from './ui/context-menu';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -433,6 +440,16 @@ function NoteEditor({
     }
   }, [mode, isWindowAlwaysOnTop]);
 
+  // Handle copy note content
+  const handleCopyNote = useCallback(async (note: Note) => {
+    try {
+      await navigator.clipboard.writeText(note.text);
+      console.log('Note content copied to clipboard');
+    } catch (error) {
+      console.error('Failed to copy note content:', error);
+    }
+  }, []);
+
   // Handle title edit save
   const handleSaveTitle = useCallback(async () => {
     if (!currentNote || !editingTitle.trim()) {
@@ -539,15 +556,16 @@ function NoteEditor({
       const isTopThree = rank <= 3;
 
       return (
-        <div
-          key={note.id}
-          className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary group ${
-            currentNoteId === note.id ? 'active' : ''
-          } ${note.favorite ? 'favorite' : ''} ${
-            note.pinned ? 'pinned' : ''
-          }`}
-          onClick={() => openNoteInNewWindow(note)}
-        >
+        <ContextMenu key={note.id}>
+          <ContextMenuTrigger asChild>
+            <div
+              className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary group ${
+                currentNoteId === note.id ? 'active' : ''
+              } ${note.favorite ? 'favorite' : ''} ${
+                note.pinned ? 'pinned' : ''
+              }`}
+              onClick={() => openNoteInNewWindow(note)}
+            >
           <div className="flex flex-col h-full">
             <div className="flex justify-between mb-0.5">
               <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1">
@@ -615,10 +633,62 @@ function NoteEditor({
               </button>
             </div>
           </div>
-        </div>
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent className="w-48">
+            <ContextMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                openNoteInNewWindow(note);
+              }}
+            >
+              <Maximize2 className="mr-2 h-4 w-4" />
+              打开
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePin(note.id);
+              }}
+            >
+              <Pin className="mr-2 h-4 w-4" />
+              {note.pinned ? '取消置顶' : '置顶'}
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFavorite(note.id);
+              }}
+            >
+              <Star className="mr-2 h-4 w-4" />
+              {note.favorite ? '取消收藏' : '收藏'}
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopyNote(note);
+              }}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              复制
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              variant="destructive"
+              onClick={async (e) => {
+                e.stopPropagation();
+                await deleteNote(note.id);
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              删除
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
       );
     });
-  }, [notes, currentNoteId, openNoteInNewWindow, togglePin, toggleFavorite, deleteNote]);
+  }, [notes, currentNoteId, openNoteInNewWindow, togglePin, toggleFavorite, deleteNote, handleCopyNote]);
 
   return (
     <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">
