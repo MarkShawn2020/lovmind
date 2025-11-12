@@ -247,7 +247,32 @@ function NoteEditor({
             setRichContent(noteData.richContent || null);
             setCurrentTags(noteData.tags || []);
           } else {
-            console.error('No note found with ID:', noteId);
+            // No note found in backend - this is a new note created by toggle_float_windows
+            // Get rank from URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const rankParam = urlParams.get('rank');
+            const rank = rankParam ? parseInt(rankParam, 10) : undefined;
+
+            console.log('[NoteEditor] Creating new note from URL params:', {
+              noteId,
+              rank,
+              hasRank: rank !== undefined,
+            });
+
+            // Create a temporary note object (will be persisted when user saves)
+            const newNote: Note = {
+              id: noteId,
+              text: '',
+              title: 'Untitled Note',
+              time: new Date().toISOString(),
+              tags: [],
+              rank: rank,
+            };
+
+            setCurrentNote(newNote);
+            setContent('');
+            setRichContent(null);
+            setCurrentTags([]);
           }
         } catch (error) {
           console.error('Failed to load note:', error);

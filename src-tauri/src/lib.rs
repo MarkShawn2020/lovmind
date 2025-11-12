@@ -300,34 +300,20 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
             .unwrap_or(0);
         let new_rank = std::cmp::max(max_rank + 1, all_notes.len() as i32 + 1);
 
-        // Create a blank note with rank
-        let blank_note = note_store::TempNote {
-            id: note_id.clone(),
-            text: String::new(),
-            title: "Untitled Note".to_string(),
-            time: chrono::Utc::now().to_rfc3339(),
-            tags: Vec::new(),
-            favorite: Some(false),
-            pinned: Some(false),
-            rich_content: None,
-            rank: Some(new_rank),
-        };
+        println!("[toggle_float_windows] Creating new note with rank (not persisted yet): id={}, rank={}", note_id, new_rank);
 
-        println!("[toggle_float_windows] Creating new note with rank: id={}, rank={}", note_id, new_rank);
-
-        // Store the blank note
-        store_temp_note(app.clone(), blank_note)?;
+        // Note: We don't persist the blank note here - it will be saved when user writes content
 
         // Determine URL and WebviewUrl type based on environment
         #[cfg(debug_assertions)]
         let webview_url = {
-            let url_str = format!("http://localhost:1420/?window=editor&noteId={}", note_id);
+            let url_str = format!("http://localhost:1420/?window=editor&noteId={}&rank={}", note_id, new_rank);
             WebviewUrl::External(url_str.parse().expect("Invalid URL format"))
         };
 
         #[cfg(not(debug_assertions))]
         let webview_url = {
-            let url_str = format!("index.html?window=editor&noteId={}", note_id);
+            let url_str = format!("index.html?window=editor&noteId={}&rank={}", note_id, new_rank);
             WebviewUrl::App(url_str.into())
         };
 
