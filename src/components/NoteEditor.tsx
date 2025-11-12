@@ -275,10 +275,13 @@ function NoteEditor({
 
     if (mode === 'create') {
       // Create new note
-      const nextNoteNumber = notes.length + 1;
-      const firstLine = content ? content.split("\n")[0].substring(0, 50) : "";
-      const title = firstLine || `Note ${nextNoteNumber}`;
+      const firstLine = content ? content.split("\n")[0].substring(0, 50) : "Image Note";
+      const title = firstLine || "Untitled Note";
       const tags = currentTags.length > 0 ? currentTags : [];
+
+      // Calculate rank: max existing rank + 1, or notes.length + 1 for backward compatibility
+      const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
+      const newRank = Math.max(maxRank + 1, notes.length + 1);
 
       const newNote: Note = {
         id: Date.now().toString(),
@@ -287,6 +290,7 @@ function NoteEditor({
         time: new Date().toLocaleString(),
         tags,
         richContent: richContent,
+        rank: newRank,
       };
 
       console.log('[NoteEditor] Creating new note:', newNote.id);
@@ -318,20 +322,18 @@ function NoteEditor({
       // Store to backend
       await invoke("store_temp_note", { note: newNote });
 
-      // Try to generate title using AI only if there's actual text content
-      if (content && content.trim()) {
-        try {
-          const [generatedTitle, generatedTags] = await invoke<[string, string[]]>(
-            "generate_title_and_tags",
-            { content: content }
-          );
-          newNote.title = generatedTitle;
-          newNote.tags = generatedTags;
-          setNotes((prev) => [...prev.slice(0, -1), newNote]);
-          await invoke("store_temp_note", { note: newNote });
-        } catch (error) {
-          console.log("Using local title generation");
-        }
+      // Try to generate title using AI
+      try {
+        const [generatedTitle, generatedTags] = await invoke<[string, string[]]>(
+          "generate_title_and_tags",
+          { content: content }
+        );
+        newNote.title = generatedTitle;
+        newNote.tags = generatedTags;
+        setNotes((prev) => [...prev.slice(0, -1), newNote]);
+        await invoke("store_temp_note", { note: newNote });
+      } catch (error) {
+        console.log("Using local title generation");
       }
     } else if (mode === 'edit' && currentNote) {
       // Update existing note
@@ -639,15 +641,20 @@ function NoteEditor({
             {(() => {
               if (!currentNote) return 'Untitled Note';
 
-              // Calculate rank
-              const noteRanks = new Map<string, number>();
-              [...notes]
-                .sort((a, b) => Number(b.id) - Number(a.id))
-                .forEach((note, index) => {
-                  noteRanks.set(note.id, notes.length - index);
-                });
+              // Use stored rank if available, otherwise calculate dynamically (for backward compatibility)
+              let rank: number | undefined;
+              if (currentNote.rank) {
+                rank = currentNote.rank;
+              } else {
+                const noteRanks = new Map<string, number>();
+                [...notes]
+                  .sort((a, b) => Number(b.id) - Number(a.id))
+                  .forEach((note, index) => {
+                    noteRanks.set(note.id, notes.length - index);
+                  });
+                rank = noteRanks.get(currentNote.id);
+              }
 
-              const rank = noteRanks.get(currentNote.id);
               const isTopThree = rank && rank <= 3;
 
               return (
@@ -805,6 +812,7 @@ function NoteEditor({
                 return Number(b.id) - Number(a.id);
               });
 
+              // Build dynamic rank map for notes without stored rank (backward compatibility)
               const noteRanks = new Map<string, number>();
               [...notes]
                 .sort((a, b) => Number(b.id) - Number(a.id))
@@ -813,7 +821,8 @@ function NoteEditor({
                 });
 
               return sortedNotes.map((note) => {
-                const rank = noteRanks.get(note.id)!;
+                // Use stored rank if available, otherwise fall back to dynamic calculation
+                const rank = note.rank ?? noteRanks.get(note.id)!;
                 const isTopThree = rank <= 3;
 
                 return (

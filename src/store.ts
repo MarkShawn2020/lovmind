@@ -12,6 +12,7 @@ export interface Note {
   favorite?: boolean;
   pinned?: boolean;
   richContent?: any; // Plate.js Value (JSON) for rich text with images
+  rank?: number; // Pre-assigned rank for consistent display across windows
 }
 
 // Check if running in Tauri environment
