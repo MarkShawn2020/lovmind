@@ -236,7 +236,12 @@ function NoteEditor({
           }
 
           if (noteData) {
-            console.log('[NoteEditor] Loading note:', noteData.id);
+            console.log('[NoteEditor] Loading note in edit mode:', {
+              id: noteData.id,
+              rank: noteData.rank,
+              title: noteData.title,
+              hasRank: noteData.rank !== undefined,
+            });
             setCurrentNote(noteData);
             setContent(noteData.text);
             setRichContent(noteData.richContent || null);
@@ -283,6 +288,13 @@ function NoteEditor({
       const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
       const newRank = Math.max(maxRank + 1, notes.length + 1);
 
+      console.log('[NoteEditor] Creating new note with rank:', {
+        existingNotesCount: notes.length,
+        maxRank,
+        newRank,
+        notesWithRank: notes.filter(n => n.rank).length,
+      });
+
       const newNote: Note = {
         id: Date.now().toString(),
         text: content || "",
@@ -293,7 +305,11 @@ function NoteEditor({
         rank: newRank,
       };
 
-      console.log('[NoteEditor] Creating new note:', newNote.id);
+      console.log('[NoteEditor] Created new note:', {
+        id: newNote.id,
+        rank: newNote.rank,
+        title: newNote.title,
+      });
       setNotes([...notes, newNote]);
 
       // Reset editor
@@ -346,7 +362,13 @@ function NoteEditor({
         richContent: richContent,
       };
 
-      console.log('[NoteEditor] Updating note:', updatedNote.id);
+      console.log('[NoteEditor] Updating note in edit mode:', {
+        id: updatedNote.id,
+        rank: updatedNote.rank,
+        hasRank: updatedNote.rank !== undefined,
+        title: updatedNote.title,
+        currentNoteRank: currentNote.rank,
+      });
 
       try {
         await updateNote(updatedNote);
@@ -645,6 +667,11 @@ function NoteEditor({
               let rank: number | undefined;
               if (currentNote.rank) {
                 rank = currentNote.rank;
+                console.log('[NoteEditor] Using stored rank:', {
+                  noteId: currentNote.id,
+                  rank,
+                  title: currentNote.title,
+                });
               } else {
                 const noteRanks = new Map<string, number>();
                 [...notes]
@@ -653,6 +680,13 @@ function NoteEditor({
                     noteRanks.set(note.id, notes.length - index);
                   });
                 rank = noteRanks.get(currentNote.id);
+                console.log('[NoteEditor] Calculated dynamic rank:', {
+                  noteId: currentNote.id,
+                  rank,
+                  title: currentNote.title,
+                  totalNotes: notes.length,
+                  noteHasRank: currentNote.rank !== undefined,
+                });
               }
 
               const isTopThree = rank && rank <= 3;

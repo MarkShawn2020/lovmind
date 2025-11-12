@@ -102,13 +102,21 @@ export const useNoteOperations = () => {
    */
   const updateNote = useCallback(
     async (updatedNote: Note) => {
-      console.log('updateNote called for:', updatedNote.id);
+      console.log('[useNoteOperations] updateNote called:', {
+        id: updatedNote.id,
+        rank: updatedNote.rank,
+        hasRank: updatedNote.rank !== undefined,
+        title: updatedNote.title,
+      });
 
       if (isTauri()) {
         // Tauri: save to backend
         try {
           await invoke('store_temp_note', { note: updatedNote });
-          console.log('Successfully saved to backend');
+          console.log('[useNoteOperations] Successfully saved to backend:', {
+            id: updatedNote.id,
+            rank: updatedNote.rank,
+          });
         } catch (error) {
           console.error('Failed to save to backend:', error);
           throw error;
@@ -117,7 +125,7 @@ export const useNoteOperations = () => {
         // Broadcast update event to all windows
         try {
           await invoke('broadcast_note_update', { note: updatedNote });
-          console.log('Successfully broadcasted note update');
+          console.log('[useNoteOperations] Successfully broadcasted note update');
         } catch (error) {
           console.error('Failed to broadcast note update:', error);
         }

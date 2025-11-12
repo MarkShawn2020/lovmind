@@ -63,7 +63,11 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
             id: note.id,
           });
           if (backendNote) {
-            console.log('Found existing note in backend:', note.id);
+            console.log('[useWindowOperations] Found existing note in backend:', {
+              id: backendNote.id,
+              rank: backendNote.rank,
+              hasRank: backendNote.rank !== undefined,
+            });
             noteToOpen = backendNote;
             // Sync state with backend data
             setNotes((prevNotes) =>
@@ -72,13 +76,23 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
           } else {
             // Use current note data if not in backend
             noteToOpen = notes.find((n) => n.id === note.id) || note;
+            console.log('[useWindowOperations] Storing new note to backend:', {
+              id: noteToOpen.id,
+              rank: noteToOpen.rank,
+              hasRank: noteToOpen.rank !== undefined,
+              fromArray: notes.find((n) => n.id === note.id) !== undefined,
+            });
             await invoke('store_temp_note', { note: noteToOpen });
-            console.log('Stored new note to backend:', note.id);
           }
         } catch (error) {
           console.error('Error checking backend storage:', error);
           // Fallback to current data
           noteToOpen = notes.find((n) => n.id === note.id) || note;
+          console.log('[useWindowOperations] Fallback to current data:', {
+            id: noteToOpen.id,
+            rank: noteToOpen.rank,
+            hasRank: noteToOpen.rank !== undefined,
+          });
           await invoke('store_temp_note', { note: noteToOpen });
         }
 
