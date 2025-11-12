@@ -858,9 +858,19 @@ function NoteEditor({
           ) : (
             (() => {
               const sortedNotes = [...notes].sort((a, b) => {
+                // Pinned notes always come first
                 if (a.pinned && !b.pinned) return -1;
                 if (!a.pinned && b.pinned) return 1;
-                return Number(b.id) - Number(a.id);
+
+                // Then sort by creation time (newest first)
+                const aNum = Number(a.id);
+                const bNum = Number(b.id);
+
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                  return bNum - aNum;
+                }
+
+                return b.id.localeCompare(a.id);
               });
 
               // Build dynamic rank map for notes without stored rank (backward compatibility)
