@@ -378,7 +378,7 @@ impl Default for ShortcutSettings {
             ShortcutConfig {
                 key: "KeyN".to_string(),
                 modifiers: vec!["SUPER".to_string()],
-                label: "Toggle Editor Windows".to_string(),
+                label: "Toggle Float Windows".to_string(),
                 action: "toggle_editor_windows".to_string(),
             },
         );

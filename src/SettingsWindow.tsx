@@ -154,6 +154,65 @@ export default function SettingsWindow() {
     return mods ? `${mods} + ${key}` : key;
   };
 
+  // Define shortcut order and grouping
+  const basicShortcuts = ['toggle_main_window', 'toggle_editor_windows', 'submit_note'];
+  const advancedShortcuts = ['open_devtools'];
+
+  // Sort shortcuts according to defined order
+  const sortedBasicShortcuts = basicShortcuts
+    .filter(action => settings.shortcuts[action])
+    .map(action => [action, settings.shortcuts[action]] as [string, ShortcutConfig]);
+
+  const sortedAdvancedShortcuts = advancedShortcuts
+    .filter(action => settings.shortcuts[action])
+    .map(action => [action, settings.shortcuts[action]] as [string, ShortcutConfig]);
+
+  const renderShortcutItem = ([action, config]: [string, ShortcutConfig]) => (
+    <div
+      key={action}
+      className="flex items-center justify-between p-5 bg-white/60 rounded-2xl hover:bg-white/80 transition-all border border-transparent hover:border-[#E8E6DC]"
+    >
+      <div className="flex-1">
+        <div className="font-medium text-[#181818] text-base mb-1">{config.label}</div>
+        <div className="text-sm text-[#87867F]">{action}</div>
+      </div>
+      <div className="flex items-center gap-3">
+        {editingAction === action ? (
+          <>
+            <div className="px-5 py-2.5 bg-[#C2C07D]/15 text-[#181818] rounded-xl font-mono text-sm min-w-[160px] text-center border border-[#C2C07D]/30">
+              {recordingKeys ? formatShortcut({ ...config, ...recordingKeys }) : 'Press keys...'}
+            </div>
+            <button
+              onClick={applyRecordedShortcut}
+              disabled={!recordingKeys}
+              className="px-4 py-2 bg-[#D97757] text-white rounded-xl hover:opacity-90 disabled:bg-[#87867F]/30 disabled:cursor-not-allowed border-none cursor-pointer text-sm font-medium transition-all shadow-sm"
+            >
+              Apply
+            </button>
+            <button
+              onClick={cancelRecording}
+              className="px-4 py-2 bg-transparent border border-[#87867F] text-[#181818] rounded-xl hover:bg-[#E8E6DC] cursor-pointer text-sm font-medium transition-all"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="px-5 py-2.5 bg-white border border-[#E8E6DC] rounded-xl font-mono text-sm min-w-[160px] text-center text-[#181818] shadow-sm">
+              {formatShortcut(config)}
+            </div>
+            <button
+              onClick={() => startRecording(action)}
+              className="px-4 py-2 bg-white border border-[#87867F] text-[#181818] rounded-xl hover:bg-[#E8E6DC] cursor-pointer text-sm font-medium transition-all"
+            >
+              Change
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="w-full h-full bg-[#F9F9F7] flex flex-col">
       {/* Header */}
@@ -177,53 +236,23 @@ export default function SettingsWindow() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-8 py-6">
+        {/* General Shortcuts */}
         <div className="space-y-3">
-          {Object.entries(settings.shortcuts).map(([action, config]) => (
-            <div
-              key={action}
-              className="flex items-center justify-between p-5 bg-white/60 rounded-2xl hover:bg-white/80 transition-all border border-transparent hover:border-[#E8E6DC]"
-            >
-              <div className="flex-1">
-                <div className="font-medium text-[#181818] text-base mb-1">{config.label}</div>
-                <div className="text-sm text-[#87867F]">{action}</div>
-              </div>
-              <div className="flex items-center gap-3">
-                {editingAction === action ? (
-                  <>
-                    <div className="px-5 py-2.5 bg-[#C2C07D]/15 text-[#181818] rounded-xl font-mono text-sm min-w-[160px] text-center border border-[#C2C07D]/30">
-                      {recordingKeys ? formatShortcut({ ...config, ...recordingKeys }) : 'Press keys...'}
-                    </div>
-                    <button
-                      onClick={applyRecordedShortcut}
-                      disabled={!recordingKeys}
-                      className="px-4 py-2 bg-[#D97757] text-white rounded-xl hover:opacity-90 disabled:bg-[#87867F]/30 disabled:cursor-not-allowed border-none cursor-pointer text-sm font-medium transition-all shadow-sm"
-                    >
-                      Apply
-                    </button>
-                    <button
-                      onClick={cancelRecording}
-                      className="px-4 py-2 bg-transparent border border-[#87867F] text-[#181818] rounded-xl hover:bg-[#E8E6DC] cursor-pointer text-sm font-medium transition-all"
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="px-5 py-2.5 bg-white border border-[#E8E6DC] rounded-xl font-mono text-sm min-w-[160px] text-center text-[#181818] shadow-sm">
-                      {formatShortcut(config)}
-                    </div>
-                    <button
-                      onClick={() => startRecording(action)}
-                      className="px-4 py-2 bg-white border border-[#87867F] text-[#181818] rounded-xl hover:bg-[#E8E6DC] cursor-pointer text-sm font-medium transition-all"
-                    >
-                      Change
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
+          {sortedBasicShortcuts.map(renderShortcutItem)}
         </div>
+
+        {/* Advanced Section */}
+        {sortedAdvancedShortcuts.length > 0 && (
+          <>
+            <div className="mt-8 mb-4 flex items-center gap-3">
+              <h3 className="text-lg font-semibold text-[#181818]">Advanced</h3>
+              <div className="flex-1 h-px bg-[#E8E6DC]"></div>
+            </div>
+            <div className="space-y-3">
+              {sortedAdvancedShortcuts.map(renderShortcutItem)}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Footer */}
