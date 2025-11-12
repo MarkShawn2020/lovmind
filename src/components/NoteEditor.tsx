@@ -440,15 +440,39 @@ function NoteEditor({
     }
   }, [mode, isWindowAlwaysOnTop]);
 
-  // Handle copy note content
-  const handleCopyNote = useCallback(async (note: Note) => {
+  // Handle duplicate note
+  const handleDuplicateNote = useCallback(async (note: Note) => {
     try {
-      await navigator.clipboard.writeText(note.text);
-      console.log('Note content copied to clipboard');
+      // Calculate new rank: max existing rank + 1
+      const maxRank = notes.reduce((max, n) => Math.max(max, n.rank || 0), 0);
+      const newRank = Math.max(maxRank + 1, notes.length + 1);
+
+      const duplicatedNote: Note = {
+        ...note,
+        id: Date.now().toString(),
+        title: `${note.title} (副本)`,
+        time: new Date().toLocaleString(),
+        rank: newRank,
+        pinned: false,
+        favorite: false,
+      };
+
+      console.log('[NoteEditor] Duplicating note:', {
+        originalId: note.id,
+        newId: duplicatedNote.id,
+        newRank,
+      });
+
+      setNotes([...notes, duplicatedNote]);
+
+      // Store to backend if in Tauri
+      if (isTauri()) {
+        await invoke("store_temp_note", { note: duplicatedNote });
+      }
     } catch (error) {
-      console.error('Failed to copy note content:', error);
+      console.error('Failed to duplicate note:', error);
     }
-  }, []);
+  }, [notes, setNotes]);
 
   // Handle title edit save
   const handleSaveTitle = useCallback(async () => {
@@ -667,7 +691,7 @@ function NoteEditor({
             <ContextMenuItem
               onClick={(e) => {
                 e.stopPropagation();
-                handleCopyNote(note);
+                handleDuplicateNote(note);
               }}
             >
               <Copy className="mr-2 h-4 w-4" />
@@ -688,7 +712,7 @@ function NoteEditor({
         </ContextMenu>
       );
     });
-  }, [notes, currentNoteId, openNoteInNewWindow, togglePin, toggleFavorite, deleteNote, handleCopyNote]);
+  }, [notes, currentNoteId, openNoteInNewWindow, togglePin, toggleFavorite, deleteNote, handleDuplicateNote]);
 
   return (
     <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">
