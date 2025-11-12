@@ -232,15 +232,6 @@ body {
   transform: rotate(90deg);
 }
 
-.editor-section {
-  flex: 1;
-  background: var(--background);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-}
-
 .editor-area {
   flex: 1;
   display: flex;
@@ -249,6 +240,7 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+  background: var(--background);
 }
 
 .editor-toolbar {

@@ -91,9 +91,7 @@ function NoteEditor({
   const internalEditorRef = useRef<RenderingWysiwygEditorRef | null>(null);
   const editorRef = externalEditorRef || internalEditorRef;
   const isExpandedRef = useRef(false);
-  const collapsedHeightRef = useRef<number | undefined>(undefined);
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
-  const fixedEditorHeight = useRef<number | undefined>(undefined);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -186,30 +184,6 @@ function NoteEditor({
     }
   };
 
-  // Handle manual window resize - keep panel fixed, let editor fill space
-  useEffect(() => {
-    if (!isTauri()) return;
-
-    const handleResize = () => {
-      if (!editorContainerRef.current || !panelRef.current) return;
-
-      // Always ensure panel stays at exactly PANEL_HEIGHT when expanded
-      if (isExpandedRef.current && panelRef.current) {
-        // Force panel to stay at fixed height
-        panelRef.current.style.flex = 'none';
-        panelRef.current.style.height = `${PANEL_HEIGHT}px`;
-        panelRef.current.style.minHeight = `${PANEL_HEIGHT}px`;
-        panelRef.current.style.maxHeight = `${PANEL_HEIGHT}px`;
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    // Also run once on mount to ensure panel constraints are set
-    handleResize();
-
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Load note in edit mode
   useEffect(() => {
@@ -492,33 +466,11 @@ function NoteEditor({
     }
   }, [currentNote, editingTitle, updateNote]);
 
-  // Unified animation function for panel expand/collapse
-  const animatePanelToggle = useCallback((expanding: boolean) => {
-    if (!panelRef.current || !editorContainerRef.current) {
-      console.warn('Panel or editor container ref not initialized');
-      return;
-    }
+  // Simplified panel toggle with CSS transitions
+  const handleTogglePanel = useCallback(async () => {
+    const expanding = !isPanelExpanded;
 
-    const duration = 300;
-    const easing = (t: number) => t < 0.5
-      ? 4 * t * t * t
-      : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-    // Step 1: Lock editor height
-    const currentEditorHeight = editorContainerRef.current.clientHeight;
-    fixedEditorHeight.current = currentEditorHeight;
-    editorContainerRef.current.style.height = `${currentEditorHeight}px`;
-    editorContainerRef.current.style.flexGrow = '0';
-    editorContainerRef.current.style.flexShrink = '0';
-
-    // Step 2: Setup panel for animation
-    if (panelRef.current) {
-      panelRef.current.style.transition = 'none';
-      if (expanding) {
-        panelRef.current.classList.remove('hidden');
-      }
-    }
-
+    // Update button state
     const toggleBtn = document.querySelector('.recent-notes-toggle');
     if (toggleBtn) {
       if (expanding) {
@@ -528,105 +480,27 @@ function NoteEditor({
       }
     }
 
-    // Step 3: Synchronized animation
-    const startTime = performance.now();
-
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = easing(progress);
-
-      // Animate panel height and opacity
-      const panelProgress = expanding ? eased : (1 - eased);
-      if (panelRef.current) {
-        panelRef.current.style.height = `${PANEL_HEIGHT * panelProgress}px`;
-        panelRef.current.style.opacity = String(panelProgress);
-      }
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        // Animation complete
-        if (panelRef.current) {
-          panelRef.current.style.transition = '';
-          panelRef.current.style.height = '';
-          panelRef.current.style.opacity = '';
-
-          if (expanding) {
-            // Lock panel at fixed height after expansion
-            panelRef.current.style.flex = 'none';
-            panelRef.current.style.minHeight = `${PANEL_HEIGHT}px`;
-            panelRef.current.style.maxHeight = `${PANEL_HEIGHT}px`;
-          } else {
-            // Hide panel after collapse
-            panelRef.current.classList.add('hidden');
-            panelRef.current.style.flex = '';
-            panelRef.current.style.minHeight = '';
-            panelRef.current.style.maxHeight = '';
-          }
-        }
-
-        // Unlock editor
-        if (editorContainerRef.current) {
-          fixedEditorHeight.current = undefined;
-          editorContainerRef.current.style.height = '';
-          editorContainerRef.current.style.flexGrow = '1';
-          editorContainerRef.current.style.flexShrink = '0';
-        }
-      }
-    };
-
-    requestAnimationFrame(animate);
-
-    // Step 4: Animate window size simultaneously
-    if (isTauri()) {
-      const appWindow = getCurrentWindow();
-      appWindow.innerSize().then(physicalSize => {
-        return appWindow.scaleFactor().then(scaleFactor => {
-          const currentSize = physicalSize.toLogical(scaleFactor);
-
-          let startHeight: number, endHeight: number;
-          if (expanding) {
-            collapsedHeightRef.current = currentSize.height;
-            startHeight = currentSize.height;
-            endHeight = currentSize.height + PANEL_HEIGHT;
-          } else {
-            startHeight = currentSize.height;
-            endHeight = collapsedHeightRef.current ?? (currentSize.height - PANEL_HEIGHT);
-          }
-
-          // Window animation with same timing
-          const animateWindow = (currentTime: number) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = easing(progress);
-            const currentHeight = startHeight + (endHeight - startHeight) * eased;
-
-            appWindow.setSize(new LogicalSize(currentSize.width, Math.round(currentHeight))).catch((err: any) => {
-              console.warn('Failed to resize window during animation:', err);
-            });
-
-            if (progress < 1) {
-              requestAnimationFrame(animateWindow);
-            }
-          };
-
-          requestAnimationFrame(animateWindow);
-        });
-      }).catch(error => {
-        console.warn('Failed to start window resize animation:', error);
-      });
-    }
-
-    // Update state
+    // Update state - CSS transition handles animation
     setIsPanelExpanded(expanding);
     isExpandedRef.current = expanding;
-  }, []);
 
-  // Toggle panel
-  const handleTogglePanel = useCallback(() => {
-    animatePanelToggle(!isExpandedRef.current);
-  }, [animatePanelToggle]);
+    // Adjust window size if in Tauri
+    if (isTauri()) {
+      try {
+        const appWindow = getCurrentWindow();
+        const physicalSize = await appWindow.innerSize();
+        const scaleFactor = await appWindow.scaleFactor();
+        const currentSize = physicalSize.toLogical(scaleFactor);
+
+        const delta = expanding ? PANEL_HEIGHT : -PANEL_HEIGHT;
+        const newHeight = currentSize.height + delta;
+
+        await appWindow.setSize(new LogicalSize(currentSize.width, newHeight));
+      } catch (error) {
+        console.warn('Failed to resize window:', error);
+      }
+    }
+  }, [isPanelExpanded]);
 
   return (
     <div className="app-container">
@@ -819,45 +693,33 @@ function NoteEditor({
         </div>
       )}
 
-      {/* Editor Section */}
-      <div className="editor-section">
-        {/* Fixed editor + toolbar container - height ABSOLUTELY never changes */}
-        <div
-          ref={editorContainerRef}
-          className="flex flex-col min-h-0"
-          style={{
-            height: fixedEditorHeight.current,
-            flexShrink: 0,
-            flexGrow: fixedEditorHeight.current ? 0 : 1,
-            overflow: 'visible',
-          }}
-        >
-          <div className="editor-area">
-            <RenderingWysiwygEditor
-              ref={editorRef}
-              initialContent={content}
-              initialRichContent={richContent}
-              onChange={handleContentChange}
-              onSubmit={handleSubmit}
-              placeholder={placeholder}
-            />
-          </div>
+      {/* Editor Area - grows to fill space */}
+      <div className="editor-area" ref={editorContainerRef}>
+        <RenderingWysiwygEditor
+          ref={editorRef}
+          initialContent={content}
+          initialRichContent={richContent}
+          onChange={handleContentChange}
+          onSubmit={handleSubmit}
+          placeholder={placeholder}
+        />
+      </div>
 
-          <EditorToolbar
-            mode={mode}
-            onToggleNotes={handleTogglePanel}
-            onSubmit={handleSubmit}
-            submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
-          />
-        </div>
+      {/* Toolbar - fixed height */}
+      <EditorToolbar
+        mode={mode}
+        onToggleNotes={handleTogglePanel}
+        onSubmit={handleSubmit}
+        submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
+      />
 
-        {/* Notes panel - expands below the fixed editor+toolbar */}
-        <div
-          ref={panelRef}
-          className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
-            isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
-          }`}
-        >
+      {/* Notes Panel - expands below toolbar */}
+      <div
+        ref={panelRef}
+        className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
+          isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
+        }`}
+      >
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
           {notes.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
@@ -1007,7 +869,6 @@ function NoteEditor({
               });
             })()
           )}
-        </div>
         </div>
       </div>
 
