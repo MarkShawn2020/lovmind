@@ -1,22 +1,20 @@
 # Ignore frontend source files (handled by Vite HMR)
-src/
-*.css
-*.tsx
-*.ts
-*.jsx
-*.js
+# Use explicit paths to avoid matching src-tauri/src/
+src/**/*.tsx
+src/**/*.ts
+src/**/*.jsx
+src/**/*.js
+src/**/*.css
 
 # Ignore build outputs
 dist/
 node_modules/
 
-# Ignore config files
+# Ignore config files at root
 vite.config.ts
 tailwind.config.js
 tsconfig.json
-
-# Ignore build-time config files (don't need Rust rebuild for frontend-only changes)
 package-lock.json
-src-tauri/Cargo.toml
-src-tauri/Cargo.lock
+
+# Ignore version files (prevent reload on version bump from git hooks)
 src-tauri/tauri.conf.json
