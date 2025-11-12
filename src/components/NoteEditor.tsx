@@ -824,11 +824,12 @@ function NoteEditor({
         {/* Fixed editor + toolbar container - height ABSOLUTELY never changes */}
         <div
           ref={editorContainerRef}
-          className="flex flex-col overflow-hidden min-h-0"
+          className="flex flex-col min-h-0"
           style={{
             height: fixedEditorHeight.current,
             flexShrink: 0,
             flexGrow: fixedEditorHeight.current ? 0 : 1,
+            overflow: 'visible',
           }}
         >
           <div className="editor-area">
