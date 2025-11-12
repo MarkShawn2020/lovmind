@@ -466,8 +466,8 @@ function NoteEditor({
     }
   }, [currentNote, editingTitle, updateNote]);
 
-  // Panel toggle: no window resize needed (panel slides within window)
-  const handleTogglePanel = useCallback(() => {
+  // Simplified panel toggle with CSS transitions
+  const handleTogglePanel = useCallback(async () => {
     const expanding = !isPanelExpanded;
 
     // Update button state
@@ -480,9 +480,26 @@ function NoteEditor({
       }
     }
 
-    // Trigger Panel CSS transition
+    // Update state - CSS transition handles animation
     setIsPanelExpanded(expanding);
     isExpandedRef.current = expanding;
+
+    // Adjust window size if in Tauri
+    if (isTauri()) {
+      try {
+        const appWindow = getCurrentWindow();
+        const physicalSize = await appWindow.innerSize();
+        const scaleFactor = await appWindow.scaleFactor();
+        const currentSize = physicalSize.toLogical(scaleFactor);
+
+        const delta = expanding ? PANEL_HEIGHT : -PANEL_HEIGHT;
+        const newHeight = currentSize.height + delta;
+
+        await appWindow.setSize(new LogicalSize(currentSize.width, newHeight));
+      } catch (error) {
+        console.warn('Failed to resize window:', error);
+      }
+    }
   }, [isPanelExpanded]);
 
   return (
@@ -696,23 +713,11 @@ function NoteEditor({
         submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
       />
 
-      {/* Notes Panel - slides up from bottom, stops below toolbar */}
+      {/* Notes Panel - expands below toolbar */}
       <div
         ref={panelRef}
-        style={{
-          position: 'absolute',
-          bottom: '48px',
-          left: 0,
-          right: 0,
-          height: '250px',
-          transform: isPanelExpanded ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms',
-          backfaceVisibility: 'hidden',
-          contain: 'layout style paint',
-          zIndex: 10,
-        }}
-        className={`bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden ${
-          isPanelExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`flex-shrink-0 bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden transition-[height,opacity] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[height,opacity] ${
+          isPanelExpanded ? 'h-[250px] opacity-100' : 'h-0 opacity-0'
         }`}
       >
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>

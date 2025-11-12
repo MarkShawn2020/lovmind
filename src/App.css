@@ -241,10 +241,6 @@ body {
   overflow-x: hidden;
   min-height: 0;
   background: var(--background);
-  transition: flex 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: flex;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 .editor-toolbar {
@@ -256,8 +252,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 0 var(--spacing-s);
-  position: relative;
-  z-index: 200;
+  z-index: 10;
   /* Prevent toolbar from re-rendering during animations */
   will-change: contents;
   transform: translateZ(0);
