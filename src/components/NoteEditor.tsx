@@ -736,7 +736,7 @@ function NoteEditor({
         </div>
       ) : (
         <div
-          className="h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center rounded-t-xl select-none flex-shrink-0 cursor-move"
+          className="h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex items-center gap-3 rounded-t-xl select-none flex-shrink-0 cursor-move"
           onMouseDown={handleHeaderMouseDown}
         >
           <div className="text-sm font-semibold text-white flex items-center gap-1 flex-1 min-w-0 overflow-hidden">
