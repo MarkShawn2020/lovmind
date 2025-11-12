@@ -538,8 +538,50 @@ pub fn run() {
                 .item(&PredefinedMenuItem::select_all(app, None)?)
                 .build()?;
 
+            // Load shortcut settings to build menu with correct accelerators
+            let shortcut_settings = store.get("shortcut_settings")
+                .and_then(|v| serde_json::from_value::<ShortcutSettings>(v.clone()).ok())
+                .unwrap_or_default();
+
+            // Helper function to convert ShortcutConfig to accelerator string
+            let build_accelerator = |config: &ShortcutConfig| -> String {
+                let mut parts = Vec::new();
+                for modifier in &config.modifiers {
+                    match modifier.as_str() {
+                        "SUPER" => parts.push("CmdOrCtrl"),
+                        "CONTROL" => parts.push("Ctrl"),
+                        "ALT" => parts.push("Alt"),
+                        "SHIFT" => parts.push("Shift"),
+                        _ => {}
+                    }
+                }
+                // Convert key code to simple key (e.g., "KeyN" -> "N")
+                let key = config.key.strip_prefix("Key").unwrap_or(&config.key);
+                parts.push(key);
+                parts.join("+")
+            };
+
             // Create Window menu with custom items for frameless window support
             // PredefinedMenuItem doesn't work reliably with decorations:false
+
+            // Show Main Window item with shortcut
+            let toggle_main_accelerator = shortcut_settings.shortcuts.get("toggle_main_window")
+                .map(|c| build_accelerator(c))
+                .unwrap_or_else(|| "CmdOrCtrl+O".to_string());
+            let show_main_window_item = tauri::menu::MenuItemBuilder::new("Show Main Window")
+                .id("show_main_window")
+                .accelerator(&toggle_main_accelerator)
+                .build(app)?;
+
+            // Show Float Windows item with shortcut
+            let toggle_float_accelerator = shortcut_settings.shortcuts.get("toggle_float_windows")
+                .map(|c| build_accelerator(c))
+                .unwrap_or_else(|| "CmdOrCtrl+N".to_string());
+            let show_float_windows_item = tauri::menu::MenuItemBuilder::new("Show Float Windows")
+                .id("show_float_windows")
+                .accelerator(&toggle_float_accelerator)
+                .build(app)?;
+
             let close_window_item = tauri::menu::MenuItemBuilder::new("Close Window")
                 .id("close_window")
                 .accelerator("CmdOrCtrl+W")
@@ -551,6 +593,9 @@ pub fn run() {
                 .build(app)?;
 
             let window_menu = SubmenuBuilder::new(app, "Window")
+                .item(&show_main_window_item)
+                .item(&show_float_windows_item)
+                .separator()
                 .item(&minimize_window_item)
                 .item(&close_window_item)
                 .build()?;
@@ -581,6 +626,22 @@ pub fn run() {
                     let app_clone = app.clone();
                     tauri::async_runtime::spawn(async move {
                         let _ = open_settings_window(app_clone).await;
+                    });
+                } else if event.id() == "show_main_window" {
+                    // Show/toggle main window
+                    if let Some(main_window) = app.get_webview_window("main") {
+                        if main_window.is_visible().unwrap_or(false) {
+                            let _ = main_window.hide();
+                        } else {
+                            let _ = main_window.show();
+                            let _ = main_window.set_focus();
+                        }
+                    }
+                } else if event.id() == "show_float_windows" {
+                    // Toggle float windows
+                    let app_clone = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let _ = toggle_float_windows(app_clone).await;
                     });
                 } else if event.id() == "close_window" {
                     // Close the currently focused window
