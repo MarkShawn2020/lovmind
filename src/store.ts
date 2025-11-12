@@ -11,6 +11,7 @@ export interface Note {
   tags: string[];
   favorite?: boolean;
   pinned?: boolean;
+  archived?: boolean;
   richContent?: any; // Plate.js Value (JSON) for rich text with images
   rank?: number; // Pre-assigned rank for consistent display across windows
 }
@@ -174,8 +175,8 @@ export const noteStatsAtom = atom((get) => {
     return {
       total: 0,
       today: 0,
-      favorites: 0,
       pinned: 0,
+      archived: 0,
       weekCount: 0,
       avgLength: 0,
       streak: 0
@@ -221,8 +222,8 @@ export const noteStatsAtom = atom((get) => {
   return {
     total: notes.length,
     today: todayNotes.length,
-    favorites: notes.filter(n => n.favorite).length,
     pinned: notes.filter(n => n.pinned).length,
+    archived: notes.filter(n => n.archived).length,
     weekCount: weekNotes.length,
     avgLength,
     streak

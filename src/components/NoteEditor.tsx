@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X, User, Mail, LogOut, UserCircle, Info, Settings, Copy } from 'lucide-react';
+import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X, User, Mail, LogOut, UserCircle, Info, Settings, Copy, Archive } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
@@ -70,7 +70,7 @@ function NoteEditor({
   currentNoteId,
   editorRef: externalEditorRef,
 }: NoteEditorProps) {
-  const { notes, setNotes, deleteNote, togglePin, toggleFavorite, updateNote } = useNoteOperations();
+  const { notes, setNotes, deleteNote, togglePin, toggleFavorite, toggleArchive, updateNote } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, setNotes);
   const noteStats = useAtomValue(noteStatsAtom);
 
@@ -537,7 +537,10 @@ function NoteEditor({
       );
     }
 
-    const sortedNotes = [...notes].sort((a, b) => {
+    // Filter out archived notes
+    const activeNotes = notes.filter(note => !note.archived);
+
+    const sortedNotes = [...activeNotes].sort((a, b) => {
       // Pinned notes always come first
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -585,7 +588,7 @@ function NoteEditor({
             <div
               className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary group ${
                 currentNoteId === note.id ? 'active' : ''
-              } ${note.favorite ? 'favorite' : ''} ${
+              } ${
                 note.pinned ? 'pinned' : ''
               }`}
               onClick={() => openNoteInNewWindow(note)}
@@ -602,9 +605,6 @@ function NoteEditor({
                 )}
                 {note.pinned && (
                   <Pin className="inline-flex align-middle text-[var(--primary)]" size={14} />
-                )}
-                {note.favorite && (
-                  <Star className="inline-flex align-middle text-[var(--highlight)] fill-[var(--highlight)]" size={14} />
                 )}
                 {rank}. {note.title}
               </div>
@@ -633,17 +633,6 @@ function NoteEditor({
                 title={note.pinned ? 'Unpin note' : 'Pin note'}
               >
                 <Pin size={18} strokeWidth={2} />
-              </button>
-              <button
-                className={`action-btn favorite-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--highlight)] hover:bg-[rgba(194,192,125,0.08)] ${
-                  note.favorite ? 'active text-[var(--highlight)] bg-[rgba(194,192,125,0.12)] border-[var(--highlight)]' : ''
-                }`}
-                onClick={() => toggleFavorite(note.id)}
-                title={
-                  note.favorite ? 'Unfavorite note' : 'Favorite note'
-                }
-              >
-                <Star size={18} strokeWidth={2} className={note.favorite ? 'fill-[var(--highlight)]' : ''} />
               </button>
               <button
                 className="action-btn delete-btn py-1.5 px-1.5 bg-transparent border-none rounded-none cursor-pointer transition-all flex items-center justify-center w-full relative text-[var(--muted-foreground)] hover:bg-black/5 hover:text-[var(--destructive)] hover:bg-[rgba(200,84,80,0.08)]"
@@ -682,20 +671,20 @@ function NoteEditor({
             <ContextMenuItem
               onClick={(e) => {
                 e.stopPropagation();
-                toggleFavorite(note.id);
-              }}
-            >
-              <Star className="mr-2 h-4 w-4" />
-              {note.favorite ? '取消收藏' : '收藏'}
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
                 handleDuplicateNote(note);
               }}
             >
               <Copy className="mr-2 h-4 w-4" />
               复制
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleArchive(note.id);
+              }}
+            >
+              <Archive className="mr-2 h-4 w-4" />
+              归档
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem
@@ -712,7 +701,7 @@ function NoteEditor({
         </ContextMenu>
       );
     });
-  }, [notes, currentNoteId, openNoteInNewWindow, togglePin, toggleFavorite, deleteNote, handleDuplicateNote]);
+  }, [notes, currentNoteId, openNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote]);
 
   return (
     <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">

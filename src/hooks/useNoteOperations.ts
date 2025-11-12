@@ -98,6 +98,31 @@ export const useNoteOperations = () => {
   );
 
   /**
+   * Toggle archive status of a note
+   */
+  const toggleArchive = useCallback(
+    async (noteId: string) => {
+      const updatedNotes = notes.map((note) =>
+        note.id === noteId ? { ...note, archived: !note.archived } : note
+      );
+      setNotes(updatedNotes);
+
+      // Update backend
+      if (isTauri()) {
+        const updatedNote = updatedNotes.find((n) => n.id === noteId);
+        if (updatedNote) {
+          try {
+            await invoke('store_temp_note', { note: updatedNote });
+          } catch (error) {
+            console.error('Failed to update archive status in backend:', error);
+          }
+        }
+      }
+    },
+    [notes, setNotes]
+  );
+
+  /**
    * Update a note
    */
   const updateNote = useCallback(
@@ -154,6 +179,7 @@ export const useNoteOperations = () => {
     deleteNote,
     togglePin,
     toggleFavorite,
+    toggleArchive,
     updateNote,
   };
 };
