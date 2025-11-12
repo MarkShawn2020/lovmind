@@ -257,7 +257,7 @@ body {
   align-items: center;
   padding: 0 var(--spacing-s);
   position: relative;
-  z-index: 200;
+  z-index: 10;
   /* Prevent toolbar from re-rendering during animations */
   will-change: contents;
   transform: translateZ(0);

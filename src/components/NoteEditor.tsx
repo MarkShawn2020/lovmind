@@ -724,12 +724,12 @@ function NoteEditor({
         submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
       />
 
-      {/* Notes Panel - slides up from bottom, toolbar stays fixed */}
+      {/* Notes Panel - slides up from below toolbar */}
       <div
         ref={panelRef}
         style={{
-          position: 'absolute',
-          bottom: 0,
+          position: 'fixed',
+          bottom: '48px',
           left: 0,
           right: 0,
           height: '250px',
@@ -737,7 +737,7 @@ function NoteEditor({
           transition: 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms',
           backfaceVisibility: 'hidden',
           contain: 'layout style paint',
-          zIndex: 100,
+          zIndex: 5,
         }}
         className={`bg-[var(--muted)] border-t border-[var(--border)] flex flex-col overflow-hidden ${
           isPanelExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
