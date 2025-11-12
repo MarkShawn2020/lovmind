@@ -1,9 +1,9 @@
 /**
  * Window configuration constants
- * Shared between main window and editor windows
+ * Shared between main window and float windows
  *
  * NOTE: Main window configuration must be kept in sync with src-tauri/tauri.conf.json
- * Editor window configuration is used by useWindowOperations hook
+ * Float window configuration is used by useWindowOperations hook
  */
 
 export const WINDOW_CONFIG = {
@@ -15,7 +15,7 @@ export const WINDOW_CONFIG = {
     MIN_WIDTH: 320 as number,
     MIN_HEIGHT: 240 as number,
   },
-  // Editor window (edit mode)
+  // Float window (edit mode)
   // Used by useWindowOperations.ts
   EDITOR: {
     WIDTH: 360 as number,

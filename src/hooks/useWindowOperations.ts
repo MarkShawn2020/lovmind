@@ -11,7 +11,7 @@ import { WINDOW_CONFIG } from '../constants/window';
 
 /**
  * Custom hook for window operations
- * Handles window dragging and opening editor windows
+ * Handles window dragging and opening float windows
  */
 export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((prev: Note[]) => Note[])) => void) => {
   /**
@@ -29,7 +29,7 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
   }, []);
 
   /**
-   * Open a note in a new editor window
+   * Open a note in a new float window
    */
   const openNoteInNewWindow = useCallback(
     async (note: Note) => {
@@ -52,7 +52,7 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
         if (existingWindow) {
           // Focus existing window
           await existingWindow.setFocus();
-          console.log('Focusing existing window for note:', note.id);
+          console.log('Focusing existing float window for note:', note.id);
           return;
         }
 
@@ -104,7 +104,7 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
 
         console.log('Opening window with URL:', url);
 
-        // Create new editor window
+        // Create new float window
         const webview = new WebviewWindow(windowLabel, {
           url: url,
           title: `Edit: ${noteToOpen.title}`,
@@ -124,11 +124,11 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
         // Ensure window gets focus
         await webview.once('tauri://created', async () => {
           await webview.setFocus();
-          console.log('Editor window created and focused for note:', note.id);
+          console.log('Float window created and focused for note:', note.id);
         });
       } catch (error) {
-        console.error('Failed to open editor window:', error);
-        alert(`Failed to open editor window: ${error}`);
+        console.error('Failed to open float window:', error);
+        alert(`Failed to open float window: ${error}`);
       }
     },
     [notes, setNotes]

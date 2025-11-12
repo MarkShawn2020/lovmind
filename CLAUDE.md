@@ -8,7 +8,7 @@ Lovmind is a floating notes app with global hotkey access, built as a Tauri v2 +
 - **Global Hotkey**: `⌘N` (Mac) / `Ctrl+N` (Windows/Linux) to toggle the app from anywhere
 - **Floating Window**: Always-on-top, frameless window with transparency support
 - **Rich Text Editor**: Powered by Plate.js (Slate-based) with WYSIWYG editing
-- **Multi-Window Architecture**: Main window + separate editor windows for each note
+- **Multi-Window Architecture**: Main window + separate float windows for each note
 - **Stack**: React 19, TypeScript, Tauri v2, Rust backend
 - **Package Manager**: pnpm
 
@@ -47,14 +47,14 @@ The app uses **two window types**:
    - Always-on-top, frameless, transparent
    - Shows input area + recent notes list
    - Toggled via `⌘N` global shortcut
-2. **Editor Windows** (`editor.html` → `editor.tsx`): Full note editing
+2. **Float Windows** (`editor.html` → `editor.tsx`): Full note editing
    - Dynamically created via `new WebviewWindow()`
    - Each note opens in its own window
    - Uses Plate.js rich text editor
 
 ### Frontend Structure
 - **src/App.tsx**: Main floating window component (quick capture + notes list)
-- **src/editor.tsx**: Standalone editor window component
+- **src/editor.tsx**: Standalone float window component
 - **src/components/RenderingWysiwygEditor.tsx**: Plate.js editor integration
 - **src/components/editor/plugins/**: Plate.js plugin configurations (markdown, lists, code blocks, etc.)
 - **src/components/ui/**: Plate.js node renderers and Radix UI components
@@ -89,7 +89,7 @@ Notes are synchronized between windows using:
 rollupOptions: {
   input: {
     main: 'index.html',    // Main window
-    editor: 'editor.html'  // Editor windows
+    editor: 'editor.html'  // Float windows
   }
 }
 ```

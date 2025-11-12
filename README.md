@@ -92,7 +92,7 @@ pnpm tauri build
 lovmind/
 ├── src/                          # React frontend
 │   ├── App.tsx                   # Main floating window
-│   ├── editor.tsx                # Editor window entry
+│   ├── editor.tsx                # Float window entry
 │   ├── components/
 │   │   ├── NoteEditor.tsx        # Core editor component
 │   │   └── RenderingWysiwygEditor.tsx  # Plate.js integration

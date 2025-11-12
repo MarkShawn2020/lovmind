@@ -14,7 +14,7 @@ function EditorWindow() {
       return;
     }
 
-    console.log('Editor window loading note with ID:', id);
+    console.log('Float window loading note with ID:', id);
     setNoteId(id);
   }, []);
 
