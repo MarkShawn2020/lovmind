@@ -186,24 +186,6 @@ function NoteEditor({
     }
   };
 
-  // Add Cmd+W to close float window (edit mode only)
-  useEffect(() => {
-    if (mode !== 'edit') return;
-
-    const handleWindowClose = async (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'w') {
-        e.preventDefault();
-        if (isTauri()) {
-          const currentWindow = getCurrentWebviewWindow();
-          await currentWindow.close();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleWindowClose);
-    return () => window.removeEventListener('keydown', handleWindowClose);
-  }, [mode]);
-
   // Handle manual window resize - keep panel fixed, let editor fill space
   useEffect(() => {
     if (!isTauri()) return;

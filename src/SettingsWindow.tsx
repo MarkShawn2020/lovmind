@@ -125,19 +125,6 @@ export default function SettingsWindow() {
     }
   }, [editingAction, handleKeyDown]);
 
-  // Add Cmd+W to close window
-  useEffect(() => {
-    const handleWindowClose = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'w') {
-        e.preventDefault();
-        handleClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleWindowClose);
-    return () => window.removeEventListener('keydown', handleWindowClose);
-  }, []);
-
   const applyRecordedShortcut = () => {
     if (!editingAction || !recordingKeys) return;
 

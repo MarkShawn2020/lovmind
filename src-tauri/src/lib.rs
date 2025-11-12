@@ -538,9 +538,20 @@ pub fn run() {
                 .item(&PredefinedMenuItem::select_all(app, None)?)
                 .build()?;
 
+            // Create Window menu with standard macOS window management
+            let window_menu = SubmenuBuilder::new(app, "Window")
+                .item(&PredefinedMenuItem::minimize(app, None)?)
+                .item(&PredefinedMenuItem::close_window(app, None)?)
+                .separator()
+                .item(&PredefinedMenuItem::hide(app, None)?)
+                .item(&PredefinedMenuItem::hide_others(app, None)?)
+                .item(&PredefinedMenuItem::show_all(app, None)?)
+                .build()?;
+
             let menu = MenuBuilder::new(app)
                 .item(&app_menu)
                 .item(&edit_menu)
+                .item(&window_menu)
                 .item(&ai_toggle)
                 .build()?;
 
