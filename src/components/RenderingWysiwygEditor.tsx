@@ -19,6 +19,7 @@ interface RenderingWysiwygEditorProps {
 
 export interface RenderingWysiwygEditorRef {
   resetAndFocus: () => void;
+  focus: () => void;
 }
 
 const createInitialValue = (text: string = ''): Value => {
@@ -245,7 +246,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialRichContent, safeInitialContent]); // Depend on both richContent and text content
 
-    // Expose resetAndFocus method to parent
+    // Expose methods to parent
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => {
         // Reset editor content
@@ -259,6 +260,11 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         // Set selection to start and focus
         editor.tf.select({ path: [0, 0], offset: 0 });
         editor.tf.focus();
+      },
+      focus: () => {
+        // Simply focus the editor without resetting
+        editor.tf.focus();
+        console.log('[RenderingWysiwygEditor] Editor focused programmatically');
       }
     }), [editor]);
 
