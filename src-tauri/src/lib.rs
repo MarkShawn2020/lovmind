@@ -209,16 +209,11 @@ async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
         let note_id = Uuid::new_v4().to_string();
         let window_label = format!("note-editor-{}", note_id);
 
-        // Get all notes to calculate next sequence number
-        let all_notes = get_all_temp_notes(app.clone())?;
-        let next_sequence = all_notes.len() + 1;
-        let title = format!("Note #{}", next_sequence);
-
-        // Create a blank note with auto-incremented title
+        // Create a blank note
         let blank_note = note_store::TempNote {
             id: note_id.clone(),
             text: String::new(),
-            title,
+            title: "Untitled Note".to_string(),
             time: chrono::Utc::now().to_rfc3339(),
             tags: Vec::new(),
             favorite: Some(false),

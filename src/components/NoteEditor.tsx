@@ -275,8 +275,9 @@ function NoteEditor({
 
     if (mode === 'create') {
       // Create new note
-      const firstLine = content ? content.split("\n")[0].substring(0, 50) : "Image Note";
-      const title = firstLine || "Untitled Note";
+      const nextNoteNumber = notes.length + 1;
+      const firstLine = content ? content.split("\n")[0].substring(0, 50) : "";
+      const title = firstLine || `Note ${nextNoteNumber}`;
       const tags = currentTags.length > 0 ? currentTags : [];
 
       const newNote: Note = {
@@ -634,19 +635,15 @@ function NoteEditor({
         >
           <div className="text-sm font-semibold text-white flex items-center gap-1">
             {(() => {
-              // Calculate rank for all notes
+              if (!currentNote) return 'Untitled Note';
+
+              // Calculate rank
               const noteRanks = new Map<string, number>();
               [...notes]
                 .sort((a, b) => Number(b.id) - Number(a.id))
                 .forEach((note, index) => {
                   noteRanks.set(note.id, notes.length - index);
                 });
-
-              // If currentNote is not loaded yet, show placeholder with sequence number
-              if (!currentNote) {
-                const tempRank = noteId ? noteRanks.get(noteId) || (notes.length + 1) : '?';
-                return <>{tempRank}. Loading...</>;
-              }
 
               const rank = noteRanks.get(currentNote.id);
               const isTopThree = rank && rank <= 3;
