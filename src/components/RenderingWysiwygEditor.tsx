@@ -231,6 +231,22 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         return; // Don't mark as loaded - wait for real content
       }
 
+      // CRITICAL FIX: Deep compare incoming content with current editor content
+      // This prevents setValue from being called when content is the same,
+      // which would cause focus loss
+      const currentEditorValue = editor.children;
+      const newContentToLoad = initialRichContent || createInitialValue(safeInitialContent || '');
+
+      // Compare content by stringifying (simple but effective)
+      const isSameContent = JSON.stringify(currentEditorValue) === JSON.stringify(newContentToLoad);
+
+      if (isSameContent) {
+        console.log('[RenderingWysiwygEditor] 内容相同，跳过 setValue (防止焦点丢失)');
+        // Mark as loaded to prevent future unnecessary checks
+        hasLoadedInitialContent.current = true;
+        return;
+      }
+
       // Load the content
       if (initialRichContent && !isRichContentEmpty(initialRichContent)) {
         console.log('[RenderingWysiwygEditor] 加载 richContent:', initialRichContent);
