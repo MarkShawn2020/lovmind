@@ -195,8 +195,11 @@ async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
 async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
     use tauri::{Manager, WebviewWindowBuilder, WebviewUrl};
 
+    println!("[toggle_editor_windows] Function called");
+
     // Get all windows
     let windows = app.webview_windows();
+    println!("[toggle_editor_windows] Total windows: {}", windows.len());
 
     // Filter for editor windows (those starting with "note-editor-")
     let editor_windows: Vec<_> = windows.iter()
@@ -204,7 +207,10 @@ async fn toggle_editor_windows(app: tauri::AppHandle) -> Result<(), String> {
         .map(|(_, window)| window.clone())
         .collect();
 
+    println!("[toggle_editor_windows] Editor windows count: {}", editor_windows.len());
+
     if editor_windows.is_empty() {
+        println!("[toggle_editor_windows] No editor windows, creating new one...");
         // No editor windows exist, create a new blank one
         let note_id = Uuid::new_v4().to_string();
         let window_label = format!("note-editor-{}", note_id);
