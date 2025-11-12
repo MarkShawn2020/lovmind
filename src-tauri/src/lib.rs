@@ -697,15 +697,25 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app_handle, event| {
-            // Prevent app from exiting when last window is closed (macOS behavior)
-            // Only Cmd+Q (Quit menu) should exit the app
-            if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
-                // If code is None, it's triggered by closing all windows
-                // If code is Some(0), it's an explicit quit (Cmd+Q)
-                if code.is_none() {
-                    api.prevent_exit();
+        .run(|app_handle, event| {
+            match event {
+                // Prevent app from exiting when last window is closed (macOS behavior)
+                // Only Cmd+Q (Quit menu) should exit the app
+                tauri::RunEvent::ExitRequested { api, code, .. } => {
+                    // If code is None, it's triggered by closing all windows
+                    // If code is Some(0), it's an explicit quit (Cmd+Q)
+                    if code.is_none() {
+                        api.prevent_exit();
+                    }
                 }
+                // Reopen main window when user clicks Dock icon or Cmd+Tab (macOS)
+                tauri::RunEvent::Reopen { .. } => {
+                    if let Some(main_window) = app_handle.get_webview_window("main") {
+                        let _ = main_window.show();
+                        let _ = main_window.set_focus();
+                    }
+                }
+                _ => {}
             }
         });
 }
