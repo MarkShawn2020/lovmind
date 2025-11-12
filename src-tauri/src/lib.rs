@@ -186,6 +186,24 @@ async fn set_ai_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), Stri
     Ok(())
 }
 
+// Helper function to update menu item text based on window visibility
+fn update_main_window_menu_text<R: tauri::Runtime>(app: &tauri::AppHandle<R>, is_visible: bool) {
+    if let Some(menu) = app.menu() {
+        if let Some(window_menu) = menu.get("Window") {
+            if let Some(menu_item) = window_menu.as_submenu() {
+                if let Some(item) = menu_item.get("toggle_main_window") {
+                    let text = if is_visible {
+                        "Hide Main Window"
+                    } else {
+                        "Show Main Window"
+                    };
+                    let _ = item.as_menuitem().map(|mi| mi.set_text(text));
+                }
+            }
+        }
+    }
+}
+
 #[tauri::command]
 async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
     app.exit(0);
@@ -564,12 +582,12 @@ pub fn run() {
             // Create Window menu with custom items for frameless window support
             // PredefinedMenuItem doesn't work reliably with decorations:false
 
-            // Show Main Window item with shortcut
+            // Show Main Window item with shortcut (default: "Hide" since window starts visible)
             let toggle_main_accelerator = shortcut_settings.shortcuts.get("toggle_main_window")
                 .map(|c| build_accelerator(c))
                 .unwrap_or_else(|| "CmdOrCtrl+O".to_string());
-            let show_main_window_item = tauri::menu::MenuItemBuilder::new("Show Main Window")
-                .id("show_main_window")
+            let show_main_window_item = tauri::menu::MenuItemBuilder::new("Hide Main Window")
+                .id("toggle_main_window")
                 .accelerator(&toggle_main_accelerator)
                 .build(app)?;
 
@@ -577,8 +595,8 @@ pub fn run() {
             let toggle_float_accelerator = shortcut_settings.shortcuts.get("toggle_float_windows")
                 .map(|c| build_accelerator(c))
                 .unwrap_or_else(|| "CmdOrCtrl+N".to_string());
-            let show_float_windows_item = tauri::menu::MenuItemBuilder::new("Show Float Windows")
-                .id("show_float_windows")
+            let show_float_windows_item = tauri::menu::MenuItemBuilder::new("Toggle Float Windows")
+                .id("toggle_float_windows")
                 .accelerator(&toggle_float_accelerator)
                 .build(app)?;
 
@@ -627,17 +645,20 @@ pub fn run() {
                     tauri::async_runtime::spawn(async move {
                         let _ = open_settings_window(app_clone).await;
                     });
-                } else if event.id() == "show_main_window" {
+                } else if event.id() == "toggle_main_window" {
                     // Show/toggle main window
                     if let Some(main_window) = app.get_webview_window("main") {
-                        if main_window.is_visible().unwrap_or(false) {
+                        let is_visible = main_window.is_visible().unwrap_or(false);
+                        if is_visible {
                             let _ = main_window.hide();
+                            update_main_window_menu_text(&app, false);
                         } else {
                             let _ = main_window.show();
                             let _ = main_window.set_focus();
+                            update_main_window_menu_text(&app, true);
                         }
                     }
-                } else if event.id() == "show_float_windows" {
+                } else if event.id() == "toggle_float_windows" {
                     // Toggle float windows
                     let app_clone = app.clone();
                     tauri::async_runtime::spawn(async move {
@@ -671,6 +692,7 @@ pub fn run() {
             // Setup main window close behavior: hide instead of destroy
             // This allows the window to be reopened via Dock icon or Cmd+Tab
             let main_window_for_close = window.clone();
+            let app_handle_for_menu = app.handle().clone();
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                     println!("[Main Window] Close requested - hiding instead of destroying");
@@ -678,6 +700,8 @@ pub fn run() {
                     let _ = main_window_for_close.hide();
                     api.prevent_close();
                     println!("[Main Window] Window hidden successfully");
+                    // Update menu text to "Show Main Window"
+                    update_main_window_menu_text(&app_handle_for_menu, false);
                 }
             });
 
@@ -790,6 +814,8 @@ pub fn run() {
                         let _ = main_window.show();
                         let _ = main_window.set_focus();
                         println!("[Reopen Event] Main window shown and focused");
+                        // Update menu text to "Hide Main Window"
+                        update_main_window_menu_text(&app_handle, true);
                     } else {
                         println!("[Reopen Event] ERROR: Main window not found!");
                     }
