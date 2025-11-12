@@ -118,7 +118,7 @@ function App() {
     syncWithBackend();
   }, [setNotes]);
 
-  return <NoteEditor mode="create" placeholder="此时此刻，你在想什么呢？" />;
+  return <NoteEditor mode="main" placeholder="此时此刻，你在想什么呢？" />;
 }
 
 export default App;

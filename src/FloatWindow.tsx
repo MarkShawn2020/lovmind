@@ -28,7 +28,7 @@ function FloatWindow() {
   }
 
   console.log('[Perf] FloatWindow rendering NoteEditor with noteId:', noteId);
-  return <NoteEditor mode="edit" noteId={noteId} currentNoteId={noteId} />;
+  return <NoteEditor mode="float" noteId={noteId} currentNoteId={noteId} />;
 }
 
 export default FloatWindow;

@@ -54,9 +54,9 @@ const isRichContentEmpty = (richContent: any): boolean => {
 };
 
 interface NoteEditorProps {
-  mode: 'create' | 'edit';
-  noteId?: string; // edit 模式下需要
-  showConfetti?: boolean; // 是否显示 confetti 动画（create 模式默认 true）
+  mode: 'main' | 'float';
+  noteId?: string; // float 模式下需要
+  showConfetti?: boolean; // 是否显示 confetti 动画（main 模式默认 true）
   placeholder?: string;
   currentNoteId?: string | null;
   editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
@@ -65,7 +65,7 @@ interface NoteEditorProps {
 function NoteEditor({
   mode,
   noteId,
-  showConfetti = mode === 'create',
+  showConfetti = mode === 'main',
   placeholder = "此时此刻，你在想什么呢？",
   currentNoteId,
   editorRef: externalEditorRef,
@@ -187,9 +187,9 @@ function NoteEditor({
   };
 
 
-  // Load note in edit mode
+  // Load note in float mode
   useEffect(() => {
-    if (mode === 'edit' && noteId) {
+    if (mode === 'float' && noteId) {
       const perfLabel = `[Perf] NoteEditor load note ${noteId}`;
       const perfInvokeLabel = `[Perf] Invoke get_temp_note ${noteId}`;
 
@@ -287,7 +287,7 @@ function NoteEditor({
       return;
     }
 
-    if (mode === 'create') {
+    if (mode === 'main') {
       // Create new note
       const firstLine = content ? content.split("\n")[0].substring(0, 50) : "Image Note";
       const title = firstLine || "Untitled Note";
@@ -360,7 +360,7 @@ function NoteEditor({
       } catch (error) {
         console.log("Using local title generation");
       }
-    } else if (mode === 'edit' && currentNote) {
+    } else if (mode === 'float' && currentNote) {
       // Update existing note
       const updatedNote: Note = {
         ...currentNote,
@@ -411,9 +411,9 @@ function NoteEditor({
     }
   }, [mode, content, richContent, currentTags, currentNote, notes, setNotes, updateNote, editorRef, showConfetti]);
 
-  // Handle pin toggle for edit mode
+  // Handle pin toggle for float mode
   const handleTogglePin = useCallback(async () => {
-    if (mode === 'edit' && currentNote) {
+    if (mode === 'float' && currentNote) {
       await togglePin(currentNote.id);
       // Update local state
       setCurrentNote({
@@ -423,12 +423,12 @@ function NoteEditor({
     }
   }, [mode, currentNote, togglePin]);
 
-  // Handle always on top toggle for edit mode
+  // Handle always on top toggle for float mode
   const handleToggleAlwaysOnTop = useCallback(async (e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation(); // Prevent window drag
     }
-    if (mode === 'edit' && isTauri()) {
+    if (mode === 'float' && isTauri()) {
       try {
         const currentWindow = getCurrentWindow();
         const newState = !isWindowAlwaysOnTop;
@@ -685,7 +685,7 @@ function NoteEditor({
   return (
     <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">
       {/* Header */}
-      {mode === 'create' ? (
+      {mode === 'main' ? (
         <div
           className="h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center rounded-t-xl select-none flex-shrink-0 cursor-move"
           onMouseDown={handleHeaderMouseDown}
