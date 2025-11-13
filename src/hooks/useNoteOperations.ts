@@ -123,18 +123,36 @@ export const useNoteOperations = () => {
   );
 
   /**
-   * Update a note
+   * Update a note - SIMPLIFIED
+   * Backend is the single source of truth
    */
   const updateNote = useCallback(
     async (updatedNote: Note) => {
       console.log('[useNoteOperations] updateNote called:', {
         id: updatedNote.id,
         rank: updatedNote.rank,
-        hasRank: updatedNote.rank !== undefined,
         title: updatedNote.title,
       });
 
-      // CRITICAL FIX: Always update Jotai atom first (persistent storage)
+      if (isTauri()) {
+        // Save to backend (single source of truth)
+        try {
+          await invoke('store_temp_note', { note: updatedNote });
+          console.log('[useNoteOperations] Saved to backend');
+        } catch (error) {
+          console.error('Failed to save to backend:', error);
+          throw error;
+        }
+
+        // Broadcast to all windows
+        try {
+          await invoke('broadcast_note_update', { note: updatedNote });
+        } catch (error) {
+          console.error('Failed to broadcast:', error);
+        }
+      }
+
+      // Update local cache
       setNotes((prevNotes) => {
         const existingIndex = prevNotes.findIndex((n) => n.id === updatedNote.id);
         if (existingIndex !== -1) {
@@ -145,37 +163,6 @@ export const useNoteOperations = () => {
           return [...prevNotes, updatedNote];
         }
       });
-
-      if (isTauri()) {
-        // Tauri: save to backend temp store
-        try {
-          await invoke('store_temp_note', { note: updatedNote });
-          console.log('[useNoteOperations] Successfully saved to backend:', {
-            id: updatedNote.id,
-            rank: updatedNote.rank,
-          });
-        } catch (error) {
-          console.error('Failed to save to backend:', error);
-          throw error;
-        }
-
-        // Broadcast update event to all windows
-        try {
-          await invoke('broadcast_note_update', { note: updatedNote });
-          console.log('[useNoteOperations] Successfully broadcasted note update');
-        } catch (error) {
-          console.error('Failed to broadcast note update:', error);
-        }
-      } else {
-        // Browser: Broadcast via BroadcastChannel
-        try {
-          const channel = new BroadcastChannel('lovpen-notes-channel');
-          channel.postMessage({ type: 'note-updated', note: updatedNote });
-          channel.close();
-        } catch (error) {
-          console.error('Failed to broadcast via BroadcastChannel:', error);
-        }
-      }
     },
     [setNotes]
   );

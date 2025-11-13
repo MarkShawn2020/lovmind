@@ -187,31 +187,19 @@ function NoteEditor({
   };
 
 
-  // Load note in float mode
+  // Load note in float mode - SIMPLIFIED
   useEffect(() => {
     if (mode === 'float' && noteId) {
-      const perfLabel = `[Perf] NoteEditor load note ${noteId}`;
-      const perfInvokeLabel = `[Perf] Invoke get_temp_note ${noteId}`;
-
-      console.time(perfLabel);
       const loadNote = async () => {
         try {
           let noteData: Note | null = null;
 
           if (isTauri()) {
-            console.time(perfInvokeLabel);
+            // Backend is single source of truth
             noteData = await invoke<Note | null>('get_temp_note', { id: noteId });
-            console.timeEnd(perfInvokeLabel);
-            console.log('Retrieved note from Tauri backend:', noteData);
+            console.log('[NoteEditor] Retrieved from backend:', noteData ? 'found' : 'not found');
 
-            // CRITICAL FIX: If not found in backend temp store, fallback to Jotai atom
-            // This ensures richContent is preserved when reopening notes
-            if (!noteData) {
-              noteData = notes.find(n => n.id === noteId) || null;
-              console.log('Fallback: Retrieved note from Jotai atom:', noteData);
-            }
-
-            // Check current window always-on-top status
+            // Check window always-on-top status
             try {
               const currentWindow = getCurrentWindow();
               const isOnTop = await currentWindow.isAlwaysOnTop?.() || false;
@@ -220,35 +208,22 @@ function NoteEditor({
               console.error('Failed to get always-on-top status:', error);
             }
           } else {
+            // Browser mode: use cache
             noteData = notes.find(n => n.id === noteId) || null;
-            console.log('Retrieved note from Jotai atom:', noteData);
           }
 
           if (noteData) {
-            console.log('[NoteEditor] Loading note in edit mode:', {
-              id: noteData.id,
-              rank: noteData.rank,
-              title: noteData.title,
-              hasRank: noteData.rank !== undefined,
-            });
+            // Load existing note
             setCurrentNote(noteData);
             setContent(noteData.text);
             setRichContent(noteData.richContent || null);
             setCurrentTags(noteData.tags || []);
           } else {
-            // No note found in backend - this is a new note created by toggle_float_windows
-            // Get rank from URL parameter
+            // Create new note
             const urlParams = new URLSearchParams(window.location.search);
             const rankParam = urlParams.get('rank');
             const rank = rankParam ? parseInt(rankParam, 10) : undefined;
 
-            console.log('[NoteEditor] Creating new note from URL params:', {
-              noteId,
-              rank,
-              hasRank: rank !== undefined,
-            });
-
-            // Create a temporary note object (will be persisted when user saves)
             const newNote: Note = {
               id: noteId,
               text: '',
@@ -265,8 +240,6 @@ function NoteEditor({
           }
         } catch (error) {
           console.error('Failed to load note:', error);
-        } finally {
-          console.timeEnd(perfLabel);
         }
       };
 

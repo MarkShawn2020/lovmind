@@ -1,6 +1,4 @@
 import { atom } from 'jotai';
-import { atomWithStorage, createJSONStorage } from 'jotai/utils';
-import { Store } from '@tauri-apps/plugin-store';
 
 // Note interface
 export interface Note {
@@ -16,154 +14,15 @@ export interface Note {
   rank?: number; // Pre-assigned rank for consistent display across windows
 }
 
-// Check if running in Tauri environment
-const isTauri = () => {
-  return typeof window !== 'undefined' &&
-         ((window as any).__TAURI__ !== undefined || (window as any).__TAURI_INTERNALS__ !== undefined);
-};
+// SIMPLIFIED ARCHITECTURE:
+// - Jotai atoms are in-memory cache only (no persistence)
+// - Backend Rust (notes.json) is the single source of truth
+// - All persistence goes through invoke() calls to backend
 
-// Create Tauri Store instance (with in-memory cache)
-let store: Store | null = null;
-let storeReady = false;
-const memoryCache = new Map<string, string>();
+// In-memory atoms (no persistence)
+export const notesAtom = atom<Note[]>([]);
 
-const initStore = async () => {
-  if (!store && isTauri()) {
-    try {
-      store = await Store.load('lovpen-notes.json');
-      storeReady = true;
-
-      // Load existing data into memory cache
-      const keys = await store.keys();
-      for (const key of keys) {
-        const value = await store.get<string>(key);
-        if (value !== null && value !== undefined) {
-          memoryCache.set(key, value);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to initialize Tauri Store:', error);
-    }
-  }
-  return store;
-};
-
-// Initialize store on module load
-initStore();
-
-// Helper function to migrate old object-format notes to array format
-const migrateNotesData = (rawData: string): string => {
-  try {
-    const parsed = JSON.parse(rawData);
-
-    // If it's already an array, return as-is
-    if (Array.isArray(parsed)) {
-      return rawData;
-    }
-
-    // If it's an object (old format: { [id]: note }), convert to array
-    if (parsed && typeof parsed === 'object') {
-      const notesArray = Object.values(parsed);
-      console.log('Migrating notes from object format to array format:', notesArray.length, 'notes');
-      return JSON.stringify(notesArray);
-    }
-
-    // If it's something else, return empty array
-    return '[]';
-  } catch (error) {
-    console.error('Failed to migrate notes data:', error);
-    return '[]';
-  }
-};
-
-// Custom storage implementation using memory cache + async Tauri Store
-const createTauriStorage = <T>() => {
-  return createJSONStorage<T>(() => ({
-    getItem: (key: string) => {
-      // Use memory cache for sync access
-      if (memoryCache.has(key)) {
-        return memoryCache.get(key) || null;
-      }
-
-      // Fallback to localStorage if not in cache
-      if (!isTauri()) {
-        const rawValue = localStorage.getItem(key);
-
-        // Special handling for notes atom to migrate old format
-        if (key === 'lovpen-notes' && rawValue) {
-          const migratedValue = migrateNotesData(rawValue);
-
-          // Update localStorage with migrated data if it changed
-          if (migratedValue !== rawValue) {
-            localStorage.setItem(key, migratedValue);
-            console.log('Notes data migrated and saved to localStorage');
-          }
-
-          return migratedValue;
-        }
-
-        return rawValue;
-      }
-
-      return null;
-    },
-
-    setItem: (key: string, value: string) => {
-      // Update memory cache immediately (sync)
-      memoryCache.set(key, value);
-
-      if (!isTauri()) {
-        // Fallback to localStorage in non-Tauri environment
-        localStorage.setItem(key, value);
-        return;
-      }
-
-      // Persist to Tauri Store asynchronously
-      if (storeReady && store) {
-        store.set(key, value).then(() => {
-          return store!.save();
-        }).catch(error => {
-          console.error(`Failed to persist item ${key}:`, error);
-        });
-      }
-    },
-
-    removeItem: (key: string) => {
-      // Remove from memory cache immediately (sync)
-      memoryCache.delete(key);
-
-      if (!isTauri()) {
-        // Fallback to localStorage in non-Tauri environment
-        localStorage.removeItem(key);
-        return;
-      }
-
-      // Remove from Tauri Store asynchronously
-      if (storeReady && store) {
-        store.delete(key).then(() => {
-          return store!.save();
-        }).catch(error => {
-          console.error(`Failed to remove item ${key}:`, error);
-        });
-      }
-    },
-  }));
-};
-
-// Atoms with persistence
-export const notesAtom = atomWithStorage<Note[]>(
-  'lovpen-notes',
-  [],
-  createTauriStorage<Note[]>(),
-  { getOnInit: true }
-);
-
-export const contentAtom = atomWithStorage<string>(
-  'lovpen-content',
-  '',
-  createTauriStorage<string>(),
-  { getOnInit: true }
-);
+export const contentAtom = atom<string>('');
 
 // Derived atom for note statistics
 export const noteStatsAtom = atom((get) => {
