@@ -134,8 +134,20 @@ export const useNoteOperations = () => {
         title: updatedNote.title,
       });
 
+      // CRITICAL FIX: Always update Jotai atom first (persistent storage)
+      setNotes((prevNotes) => {
+        const existingIndex = prevNotes.findIndex((n) => n.id === updatedNote.id);
+        if (existingIndex !== -1) {
+          const newNotes = [...prevNotes];
+          newNotes[existingIndex] = updatedNote;
+          return newNotes;
+        } else {
+          return [...prevNotes, updatedNote];
+        }
+      });
+
       if (isTauri()) {
-        // Tauri: save to backend
+        // Tauri: save to backend temp store
         try {
           await invoke('store_temp_note', { note: updatedNote });
           console.log('[useNoteOperations] Successfully saved to backend:', {
@@ -155,12 +167,7 @@ export const useNoteOperations = () => {
           console.error('Failed to broadcast note update:', error);
         }
       } else {
-        // Browser: update Jotai atom
-        setNotes((prevNotes) =>
-          prevNotes.map((n) => (n.id === updatedNote.id ? updatedNote : n))
-        );
-
-        // Broadcast via BroadcastChannel
+        // Browser: Broadcast via BroadcastChannel
         try {
           const channel = new BroadcastChannel('lovpen-notes-channel');
           channel.postMessage({ type: 'note-updated', note: updatedNote });
