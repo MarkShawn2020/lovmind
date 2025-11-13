@@ -194,6 +194,23 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     });
     console.timeEnd('[Perf] usePlateEditor init');
 
+    // CRITICAL FIX: Blur immediately after initialization if content has images
+    // This prevents autoformat/plugins from converting image nodes in first block to text
+    useEffect(() => {
+      if (initialRichContent && !isRichContentEmpty(initialRichContent)) {
+        // Check if first block contains an image
+        const firstBlock = initialRichContent[0];
+        const hasImageInFirstBlock = JSON.stringify(firstBlock).includes('"type":"img"');
+
+        if (hasImageInFirstBlock) {
+          setTimeout(() => {
+            editor.tf.blur();
+            console.log('[RenderingWysiwygEditor] Blurred to protect first block image');
+          }, 10);
+        }
+      }
+    }, [editor, initialRichContent]);
+
     // Parse markdown content if it contains markdown syntax (e.g., images)
     // Only run once on mount to avoid re-parsing during editing
     const hasProcessedMarkdown = useRef(false);
