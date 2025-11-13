@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Archive, Crown, Pin, Sparkles, Star, X, User, Mail, LogOut, UserCircle, Info, Settings } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
@@ -15,6 +15,8 @@ import { useAtomValue } from 'jotai';
 import lovpenLogo from '../assets/lovpen-logo.svg';
 import packageJson from '../../package.json';
 import { NotesSidebar } from './NotesSidebar';
+import { MainHeader, type NoteStatsSummary } from '@/components/note-editor/MainHeader';
+import { FloatHeader } from '@/components/note-editor/FloatHeader';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface NoteEditorProps {
@@ -61,6 +63,39 @@ function NoteEditor({
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const handleUserMenuToggle = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (userButtonRef.current) {
+      const rect = userButtonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setIsUserMenuOpen((prev) => !prev);
+  }, []);
+
+  const handleFloatWindowClose = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isTauri()) {
+      const currentWindow = getCurrentWebviewWindow();
+      await currentWindow.close();
+    }
+  }, []);
+
+  const handleTitleChange = useCallback((value: string) => {
+    setEditingTitle(value);
+  }, []);
+
+  const handleStartEditingTitle = useCallback((title: string) => {
+    setEditingTitle(title);
+    setIsEditingTitle(true);
+  }, []);
+
+  const handleCancelEditingTitle = useCallback(() => {
+    setIsEditingTitle(false);
+  }, []);
 
   useEffect(() => {
     if (!isProfileModalOpen) {
@@ -429,191 +464,36 @@ function NoteEditor({
   }, [currentNote, editingTitle, updateNote]);
 
   // Notes sidebar is rendered via dedicated component now
+  const header = mode === 'main'
+    ? (
+      <MainHeader
+        noteStats={noteStats as NoteStatsSummary}
+        userProfile={userProfile}
+        onHeaderMouseDown={handleHeaderMouseDown}
+        onUserMenuToggle={handleUserMenuToggle}
+        userButtonRef={userButtonRef}
+      />
+    ) : (
+      <FloatHeader
+        currentNote={currentNote}
+        notes={notes}
+        isEditingTitle={isEditingTitle}
+        editingTitle={editingTitle}
+        onTitleChange={handleTitleChange}
+        onStartEditingTitle={handleStartEditingTitle}
+        onCancelEditingTitle={handleCancelEditingTitle}
+        onSaveTitle={handleSaveTitle}
+        onHeaderMouseDown={handleHeaderMouseDown}
+        isWindowAlwaysOnTop={isWindowAlwaysOnTop}
+        onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
+        onCloseWindow={handleFloatWindowClose}
+      />
+    );
 
   return (
     <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">
       {/* Header */}
-      {mode === 'main' ? (
-        <div
-          className="h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center rounded-t-xl select-none flex-shrink-0 cursor-move"
-          onMouseDown={handleHeaderMouseDown}
-        >
-          <div className="flex items-center gap-2">
-            <img
-              src={lovpenLogo}
-              alt="Lovmind"
-              className="h-5 w-auto brightness-0 invert select-none"
-              draggable={false}
-            />
-            <h1 className="text-lg font-semibold tracking-tight">Lovmind ({noteStats.total})</h1>
-          </div>
-          <div className="flex gap-2 items-center">
-            <button
-              ref={userButtonRef}
-              className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer border-none overflow-hidden"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (userButtonRef.current) {
-                  const rect = userButtonRef.current.getBoundingClientRect();
-                  setMenuPosition({
-                    top: rect.bottom + 8,
-                    right: window.innerWidth - rect.right
-                  });
-                }
-                setIsUserMenuOpen(!isUserMenuOpen);
-              }}
-              title={userProfile.nickname || 'User menu'}
-            >
-              {userProfile.avatar ? (
-                <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
-              ) : userProfile.nickname ? (
-                <span className="text-white text-sm font-semibold uppercase">
-                  {userProfile.nickname.charAt(0)}
-                </span>
-              ) : (
-                <User size={18} className="text-white" />
-              )}
-            </button>
-
-            {noteStats.streak > 2 && (
-              <span className="px-2.5 py-1 bg-gradient-to-br from-[#ff6b6b] to-[#ffd93d] text-white rounded-xl text-xs font-medium tracking-tight backdrop-blur-lg streak-badge ml-2" title={`${noteStats.streak} day streak!`}>
-                🔥 {noteStats.streak}d
-              </span>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div
-          className="h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex items-center gap-3 rounded-t-xl select-none flex-shrink-0 cursor-move"
-          onMouseDown={handleHeaderMouseDown}
-        >
-          <div className="text-sm font-semibold text-white flex items-center gap-1 flex-1 min-w-0 overflow-hidden">
-            {(() => {
-              if (!currentNote) return 'Untitled Note';
-
-              // Use stored rank if available, otherwise calculate dynamically (for backward compatibility)
-              let rank: number | undefined;
-              if (currentNote.rank) {
-                rank = currentNote.rank;
-                console.log('[NoteEditor] Using stored rank:', {
-                  noteId: currentNote.id,
-                  rank,
-                  title: currentNote.title,
-                });
-              } else {
-                const noteRanks = new Map<string, number>();
-
-                // Try to sort by numeric ID first (timestamp-based), fallback to string comparison for UUIDs
-                const sortedNotes = [...notes].sort((a, b) => {
-                  const aNum = Number(a.id);
-                  const bNum = Number(b.id);
-
-                  // If both are valid numbers (timestamp IDs), compare numerically
-                  if (!isNaN(aNum) && !isNaN(bNum)) {
-                    return bNum - aNum;
-                  }
-
-                  // Otherwise, compare as strings (for UUID or mixed cases)
-                  return b.id.localeCompare(a.id);
-                });
-
-                sortedNotes.forEach((note, index) => {
-                  noteRanks.set(note.id, index + 1);
-                });
-
-                rank = noteRanks.get(currentNote.id);
-
-                console.log('[NoteEditor] Calculated dynamic rank:', {
-                  noteId: currentNote.id,
-                  rank,
-                  title: currentNote.title,
-                  totalNotes: notes.length,
-                  noteHasRank: currentNote.rank !== undefined,
-                  noteFoundInArray: notes.some(n => n.id === currentNote.id),
-                  firstFewNoteIds: notes.slice(0, 3).map(n => n.id),
-                });
-              }
-
-              const isTopThree = rank && rank <= 3;
-
-              return (
-                <>
-                  {isTopThree && (
-                    <Crown
-                      className={`inline-flex align-middle rank-badge rank-${rank}`}
-                      size={16}
-                      fill="currentColor"
-                    />
-                  )}
-                  {currentNote.pinned && (
-                    <Pin className="inline-flex align-middle text-white" size={14} />
-                  )}
-                  {currentNote.favorite && (
-                    <Star className="inline-flex align-middle text-white fill-white" size={14} />
-                  )}
-                  {rank}.{' '}
-                  {isEditingTitle ? (
-                    <input
-                      type="text"
-                      value={editingTitle}
-                      onChange={(e) => setEditingTitle(e.target.value)}
-                      onBlur={handleSaveTitle}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSaveTitle();
-                        } else if (e.key === 'Escape') {
-                          setIsEditingTitle(false);
-                        }
-                      }}
-                      autoFocus
-                      className="bg-white/10 text-white px-2 py-0.5 rounded outline-none border border-white/20 focus:border-white/40"
-                      style={{ minWidth: '200px' }}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ) : (
-                    <span
-                      className="cursor-pointer hover:underline truncate max-w-[300px] inline-block"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingTitle(currentNote.title);
-                        setIsEditingTitle(true);
-                      }}
-                      title={currentNote.title}
-                    >
-                      {currentNote.title}
-                    </span>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              className="w-9 h-9 bg-transparent border-none flex items-center justify-center cursor-pointer transition-colors duration-150"
-              onClick={handleToggleAlwaysOnTop}
-              title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
-              style={{
-                color: isWindowAlwaysOnTop ? 'white' : 'rgba(255, 255, 255, 0.5)'
-              }}
-            >
-              <Pin size={16} />
-            </button>
-            <button
-              className="w-9 h-9 bg-transparent border-none flex items-center justify-center cursor-pointer transition-colors duration-150 text-white/50 hover:text-white"
-              onClick={async (e) => {
-                e.stopPropagation();
-                if (isTauri()) {
-                  const currentWindow = getCurrentWebviewWindow();
-                  await currentWindow.close();
-                }
-              }}
-              title="Close window"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-      )}
+      {header}
 
       {/* Main Content Area - contains sidebar + editor */}
       <div className="flex-1 flex min-h-0">
