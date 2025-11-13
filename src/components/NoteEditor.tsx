@@ -204,6 +204,13 @@ function NoteEditor({
             console.timeEnd(perfInvokeLabel);
             console.log('Retrieved note from Tauri backend:', noteData);
 
+            // CRITICAL FIX: If not found in backend temp store, fallback to Jotai atom
+            // This ensures richContent is preserved when reopening notes
+            if (!noteData) {
+              noteData = notes.find(n => n.id === noteId) || null;
+              console.log('Fallback: Retrieved note from Jotai atom:', noteData);
+            }
+
             // Check current window always-on-top status
             try {
               const currentWindow = getCurrentWindow();
