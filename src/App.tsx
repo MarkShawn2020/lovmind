@@ -94,21 +94,28 @@ function App() {
     return () => channel.close();
   }, [setNotes]);
 
-  // Load all notes from backend on startup - SIMPLIFIED
+  // 启动时同步 Tauri 后端存储的notes
   useEffect(() => {
     if (!isTauri()) return;
 
-    const loadAllNotes = async () => {
+    const syncWithBackend = async () => {
       try {
         const backendNotes = await invoke<Note[]>("get_all_temp_notes");
-        console.log('[App] Loaded notes from backend:', backendNotes.length);
-        setNotes(backendNotes);
+        if (backendNotes.length > 0) {
+          setNotes((prevNotes) => {
+            const noteMap = new Map(prevNotes.map((n) => [n.id, n]));
+            backendNotes.forEach((backendNote) => {
+              noteMap.set(backendNote.id, backendNote);
+            });
+            return Array.from(noteMap.values());
+          });
+        }
       } catch (error) {
-        console.error("Failed to load notes from backend:", error);
+        console.error("Failed to sync with backend:", error);
       }
     };
 
-    loadAllNotes();
+    syncWithBackend();
   }, [setNotes]);
 
   return <NoteEditor mode="main" placeholder="此时此刻，你在想什么呢？" />;

@@ -1,0 +1,201 @@
+import { Archive, Copy, Crown, Maximize2, Pin, Sparkles, Trash2 } from 'lucide-react';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/zh-cn';
+import { memo } from 'react';
+
+import type { Note } from '@/store';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+
+dayjs.extend(relativeTime);
+dayjs.locale('zh-cn');
+
+interface NotesSidebarProps {
+  notes: Note[];
+  currentNoteId?: string | null;
+  showArchived: boolean;
+  onOpenNote: (note: Note) => void;
+  onTogglePin: (id: string) => void | Promise<unknown>;
+  onToggleArchive: (id: string) => void | Promise<unknown>;
+  onDeleteNote: (id: string) => void | Promise<unknown>;
+  onDuplicateNote: (note: Note) => void | Promise<unknown>;
+}
+
+const NotesSidebarComponent = ({
+  notes,
+  currentNoteId,
+  showArchived,
+  onOpenNote,
+  onTogglePin,
+  onToggleArchive,
+  onDeleteNote,
+  onDuplicateNote,
+}: NotesSidebarProps) => {
+  if (notes.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
+        <div className="relative w-16 h-16">
+          <svg
+            className="w-full h-full text-primary opacity-20 drop-shadow-[0_8px_16px_rgba(0,0,0,0.1)] transition-[opacity,transform,color] duration-300 ease-in-out hover:opacity-35 hover:scale-105 floating-logo"
+            viewBox="0 0 986.05 1080"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <g fill="currentColor">
+              <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z" />
+              <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z" />
+              <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z" />
+            </g>
+          </svg>
+        </div>
+
+        <div className="flex flex-col items-center gap-2 opacity-0 animate-[fadeInUpCentered_0.5s_ease_forwards_0.15s]">
+          <h3 className="inline-flex items-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0">
+            <Sparkles size={16} className="text-primary icon-sparkle" />
+            开启灵感之旅
+          </h3>
+          <p className="text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0">
+            快捷键{' '}
+            <kbd className="inline-block px-1.5 py-0.5 text-xs font-mono bg-[var(--muted)] border border-[var(--border)] rounded mx-0.5">
+              ⌘N
+            </kbd>{' '}
+            随时唤起
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const filteredNotes = showArchived ? notes.filter(note => note.archived) : notes.filter(note => !note.archived);
+
+  const sortedNotes = [...filteredNotes].sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+
+    const aNum = Number(a.id);
+    const bNum = Number(b.id);
+
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      return bNum - aNum;
+    }
+
+    return b.id.localeCompare(a.id);
+  });
+
+  const noteRanks = new Map<string, number>();
+  const rankedNotes = [...notes].sort((a, b) => {
+    const aNum = Number(a.id);
+    const bNum = Number(b.id);
+
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      return bNum - aNum;
+    }
+
+    return b.id.localeCompare(a.id);
+  });
+
+  rankedNotes.forEach((note, index) => {
+    noteRanks.set(note.id, index + 1);
+  });
+
+  return (
+    <>
+      {sortedNotes.map(note => {
+        const rank = note.rank ?? noteRanks.get(note.id)!;
+        const isTopThree = rank <= 3;
+
+        return (
+          <ContextMenu key={note.id}>
+            <ContextMenuTrigger asChild>
+              <div
+                className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary group ${
+                  currentNoteId === note.id ? 'active' : ''
+                } ${note.pinned ? 'pinned' : ''}`}
+                onClick={() => onOpenNote(note)}
+              >
+                <div className="flex flex-col h-full">
+                  <div className="flex justify-between mb-0.5">
+                    <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1">
+                      {isTopThree && <Crown className={`inline-flex align-middle rank-badge rank-${rank}`} size={16} fill="currentColor" />}
+                      {note.pinned && <Pin className="inline-flex align-middle text-[var(--primary)]" size={14} />}
+                      {rank}. {note.title}
+                    </div>
+                    <span className="text-[0.625rem] text-[var(--muted-foreground)]">{dayjs(note.time).fromNow()}</span>
+                  </div>
+                  <p className="text-[0.8125rem] text-[var(--muted-foreground)] leading-6 mb-1 line-clamp-2 overflow-hidden text-ellipsis break-words">
+                    {note.text.replace(/\n/g, ' ').substring(0, 100)}
+                    {note.text.length > 100 ? '...' : ''}
+                  </p>
+                  <div className="flex gap-[3px] mt-auto mb-1">
+                    {note.tags.map((tag, i) => (
+                      <span key={i} className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--secondary)] text-[var(--primary)] rounded-full font-medium border border-[var(--border)]">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent className="w-48">
+              <ContextMenuItem
+                onClick={e => {
+                  e.stopPropagation();
+                  onOpenNote(note);
+                }}
+              >
+                <Maximize2 className="mr-2 h-4 w-4" />
+                打开
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onClick={e => {
+                  e.stopPropagation();
+                  onTogglePin(note.id);
+                }}
+              >
+                <Pin className="mr-2 h-4 w-4" />
+                {note.pinned ? '取消置顶' : '置顶'}
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={e => {
+                  e.stopPropagation();
+                  onDuplicateNote(note);
+                }}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                复制
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={e => {
+                  e.stopPropagation();
+                  onToggleArchive(note.id);
+                }}
+              >
+                <Archive className="mr-2 h-4 w-4" />
+                {showArchived ? '取消归档' : '归档'}
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                variant="destructive"
+                onClick={async e => {
+                  e.stopPropagation();
+                  await onDeleteNote(note.id);
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                删除
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
+        );
+      })}
+    </>
+  );
+};
+
+export const NotesSidebar = memo(NotesSidebarComponent);

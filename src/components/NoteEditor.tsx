@@ -1,57 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Pin, Star, Trash2, Crown, Sparkles, Maximize2, X, User, Mail, LogOut, UserCircle, Info, Settings, Copy, Archive } from 'lucide-react';
+import { Archive, Crown, Pin, Sparkles, Star, X, User, Mail, LogOut, UserCircle, Info, Settings } from 'lucide-react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import confetti from 'canvas-confetti';
 import { Note, noteStatsAtom } from '../store';
-import RenderingWysiwygEditor, { RenderingWysiwygEditorRef } from './RenderingWysiwygEditor';
+import RenderingWysiwygEditor, { type EditorContentChange, RenderingWysiwygEditorRef, isEditorContentEmpty } from './RenderingWysiwygEditor';
 import EditorToolbar from './EditorToolbar';
 import ProfileModal from './ProfileModal';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/zh-cn';
 import { useNoteOperations } from '../hooks/useNoteOperations';
 import { useWindowOperations } from '../hooks/useWindowOperations';
 import { isTauri } from '../utils/tauri';
 import { useAtomValue } from 'jotai';
 import lovpenLogo from '../assets/lovpen-logo.svg';
 import packageJson from '../../package.json';
-import {
-  ContextMenu,
-  ContextMenuTrigger,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-} from './ui/context-menu';
-
-dayjs.extend(relativeTime);
-dayjs.locale('zh-cn');
-
-interface UserProfile {
-  nickname?: string;
-  avatar?: string;
-}
-
-// Helper function to check if richContent is truly empty
-const isRichContentEmpty = (richContent: any): boolean => {
-  if (!richContent) return true;
-  if (!Array.isArray(richContent)) return false;
-
-  // Check if all blocks are empty
-  return richContent.every((node: any) => {
-    if (!node.children || !Array.isArray(node.children)) return true;
-
-    // Check if all children are empty text nodes
-    return node.children.every((child: any) => {
-      if (typeof child.text === 'string') {
-        return !child.text.trim();
-      }
-      // If it's not a text node (e.g., image, hashtag), consider it non-empty
-      return false;
-    });
-  });
-};
+import { NotesSidebar } from './NotesSidebar';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface NoteEditorProps {
   mode: 'main' | 'float';
@@ -73,21 +37,22 @@ function NoteEditor({
   const { notes, setNotes, deleteNote, togglePin, toggleFavorite, toggleArchive, updateNote } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, setNotes);
   const noteStats = useAtomValue(noteStatsAtom);
+  const { userProfile, reloadProfile } = useUserProfile();
 
   // Internal state
   const [content, setContent] = useState('');
-  const [richContent, setRichContent] = useState<any>(null);
+  const [richContent, setRichContent] = useState<EditorContentChange['richContent'] | null>(null);
   const [currentTags, setCurrentTags] = useState<string[]>([]);
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
   const [isWindowAlwaysOnTop, setIsWindowAlwaysOnTop] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile>({});
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [isEditorEmpty, setIsEditorEmpty] = useState(true);
 
   // Refs
   const notesListRef = useRef<HTMLDivElement | null>(null);
@@ -97,61 +62,11 @@ function NoteEditor({
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Load user profile
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (isTauri()) {
-        try {
-          const profile = await invoke<UserProfile | null>('get_user_profile');
-          if (profile) {
-            setUserProfile(profile);
-          }
-        } catch (error) {
-          console.warn('Failed to load profile from Tauri, falling back to localStorage:', error);
-          // Fallback to localStorage if Tauri command not available
-          const saved = localStorage.getItem('user_profile');
-          if (saved) {
-            setUserProfile(JSON.parse(saved));
-          }
-        }
-      } else {
-        const saved = localStorage.getItem('user_profile');
-        if (saved) {
-          setUserProfile(JSON.parse(saved));
-        }
-      }
-    };
-    loadProfile();
-  }, []);
-
-  // Reload profile when modal closes
   useEffect(() => {
     if (!isProfileModalOpen) {
-      const loadProfile = async () => {
-        if (isTauri()) {
-          try {
-            const profile = await invoke<UserProfile | null>('get_user_profile');
-            if (profile) {
-              setUserProfile(profile);
-            }
-          } catch (error) {
-            console.warn('Failed to load profile from Tauri, falling back to localStorage:', error);
-            // Fallback to localStorage if Tauri command not available
-            const saved = localStorage.getItem('user_profile');
-            if (saved) {
-              setUserProfile(JSON.parse(saved));
-            }
-          }
-        } else {
-          const saved = localStorage.getItem('user_profile');
-          if (saved) {
-            setUserProfile(JSON.parse(saved));
-          }
-        }
-      };
-      loadProfile();
+      reloadProfile();
     }
-  }, [isProfileModalOpen]);
+  }, [isProfileModalOpen, reloadProfile]);
 
   // Handle click outside to close user menu
   useEffect(() => {
@@ -187,19 +102,24 @@ function NoteEditor({
   };
 
 
-  // Load note in float mode - SIMPLIFIED
+  // Load note in float mode
   useEffect(() => {
     if (mode === 'float' && noteId) {
+      const perfLabel = `[Perf] NoteEditor load note ${noteId}`;
+      const perfInvokeLabel = `[Perf] Invoke get_temp_note ${noteId}`;
+
+      console.time(perfLabel);
       const loadNote = async () => {
         try {
           let noteData: Note | null = null;
 
           if (isTauri()) {
-            // Backend is single source of truth
+            console.time(perfInvokeLabel);
             noteData = await invoke<Note | null>('get_temp_note', { id: noteId });
-            console.log('[NoteEditor] Retrieved from backend:', noteData ? 'found' : 'not found');
+            console.timeEnd(perfInvokeLabel);
+            console.log('Retrieved note from Tauri backend:', noteData);
 
-            // Check window always-on-top status
+            // Check current window always-on-top status
             try {
               const currentWindow = getCurrentWindow();
               const isOnTop = await currentWindow.isAlwaysOnTop?.() || false;
@@ -208,22 +128,37 @@ function NoteEditor({
               console.error('Failed to get always-on-top status:', error);
             }
           } else {
-            // Browser mode: use cache
             noteData = notes.find(n => n.id === noteId) || null;
+            console.log('Retrieved note from Jotai atom:', noteData);
           }
 
           if (noteData) {
-            // Load existing note
+            console.log('[NoteEditor] Loading note in edit mode:', {
+              id: noteData.id,
+              rank: noteData.rank,
+              title: noteData.title,
+              hasRank: noteData.rank !== undefined,
+            });
             setCurrentNote(noteData);
             setContent(noteData.text);
             setRichContent(noteData.richContent || null);
             setCurrentTags(noteData.tags || []);
+            const hasText = Boolean(noteData.text?.trim());
+            setIsEditorEmpty(!hasText && isEditorContentEmpty(noteData.richContent));
           } else {
-            // Create new note
+            // No note found in backend - this is a new note created by toggle_float_windows
+            // Get rank from URL parameter
             const urlParams = new URLSearchParams(window.location.search);
             const rankParam = urlParams.get('rank');
             const rank = rankParam ? parseInt(rankParam, 10) : undefined;
 
+            console.log('[NoteEditor] Creating new note from URL params:', {
+              noteId,
+              rank,
+              hasRank: rank !== undefined,
+            });
+
+            // Create a temporary note object (will be persisted when user saves)
             const newNote: Note = {
               id: noteId,
               text: '',
@@ -237,9 +172,12 @@ function NoteEditor({
             setContent('');
             setRichContent(null);
             setCurrentTags([]);
+            setIsEditorEmpty(true);
           }
         } catch (error) {
           console.error('Failed to load note:', error);
+        } finally {
+          console.timeEnd(perfLabel);
         }
       };
 
@@ -248,22 +186,21 @@ function NoteEditor({
   }, [mode, noteId, notes]);
 
   // Handle content change
-  const handleContentChange = useCallback((newContent: string, tags?: string[], newRichContent?: any) => {
+  const handleContentChange = useCallback((payload: EditorContentChange) => {
     console.log('[NoteEditor] Content changed:', {
-      newContentLength: newContent?.length,
-      hasNewRichContent: newRichContent !== undefined,
+      newContentLength: payload.text?.length,
+      hasNewRichContent: payload.richContent !== undefined,
     });
-    setContent(newContent);
-    if (tags) setCurrentTags(tags);
-    if (newRichContent !== undefined) {
-      setRichContent(newRichContent);
-    }
+    setContent(payload.text);
+    setCurrentTags(payload.tags);
+    setRichContent(payload.richContent);
+    setIsEditorEmpty(payload.isEmpty);
   }, []);
 
   // Handle submit/save
   const handleSubmit = useCallback(async () => {
-    // Allow saving if either has text content or has non-empty rich content
-    if (!((content && typeof content === 'string' && content.trim()) || !isRichContentEmpty(richContent))) {
+    const hasTypedContent = typeof content === 'string' && Boolean(content.trim());
+    if (!hasTypedContent && isEditorEmpty) {
       return;
     }
 
@@ -305,6 +242,7 @@ function NoteEditor({
       setContent("");
       setRichContent(null);
       setCurrentTags([]);
+      setIsEditorEmpty(true);
       editorRef.current?.resetAndFocus();
 
       // Show confetti animation if enabled
@@ -389,7 +327,7 @@ function NoteEditor({
         console.error('Failed to save note:', error);
       }
     }
-  }, [mode, content, richContent, currentTags, currentNote, notes, setNotes, updateNote, editorRef, showConfetti]);
+  }, [mode, content, richContent, currentTags, currentNote, notes, setNotes, updateNote, editorRef, showConfetti, isEditorEmpty]);
 
   // Handle pin toggle for float mode
   const handleTogglePin = useCallback(async () => {
@@ -490,177 +428,7 @@ function NoteEditor({
     }
   }, [currentNote, editingTitle, updateNote]);
 
-  // Render notes list content for sidebar
-  const renderNotesList = useCallback(() => {
-    if (notes.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
-          <div className="relative w-16 h-16">
-            <svg className="w-full h-full text-primary opacity-20 drop-shadow-[0_8px_16px_rgba(0,0,0,0.1)] transition-[opacity,transform,color] duration-300 ease-in-out hover:opacity-35 hover:scale-105 floating-logo" viewBox="0 0 986.05 1080" xmlns="http://www.w3.org/2000/svg">
-              <g fill="currentColor">
-                <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z"/>
-                <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z"/>
-                <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z"/>
-              </g>
-            </svg>
-          </div>
-
-          <div className="flex flex-col items-center gap-2 opacity-0 animate-[fadeInUpCentered_0.5s_ease_forwards_0.15s]">
-            <h3 className="inline-flex items-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0">
-              <Sparkles size={16} className="text-primary icon-sparkle" />
-              开启灵感之旅
-            </h3>
-            <p className="text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0">
-              快捷键 <kbd className="inline-block px-1.5 py-0.5 text-xs font-mono bg-[var(--muted)] border border-[var(--border)] rounded mx-0.5">⌘N</kbd> 随时唤起
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    // Filter notes based on view mode
-    const filteredNotes = showArchived
-      ? notes.filter(note => note.archived)
-      : notes.filter(note => !note.archived);
-
-    const sortedNotes = [...filteredNotes].sort((a, b) => {
-      // Pinned notes always come first
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
-
-      // Then sort by creation time (newest first)
-      const aNum = Number(a.id);
-      const bNum = Number(b.id);
-
-      if (!isNaN(aNum) && !isNaN(bNum)) {
-        return bNum - aNum;
-      }
-
-      return b.id.localeCompare(a.id);
-    });
-
-    // Build dynamic rank map for notes without stored rank (backward compatibility)
-    const noteRanks = new Map<string, number>();
-
-    // Sort notes for rank calculation - handle both timestamp IDs and UUIDs
-    const rankedNotes = [...notes].sort((a, b) => {
-      const aNum = Number(a.id);
-      const bNum = Number(b.id);
-
-      // If both are valid numbers (timestamp IDs), compare numerically
-      if (!isNaN(aNum) && !isNaN(bNum)) {
-        return bNum - aNum;
-      }
-
-      // Otherwise, compare as strings (for UUID or mixed cases)
-      return b.id.localeCompare(a.id);
-    });
-
-    rankedNotes.forEach((note, index) => {
-      noteRanks.set(note.id, index + 1);
-    });
-
-    return sortedNotes.map((note) => {
-      // Use stored rank if available, otherwise fall back to dynamic calculation
-      const rank = note.rank ?? noteRanks.get(note.id)!;
-      const isTopThree = rank <= 3;
-
-      return (
-        <ContextMenu key={note.id}>
-          <ContextMenuTrigger asChild>
-            <div
-              className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary group ${
-                currentNoteId === note.id ? 'active' : ''
-              } ${
-                note.pinned ? 'pinned' : ''
-              }`}
-              onClick={() => openNoteInNewWindow(note)}
-            >
-          <div className="flex flex-col h-full">
-            <div className="flex justify-between mb-0.5">
-              <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1">
-                {isTopThree && (
-                  <Crown
-                    className={`inline-flex align-middle rank-badge rank-${rank}`}
-                    size={16}
-                    fill="currentColor"
-                  />
-                )}
-                {note.pinned && (
-                  <Pin className="inline-flex align-middle text-[var(--primary)]" size={14} />
-                )}
-                {rank}. {note.title}
-              </div>
-              <span className="text-[0.625rem] text-[var(--muted-foreground)]">{dayjs(note.time).fromNow()}</span>
-            </div>
-            <p className="text-[0.8125rem] text-[var(--muted-foreground)] leading-6 mb-1 line-clamp-2 overflow-hidden text-ellipsis break-words">
-              {note.text.replace(/\n/g, ' ').substring(0, 100)}
-              {note.text.length > 100 ? '...' : ''}
-            </p>
-            <div className="flex gap-[3px] mt-auto mb-1">
-              {note.tags.map((tag, i) => (
-                <span key={i} className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--secondary)] text-[var(--primary)] rounded-full font-medium border border-[var(--border)]">
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          </div>
-            </div>
-          </ContextMenuTrigger>
-          <ContextMenuContent className="w-48">
-            <ContextMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                openNoteInNewWindow(note);
-              }}
-            >
-              <Maximize2 className="mr-2 h-4 w-4" />
-              打开
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePin(note.id);
-              }}
-            >
-              <Pin className="mr-2 h-4 w-4" />
-              {note.pinned ? '取消置顶' : '置顶'}
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDuplicateNote(note);
-              }}
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              复制
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleArchive(note.id);
-              }}
-            >
-              <Archive className="mr-2 h-4 w-4" />
-              {showArchived ? '取消归档' : '归档'}
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-              variant="destructive"
-              onClick={async (e) => {
-                e.stopPropagation();
-                await deleteNote(note.id);
-              }}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              删除
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
-      );
-    });
-  }, [notes, currentNoteId, openNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote, showArchived]);
+  // Notes sidebar is rendered via dedicated component now
 
   return (
     <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">
@@ -852,7 +620,16 @@ function NoteEditor({
         {/* Left Sidebar - only visible on md+ screens */}
         <aside className="hidden sm:flex w-80 border-r border-border bg-muted flex-shrink-0 overflow-hidden flex-col">
           <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
-            {renderNotesList()}
+            <NotesSidebar
+              notes={notes}
+              currentNoteId={currentNoteId}
+              showArchived={showArchived}
+              onOpenNote={openNoteInNewWindow}
+              onTogglePin={togglePin}
+              onToggleArchive={toggleArchive}
+              onDeleteNote={deleteNote}
+              onDuplicateNote={handleDuplicateNote}
+            />
           </div>
         </aside>
 
@@ -874,7 +651,7 @@ function NoteEditor({
           <EditorToolbar
             mode={mode}
             onSubmit={handleSubmit}
-            submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isRichContentEmpty(richContent)}
+            submitDisabled={(!content || typeof content !== 'string' || !content.trim()) && isEditorEmpty}
           />
         </div>
       </div>

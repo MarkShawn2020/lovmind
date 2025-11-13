@@ -11,10 +11,17 @@ import type { THashtagElement } from '@/components/editor/plugins/hashtag-base-k
 
 interface RenderingWysiwygEditorProps {
   initialContent?: string;
-  initialRichContent?: any; // Plate.js Value
-  onChange?: (content: string, tags?: string[], richContent?: any) => void;
+  initialRichContent?: Value | null;
+  onChange?: (payload: EditorContentChange) => void;
   onSubmit?: () => void;
   placeholder?: string;
+}
+
+export interface EditorContentChange {
+  text: string;
+  tags: string[];
+  richContent: Value;
+  isEmpty: boolean;
 }
 
 export interface RenderingWysiwygEditorRef {
@@ -150,7 +157,7 @@ const extractTextContent = (value: Value): { text: string; tags: string[] } => {
 };
 
 // Helper to check if richContent is truly empty (not just null/undefined)
-const isRichContentEmpty = (richContent: any): boolean => {
+export const isEditorContentEmpty = (richContent: Value | null | undefined): boolean => {
   if (!richContent) return true;
   if (!Array.isArray(richContent)) return false;
 
@@ -183,7 +190,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     const safeInitialContent = typeof initialContent === 'string' ? initialContent : '';
 
     // Use richContent if available AND non-empty, otherwise fallback to text content
-    const initialValue = (initialRichContent && !isRichContentEmpty(initialRichContent))
+    const initialValue = (initialRichContent && !isEditorContentEmpty(initialRichContent))
       ? initialRichContent
       : createInitialValue(safeInitialContent);
 
@@ -194,11 +201,13 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     });
     console.timeEnd('[Perf] usePlateEditor init');
 
+    // Track whether we have already synced initial content into the editor
+    const hasLoadedInitialContent = useRef(false);
+
     // CRITICAL FIX: Blur immediately after initialization if content has images
     // This prevents autoformat/plugins from converting image nodes in first block to text
     useEffect(() => {
-      if (initialRichContent && !isRichContentEmpty(initialRichContent)) {
-        // Check if first block contains an image
+      if (initialRichContent && !isEditorContentEmpty(initialRichContent)) {
         const firstBlock = initialRichContent[0];
         const hasImageInFirstBlock = JSON.stringify(firstBlock).includes('"type":"img"');
 
@@ -220,15 +229,12 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       if (!initialRichContent && safeInitialContent && safeInitialContent.includes('![')) {
         try {
           console.log('[Markdown] Parsing content with images...');
-          // Use markdown plugin to deserialize the content
           const markdownValue = editor.api.markdown?.deserialize?.(safeInitialContent);
           if (markdownValue) {
             console.log('[Markdown] Parsed value:', markdownValue);
             editor.tf.setValue(markdownValue);
             hasProcessedMarkdown.current = true;
-            // CRITICAL: Mark as loaded to prevent content loading useEffect from overwriting
             hasLoadedInitialContent.current = true;
-            // Blur editor to prevent first block from being treated as "editing"
             setTimeout(() => {
               editor.tf.blur();
             }, 0);
@@ -241,10 +247,6 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     }, []);
 
     console.timeEnd('[Perf] RenderingWysiwygEditor init');
-
-    // Update editor value when initialRichContent changes (e.g., when loading a note)
-    // Use a ref to track if we've already loaded the initial content
-    const hasLoadedInitialContent = useRef(false);
 
     useEffect(() => {
       console.log('[RenderingWysiwygEditor] useEffect 触发:', {
@@ -270,7 +272,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
       // Check if there's new content to load
       const hasContentToLoad =
-        (initialRichContent && !isRichContentEmpty(initialRichContent)) ||
+        (initialRichContent && !isEditorContentEmpty(initialRichContent)) ||
         (safeInitialContent && safeInitialContent.trim());
 
       if (!hasContentToLoad) {
@@ -295,7 +297,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       }
 
       // Load the content
-      if (initialRichContent && !isRichContentEmpty(initialRichContent)) {
+      if (initialRichContent && !isEditorContentEmpty(initialRichContent)) {
         console.log('[RenderingWysiwygEditor] 加载 richContent:', initialRichContent);
         editor.tf.setValue(initialRichContent);
         hasLoadedInitialContent.current = true;
@@ -345,8 +347,12 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
           textPreview: text.substring(0, 200),
           tags,
         });
-        // Pass both text content and rich content (for images)
-        onChange(text, tags, value);
+        onChange({
+          text,
+          tags,
+          richContent: value,
+          isEmpty: isEditorContentEmpty(value),
+        });
       }
     };
 

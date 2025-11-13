@@ -123,46 +123,52 @@ export const useNoteOperations = () => {
   );
 
   /**
-   * Update a note - SIMPLIFIED
-   * Backend is the single source of truth
+   * Update a note
    */
   const updateNote = useCallback(
     async (updatedNote: Note) => {
       console.log('[useNoteOperations] updateNote called:', {
         id: updatedNote.id,
         rank: updatedNote.rank,
+        hasRank: updatedNote.rank !== undefined,
         title: updatedNote.title,
       });
 
       if (isTauri()) {
-        // Save to backend (single source of truth)
+        // Tauri: save to backend
         try {
           await invoke('store_temp_note', { note: updatedNote });
-          console.log('[useNoteOperations] Saved to backend');
+          console.log('[useNoteOperations] Successfully saved to backend:', {
+            id: updatedNote.id,
+            rank: updatedNote.rank,
+          });
         } catch (error) {
           console.error('Failed to save to backend:', error);
           throw error;
         }
 
-        // Broadcast to all windows
+        // Broadcast update event to all windows
         try {
           await invoke('broadcast_note_update', { note: updatedNote });
+          console.log('[useNoteOperations] Successfully broadcasted note update');
         } catch (error) {
-          console.error('Failed to broadcast:', error);
+          console.error('Failed to broadcast note update:', error);
+        }
+      } else {
+        // Browser: update Jotai atom
+        setNotes((prevNotes) =>
+          prevNotes.map((n) => (n.id === updatedNote.id ? updatedNote : n))
+        );
+
+        // Broadcast via BroadcastChannel
+        try {
+          const channel = new BroadcastChannel('lovpen-notes-channel');
+          channel.postMessage({ type: 'note-updated', note: updatedNote });
+          channel.close();
+        } catch (error) {
+          console.error('Failed to broadcast via BroadcastChannel:', error);
         }
       }
-
-      // Update local cache
-      setNotes((prevNotes) => {
-        const existingIndex = prevNotes.findIndex((n) => n.id === updatedNote.id);
-        if (existingIndex !== -1) {
-          const newNotes = [...prevNotes];
-          newNotes[existingIndex] = updatedNote;
-          return newNotes;
-        } else {
-          return [...prevNotes, updatedNote];
-        }
-      });
     },
     [setNotes]
   );
