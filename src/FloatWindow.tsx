@@ -31,32 +31,41 @@ function FloatWindow() {
   useEffect(() => {
     if (!isTauri()) return;
 
+    let cancelled = false;
+    let rafId: number | null = null;
+
+    const focusEditor = (attemptsLeft: number) => {
+      if (cancelled || attemptsLeft <= 0) return;
+      const instance = editorRef.current;
+      if (instance) {
+        instance.focus();
+        console.log('[FloatWindow] Editor focus called');
+        return;
+      }
+      rafId = requestAnimationFrame(() => focusEditor(attemptsLeft - 1));
+    };
+
     const focusWindowAndEditor = async () => {
       try {
         const window = getCurrentWindow();
-        // Step 1: Ensure window is shown and focused
         await window.show();
         await window.setFocus();
+        if (cancelled) return;
         console.log('[FloatWindow] Window focused after mount');
-
-        // Step 2: Focus the editor (critical for input!)
-        // Add extra delay to ensure editor is fully mounted
-        setTimeout(() => {
-          if (editorRef.current) {
-            editorRef.current.focus();
-            console.log('[FloatWindow] Editor focus called');
-          } else {
-            console.warn('[FloatWindow] Editor ref not available yet');
-          }
-        }, 100);
+        focusEditor(10);
       } catch (error) {
         console.error('[FloatWindow] Failed to focus window:', error);
       }
     };
 
-    // Delay to ensure window and content are fully ready
-    const timer = setTimeout(focusWindowAndEditor, 150);
-    return () => clearTimeout(timer);
+    void focusWindowAndEditor();
+
+    return () => {
+      cancelled = true;
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
   }, []);
 
   if (!noteId) {

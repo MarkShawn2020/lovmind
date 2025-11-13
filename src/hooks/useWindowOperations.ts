@@ -100,8 +100,6 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
           try {
             // Ensure window is shown first
             await webview.show();
-            // Small delay to ensure window is ready
-            await new Promise(resolve => setTimeout(resolve, 100));
             // Set focus
             await webview.setFocus();
             console.log('Float window created and focused for note:', note.id);

@@ -72,12 +72,16 @@ export function AIMenu() {
   const content = useLastAssistantMessage()?.content;
 
   React.useEffect(() => {
-    if (streaming) {
-      const anchor = api.aiChat.node({ anchor: true });
-      setTimeout(() => {
-        const anchorDom = editor.api.toDOMNode(anchor![0])!;
-        setAnchorElement(anchorDom);
-      }, 0);
+    if (!streaming) return;
+    const anchor = api.aiChat.node({ anchor: true });
+    const updateAnchor = () => {
+      const anchorDom = editor.api.toDOMNode(anchor![0])!;
+      setAnchorElement(anchorDom);
+    };
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(updateAnchor);
+    } else {
+      Promise.resolve().then(updateAnchor);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streaming]);
@@ -124,9 +128,6 @@ export function AIMenu() {
 
   useHotkeys('esc', () => {
     api.aiChat.stop();
-
-    // remove when you implement the route /api/ai/command
-    chat._abortFakeStream();
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';

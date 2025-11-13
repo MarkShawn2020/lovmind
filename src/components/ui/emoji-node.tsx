@@ -8,8 +8,6 @@ import { EmojiInlineIndexSearch, insertEmoji } from '@platejs/emoji';
 import { EmojiPlugin } from '@platejs/emoji/react';
 import { PlateElement, usePluginOption } from 'platejs/react';
 
-import { useDebounce } from '@/hooks/use-debounce';
-
 import {
   InlineCombobox,
   InlineComboboxContent,
@@ -23,7 +21,7 @@ export function EmojiInputElement(props: PlateElementProps) {
   const { children, editor, element } = props;
   const data = usePluginOption(EmojiPlugin, 'data')!;
   const [value, setValue] = React.useState('');
-  const debouncedValue = useDebounce(value, 100);
+  const debouncedValue = React.useDeferredValue(value);
   const isPending = value !== debouncedValue;
 
   const filteredEmojis = React.useMemo(() => {

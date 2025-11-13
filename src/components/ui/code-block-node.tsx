@@ -161,9 +161,28 @@ function CopyButton({
   const [hasCopied, setHasCopied] = React.useState(false);
 
   React.useEffect(() => {
-    setTimeout(() => {
-      setHasCopied(false);
-    }, 2000);
+    if (!hasCopied) return;
+
+    let rafId: number | null = null;
+    let startTimestamp: number | null = null;
+
+    const step = (timestamp: number) => {
+      if (startTimestamp === null) {
+        startTimestamp = timestamp;
+      }
+      if (timestamp - startTimestamp >= 2000) {
+        setHasCopied(false);
+        return;
+      }
+      rafId = requestAnimationFrame(step);
+    };
+
+    rafId = requestAnimationFrame(step);
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
   }, [hasCopied]);
 
   return (

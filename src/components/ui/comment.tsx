@@ -210,9 +210,12 @@ export function Comment(props: {
 
             <CommentMoreDropdown
               onCloseAutoFocus={() => {
-                setTimeout(() => {
-                  commentEditor.tf.focus({ edge: 'endEditor' });
-                }, 0);
+                const refocus = () => commentEditor.tf.focus({ edge: 'endEditor' });
+                if (typeof queueMicrotask === 'function') {
+                  queueMicrotask(refocus);
+                } else {
+                  Promise.resolve().then(refocus);
+                }
               }}
               onRemoveComment={() => {
                 if (discussionLength === 1) {

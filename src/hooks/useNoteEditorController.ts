@@ -288,14 +288,6 @@ export const useNoteEditorController = ({
 
         setCurrentNote(updatedNote);
 
-        const button = document.querySelector('.submit-btn') as HTMLButtonElement;
-        if (button) {
-          const originalText = button.textContent;
-          button.textContent = 'Saved ✓';
-          setTimeout(() => {
-            button.textContent = originalText;
-          }, 1000);
-        }
       } catch (error) {
         console.error('Failed to save note:', error);
       }

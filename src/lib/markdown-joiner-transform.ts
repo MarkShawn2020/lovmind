@@ -29,7 +29,6 @@ export const markdownJoinerTransform =
               ...chunk,
               textDelta: processedText,
             });
-            await delay(joiner.delayInMs);
           }
         } else {
           controller.enqueue(chunk);
@@ -38,15 +37,11 @@ export const markdownJoinerTransform =
     });
   };
 
-const DEFAULT_DELAY_IN_MS = 10;
-const NEST_BLOCK_DELAY_IN_MS = 100;
-
 export class MarkdownJoiner {
   private buffer = '';
   private isBuffering = false;
   private streamingCodeBlock = false;
   private streamingTable = false;
-  public delayInMs = DEFAULT_DELAY_IN_MS;
 
   private clearBuffer(): void {
     this.buffer = '';
@@ -134,7 +129,6 @@ export class MarkdownJoiner {
 
         if (this.isCompleteCodeBlockEnd() && this.streamingCodeBlock) {
           this.streamingCodeBlock = false;
-          this.delayInMs = DEFAULT_DELAY_IN_MS;
 
           output += this.buffer;
           this.clearBuffer();
@@ -142,7 +136,6 @@ export class MarkdownJoiner {
 
         if (this.isTableExisted() && this.streamingTable) {
           this.streamingTable = false;
-          this.delayInMs = DEFAULT_DELAY_IN_MS;
 
           output += this.buffer;
           this.clearBuffer();
@@ -151,13 +144,11 @@ export class MarkdownJoiner {
         this.buffer += char;
 
         if (this.isCompleteCodeBlockStart()) {
-          this.delayInMs = NEST_BLOCK_DELAY_IN_MS;
           this.streamingCodeBlock = true;
           continue;
         }
 
         if (this.isCompleteTableStart()) {
-          this.delayInMs = NEST_BLOCK_DELAY_IN_MS;
           this.streamingTable = true;
           continue;
         }
@@ -197,10 +188,4 @@ export class MarkdownJoiner {
 
     return output;
   }
-}
-
-async function delay(delayInMs?: number | null): Promise<void> {
-  return delayInMs == null
-    ? Promise.resolve()
-    : new Promise((resolve) => setTimeout(resolve, delayInMs));
 }

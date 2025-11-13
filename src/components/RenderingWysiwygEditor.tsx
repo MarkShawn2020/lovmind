@@ -176,6 +176,14 @@ export const isEditorContentEmpty = (richContent: Value | null | undefined): boo
   });
 };
 
+const defer = (fn: () => void) => {
+  if (typeof queueMicrotask === 'function') {
+    queueMicrotask(fn);
+  } else {
+    Promise.resolve().then(fn);
+  }
+};
+
 const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWysiwygEditorProps>(
   function RenderingWysiwygEditor({
     initialContent = '',
@@ -212,10 +220,10 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         const hasImageInFirstBlock = JSON.stringify(firstBlock).includes('"type":"img"');
 
         if (hasImageInFirstBlock) {
-          setTimeout(() => {
+          defer(() => {
             editor.tf.blur();
             console.log('[RenderingWysiwygEditor] Blurred to protect first block image');
-          }, 10);
+          });
         }
       }
     }, [editor, initialRichContent]);
@@ -235,9 +243,9 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
             editor.tf.setValue(markdownValue);
             hasProcessedMarkdown.current = true;
             hasLoadedInitialContent.current = true;
-            setTimeout(() => {
+            defer(() => {
               editor.tf.blur();
-            }, 0);
+            });
           }
         } catch (error) {
           console.error('Failed to parse markdown:', error);

@@ -53,21 +53,26 @@ export default function SettingsWindow() {
   useEffect(() => {
     if (!isTauri()) return;
 
+    let cancelled = false;
+
     const focusWindow = async () => {
       try {
         const window = getCurrentWindow();
-        // Ensure window is shown and focused
         await window.show();
+        if (cancelled) return;
         await window.setFocus();
+        if (cancelled) return;
         console.log('[SettingsWindow] Window focused after mount');
       } catch (error) {
         console.error('[SettingsWindow] Failed to focus window:', error);
       }
     };
 
-    // Delay to ensure window and content are fully ready
-    const timer = setTimeout(focusWindow, 150);
-    return () => clearTimeout(timer);
+    void focusWindow();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const loadSettings = async () => {
