@@ -3,11 +3,7 @@ import { User } from 'lucide-react';
 
 import lovpenLogo from '@/assets/lovpen-logo.svg';
 import type { UserProfile } from '@/hooks/useUserProfile';
-
-export type NoteStatsSummary = {
-  total: number;
-  streak: number;
-};
+import type { NoteStatsSummary } from '@/features/note/types';
 
 interface MainHeaderProps {
   noteStats: NoteStatsSummary;

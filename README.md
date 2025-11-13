@@ -91,11 +91,12 @@ pnpm tauri build
 ```
 lovmind/
 ├── src/                          # React frontend
-│   ├── App.tsx                   # Main floating window
-│   ├── editor.tsx                # Float window entry
+│   ├── App.tsx                   # Main window shell + editor layout
+│   ├── FloatWindow.tsx           # Floating window entry
 │   ├── components/
-│   │   ├── NoteEditor.tsx        # Core editor component
 │   │   └── RenderingWysiwygEditor.tsx  # Plate.js integration
+│   ├── components/note-editor/   # Headers & chrome primitives
+│   └── hooks/useNoteEditorController.ts # Shared editing state/logic
 │   └── store.ts                  # Jotai state management
 │
 └── src-tauri/                    # Rust backend

@@ -1,8 +1,13 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import './App.css';
-import NoteEditor from './components/NoteEditor';
+import { useEffect, useMemo, useRef } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+
+import './App.css';
 import { isTauri } from './utils/tauri';
+import RenderingWysiwygEditor from './components/RenderingWysiwygEditor';
+import EditorToolbar from './components/EditorToolbar';
+import { NotesSidebar } from './components/NotesSidebar';
+import { FloatHeader } from './components/note-editor/FloatHeader';
+import { useNoteEditorController } from './hooks/useNoteEditorController';
 import type { RenderingWysiwygEditorRef } from './components/RenderingWysiwygEditor';
 
 function FloatWindow() {
@@ -64,8 +69,92 @@ function FloatWindow() {
     );
   }
 
-  console.log('[Perf] FloatWindow rendering NoteEditor with noteId:', noteId);
-  return <NoteEditor mode="float" noteId={noteId} currentNoteId={noteId} editorRef={editorRef} />;
+  const {
+    notes,
+    showArchived,
+    currentNote,
+    isEditingTitle,
+    editingTitle,
+    handleTitleChange,
+    handleStartEditingTitle,
+    handleCancelEditingTitle,
+    handleSaveTitle,
+    handleHeaderMouseDown,
+    isWindowAlwaysOnTop,
+    handleToggleAlwaysOnTop,
+    handleFloatWindowClose,
+    handleContentChange,
+    handleSubmit,
+    editorRef: controlledEditorRef,
+    notesListRef,
+    editorContainerRef,
+    openNoteInNewWindow,
+    toggleArchive,
+    deleteNote,
+    handleDuplicateNote,
+    placeholder,
+    content,
+    richContent,
+    submitDisabled,
+    togglePin,
+  } = useNoteEditorController({
+    mode: 'float',
+    noteId: noteId ?? undefined,
+    currentNoteId: noteId ?? undefined,
+    editorRef,
+  });
+
+  console.log('[Perf] FloatWindow rendering layout with noteId:', noteId);
+  return (
+    <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">
+      <FloatHeader
+        currentNote={currentNote}
+        notes={notes}
+        isEditingTitle={isEditingTitle}
+        editingTitle={editingTitle}
+        onTitleChange={handleTitleChange}
+        onStartEditingTitle={handleStartEditingTitle}
+        onCancelEditingTitle={handleCancelEditingTitle}
+        onSaveTitle={handleSaveTitle}
+        onHeaderMouseDown={handleHeaderMouseDown}
+        isWindowAlwaysOnTop={isWindowAlwaysOnTop}
+        onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
+        onCloseWindow={handleFloatWindowClose}
+      />
+
+      <div className="flex-1 flex min-h-0">
+        <aside className="hidden sm:flex w-80 border-r border-border bg-muted flex-shrink-0 overflow-hidden flex-col">
+          <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-[var(--spacing-s)]" ref={notesListRef}>
+            <NotesSidebar
+              notes={notes}
+              currentNoteId={noteId ?? undefined}
+    showArchived={showArchived}
+              onOpenNote={openNoteInNewWindow}
+              onTogglePin={togglePin}
+              onToggleArchive={toggleArchive}
+              onDeleteNote={deleteNote}
+              onDuplicateNote={handleDuplicateNote}
+            />
+          </div>
+        </aside>
+
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background" ref={editorContainerRef}>
+            <RenderingWysiwygEditor
+              ref={controlledEditorRef}
+              initialContent={content}
+              initialRichContent={richContent}
+              onChange={handleContentChange}
+              onSubmit={handleSubmit}
+              placeholder={placeholder}
+            />
+          </div>
+
+          <EditorToolbar mode="float" onSubmit={handleSubmit} submitDisabled={submitDisabled} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default FloatWindow;
