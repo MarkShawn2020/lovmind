@@ -92,6 +92,7 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
           skipTaskbar: false,
           decorations: false,
           transparent: true,
+          dragDropEnabled: false,
         });
         console.timeEnd(`[Perf] Create WebviewWindow`);
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "lovmind",
-  "version": "0.52.120",
+  "version": "0.52.121",
   "identifier": "app.lovpen.mind",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -26,7 +26,8 @@
         "skipTaskbar": false,
         "center": true,
         "visible": true,
-        "focus": true
+        "focus": true,
+        "dragDropEnabled": false
       }
     ],
     "security": {

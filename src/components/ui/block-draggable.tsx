@@ -147,14 +147,13 @@ function Draggable(props: PlateElementProps) {
               )}
             >
               <Button
+                ref={handleRef}
                 variant="ghost"
-                className="absolute -left-0 h-6 w-full cursor-grab p-0 active:cursor-grabbing"
+                className="absolute -left-0 h-6 w-full p-0 touch-none"
                 style={{ top: `${dragButtonTop + 3}px` }}
                 data-plate-prevent-deselect
-                draggable={false}
               >
                 <DragHandle
-                  handleRef={handleRef}
                   isDragging={isDragging}
                   previewRef={previewRef}
                   resetPreview={resetPreview}
@@ -202,28 +201,23 @@ function Gutter({
   );
   const selected = useSelected();
 
-  // Check if this block contains the current selection/focus
-  // useSelected() should already handle this, but we'll double-check
-  const isFocused = selected;
-
   return (
     <div
       {...props}
       className={cn(
         'slate-gutterLeft',
         'absolute top-0 z-50 flex h-full -translate-x-full cursor-text',
-        // Only show for the focused block or on hover
-        isFocused ? 'opacity-100' : 'opacity-0 hover:opacity-100',
-        // Show on parent hover only if not focused
-        !isFocused && (getPluginByType(editor, element.type)?.node.isContainer
+        // Use visibility instead of opacity for better pointer-events behavior
+        'transition-opacity duration-150 ease-out',
+        'hover:opacity-100 sm:opacity-0',
+        getPluginByType(editor, element.type)?.node.isContainer
           ? 'group-hover/container:opacity-100'
-          : 'group-hover:opacity-100'),
-        // Hide when selection area is visible
+          : 'group-hover:opacity-100',
         isSelectionAreaVisible && 'hidden',
+        !selected && 'opacity-0',
         className
       )}
       contentEditable={false}
-      data-plate-prevent-deselect
     >
       {children}
     </div>
@@ -231,19 +225,11 @@ function Gutter({
 }
 
 const DragHandle = React.memo(function DragHandle({
-  handleRef,
   isDragging,
   previewRef,
   resetPreview,
   setPreviewTop,
 }: {
-  handleRef: (
-    elementOrNode:
-      | Element
-      | React.ReactElement
-      | React.RefObject<any>
-      | null
-  ) => void;
   isDragging: boolean;
   previewRef: React.RefObject<HTMLDivElement | null>;
   resetPreview: () => void;
@@ -256,49 +242,53 @@ const DragHandle = React.memo(function DragHandle({
     <Tooltip>
       <TooltipTrigger asChild>
         <div
-          ref={handleRef}
           className="flex size-full items-center justify-center"
           onClick={(e) => {
             e.preventDefault();
             editor.getApi(BlockSelectionPlugin).blockSelection.focus();
           }}
           onMouseDown={(e) => {
-            resetPreview();
+            if ((e.button !== 0 && e.button !== 2) || e.shiftKey) return;
 
-            if (e.button !== 0 || e.shiftKey) {
-              e.preventDefault();
-              return;
-            }
+            // Defer heavy operations to next tick to avoid blocking react-dnd initialization
+            requestAnimationFrame(() => {
+              resetPreview();
 
-            const blockSelection = editor
-              .getApi(BlockSelectionPlugin)
-              .blockSelection.getNodes({ sort: true });
+              const blockSelection = editor
+                .getApi(BlockSelectionPlugin)
+                .blockSelection.getNodes({ sort: true });
 
-            let selectionNodes =
-              blockSelection.length > 0
-                ? blockSelection
-                : editor.api.blocks({ mode: 'highest' });
+              let selectionNodes =
+                blockSelection.length > 0
+                  ? blockSelection
+                  : editor.api.blocks({ mode: 'highest' });
 
-            // If current block is not in selection, use it as the starting point
-            if (!selectionNodes.some(([node]) => node.id === element.id)) {
-              selectionNodes = [[element, editor.api.findPath(element)!]];
-            }
+              // If current block is not in selection, use it as the starting point
+              if (!selectionNodes.some(([node]) => node.id === element.id)) {
+                selectionNodes = [[element, editor.api.findPath(element)!]];
+              }
 
-            // Process selection nodes to include list children
-            const blocks = expandListItemsWithChildren(
-              editor,
-              selectionNodes
-            ).map(([node]) => node);
+              // Process selection nodes to include list children
+              const blocks = expandListItemsWithChildren(
+                editor,
+                selectionNodes
+              ).map(([node]) => node);
 
-            const elements = createDragPreviewElements(editor, blocks);
-            previewRef.current?.append(...elements);
-            previewRef.current?.classList.remove('hidden');
-            previewRef.current?.classList.add('opacity-0');
-            editor.setOption(DndPlugin, 'multiplePreviewRef', previewRef);
+              if (blockSelection.length === 0) {
+                editor.tf.blur();
+                editor.tf.collapse();
+              }
 
-            editor
-              .getApi(BlockSelectionPlugin)
-              .blockSelection.set(blocks.map((block) => block.id as string));
+              const elements = createDragPreviewElements(editor, blocks);
+              previewRef.current?.append(...elements);
+              previewRef.current?.classList.remove('hidden');
+              previewRef.current?.classList.add('opacity-0');
+              editor.setOption(DndPlugin, 'multiplePreviewRef', previewRef);
+
+              editor
+                .getApi(BlockSelectionPlugin)
+                .blockSelection.set(blocks.map((block) => block.id as string));
+            });
           }}
           onMouseEnter={() => {
             if (isDragging) return;
@@ -344,7 +334,7 @@ const DragHandle = React.memo(function DragHandle({
           <GripVertical className="text-muted-foreground" />
         </div>
       </TooltipTrigger>
-      <TooltipContent>拖动调整顺序</TooltipContent>
+      <TooltipContent>Drag to move</TooltipContent>
     </Tooltip>
   );
 });
