@@ -462,12 +462,36 @@ export const useNoteEditorController = ({
     }
   }, [currentNote, editingTitle, updateNote]);
 
-  const handleBackToCreate = useCallback(() => {
+  const handleBackToCreate = useCallback(async () => {
+    // Auto-save current note if in viewing mode before returning to create mode
+    if (mode === 'main' && viewingNoteId && currentNote) {
+      const hasChanges = content !== currentNote.text ||
+                        JSON.stringify(richContent) !== JSON.stringify(currentNote.richContent);
+
+      if (hasChanges) {
+        const updatedNote: Note = {
+          ...currentNote,
+          text: content,
+          title: content.split('\n')[0].substring(0, 50) || 'Untitled Note',
+          time: new Date().toLocaleString(),
+          tags: currentTags.length > 0 ? currentTags : currentNote.tags,
+          richContent: richContent,
+        };
+
+        try {
+          await updateNote(updatedNote);
+        } catch (error) {
+          console.error('Failed to auto-save note before returning to create mode:', error);
+        }
+      }
+    }
+
+    // Return to create mode
     if (onViewingModeChange) {
       onViewingModeChange(null);
     }
     editorRef.current?.resetAndFocus();
-  }, [onViewingModeChange, editorRef]);
+  }, [onViewingModeChange, editorRef, mode, viewingNoteId, currentNote, content, richContent, currentTags, updateNote]);
 
   const submitDisabled = (!content || typeof content !== 'string' || !content.trim()) && isEditorEmpty;
 
