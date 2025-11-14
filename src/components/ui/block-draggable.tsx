@@ -88,15 +88,24 @@ function Draggable(props: PlateElementProps) {
     useDraggable({
       element,
       type: 'block',  // 明确指定拖拽类型
-      onDropHandler: (_, { dragItem }) => {
-        const id = (dragItem as { id: string[] | string }).id;
+      onDropHandler: (editor, { dragItem, id, monitor }) => {
+        console.log('[Draggable] ✨ onDropHandler called!', {
+          id,
+          dragItem,
+          hasMonitor: !!monitor,
+          elementId: element.id
+        });
 
-        console.log('[Draggable] onDropHandler called', { id });
+        const dragId = (dragItem as { id: string[] | string }).id;
 
         if (blockSelectionApi) {
-          blockSelectionApi.add(id);
+          blockSelectionApi.add(dragId);
         }
         resetPreview();
+
+        // 🔥 重要：返回 false 让默认的 onDropNode 继续处理！
+        console.log('[Draggable] onDropHandler returning false to trigger default drop behavior');
+        return false;
       },
     });
 
