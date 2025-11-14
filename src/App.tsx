@@ -161,6 +161,7 @@ function App() {
     placeholder,
     content,
     richContent,
+    currentTags,
     submitDisabled,
   } = useNoteEditorController({ mode: "main", placeholder: "此时此刻，你在想什么呢？" });
 
@@ -412,7 +413,7 @@ function App() {
       }
       sidebar={sidebarNode}
       editor={editorNode}
-      toolbar={<EditorToolbar mode="main" onSubmit={handleSubmit} submitDisabled={submitDisabled} />}
+      toolbar={<EditorToolbar mode="main" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} />}
       userMenu={userMenuNode}
       profileModal={profileModalNode}
       tagSettingsModal={tagSettingsModalNode}

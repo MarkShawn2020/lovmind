@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Send, Pin } from 'lucide-react';
+import { Send, Pin, Tag } from 'lucide-react';
 
 const PinButton = memo(({
   onClick,
@@ -16,6 +16,43 @@ const PinButton = memo(({
     <Pin size={18} />
   </button>
 ));
+
+const TagsDisplay = memo(({ tags }: { tags: string[] }) => {
+  if (tags.length === 0) {
+    return (
+      <div className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground">
+        <Tag size={14} className="opacity-50" />
+        <span className="opacity-50">No tags</span>
+      </div>
+    );
+  }
+
+  // Show max 3 tags, then "+ N more"
+  const displayTags = tags.slice(0, 3);
+  const remaining = tags.length - 3;
+
+  return (
+    <div className="flex items-center gap-1.5 max-w-[280px]">
+      <Tag size={14} className="text-muted-foreground flex-shrink-0" />
+      <div className="flex gap-1 flex-wrap items-center overflow-hidden">
+        {displayTags.map((tag, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center px-1.5 py-0.5 text-[0.625rem] bg-primary/10 text-primary rounded-md font-medium border border-primary/20 whitespace-nowrap"
+            title={`#${tag}`}
+          >
+            #{tag}
+          </span>
+        ))}
+        {remaining > 0 && (
+          <span className="text-[0.625rem] text-muted-foreground whitespace-nowrap">
+            +{remaining}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+});
 
 const SendButton = memo(({
   disabled,
@@ -38,17 +75,19 @@ interface EditorToolbarProps {
   mode: 'main' | 'float';
   onSubmit: () => void;
   submitDisabled: boolean;
+  currentTags?: string[];
 }
 
 // Memoized toolbar to prevent any re-renders
 const EditorToolbar = memo(({
   mode,
   onSubmit,
-  submitDisabled
+  submitDisabled,
+  currentTags = []
 }: EditorToolbarProps) => (
   <div className={`flex-shrink-0 bg-card border-t border-border flex justify-between items-center px-[var(--spacing-s)] z-10 will-change-contents transform-gpu backface-hidden ${mode === 'float' ? 'h-11 bg-muted border-t-border opacity-95' : 'h-12'}`}>
     <div className="flex gap-2 items-center">
-      {/* Notes list is now shown in sidebar on md+ screens */}
+      <TagsDisplay tags={currentTags} />
     </div>
     <div className="flex gap-2 items-center">
       <SendButton disabled={submitDisabled} onClick={onSubmit} />

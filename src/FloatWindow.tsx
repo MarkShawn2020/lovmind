@@ -141,6 +141,7 @@ function FloatWindow() {
     placeholder,
     content,
     richContent,
+    currentTags,
     submitDisabled,
     togglePin,
   } = useNoteEditorController({
@@ -199,7 +200,7 @@ function FloatWindow() {
       }
       sidebar={sidebarNode}
       editor={editorNode}
-      toolbar={<EditorToolbar mode="float" onSubmit={handleSubmit} submitDisabled={submitDisabled} />}
+      toolbar={<EditorToolbar mode="float" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} />}
       userMenu={null}
       profileModal={null}
       aboutModal={null}
