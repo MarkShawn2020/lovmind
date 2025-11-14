@@ -196,14 +196,26 @@ export const useNoteEditorController = ({
 
   const handleContentChange = useCallback((payload: EditorContentChange) => {
     console.log("handleContentChange: ", payload);
+    console.log(`  📝 Input State: ${payload.isInputting ? '✍️  INPUTTING' : '⏸️  STOPPED'} (${payload.inputStateReason})`);
+    console.log(`  🎯 Focus State: ${payload.isFocused ? '👀 FOCUSED' : '👁️  BLURRED'}`);
 
     setContent(payload.text);
     setCurrentTags(payload.tags);
     setRichContent(payload.richContent);
     setIsEditorEmpty(payload.isEmpty);
 
-    // isFocused is now available in payload for conditional logic
-    // Example: if (!payload.isFocused) { ... }
+    // Input state is now available for conditional logic:
+    // - payload.isInputting: true when user is actively typing, false when stopped
+    // - payload.inputStateReason: why the input state changed
+    // - payload.isFocused: whether editor has focus
+    //
+    // Example use cases:
+    // 1. Auto-save only when typing stops:
+    //    if (!payload.isInputting && payload.inputStateReason === 'typing-stop') { autoSave() }
+    // 2. Show toolbar when focused but not typing:
+    //    if (payload.isFocused && !payload.isInputting) { showToolbar() }
+    // 3. Track active engagement:
+    //    if (payload.isInputting) { trackEngagement() }
   }, []);
 
   const handleSubmit = useCallback(async () => {

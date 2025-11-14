@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useImperativeHandle, forwardRef, useMemo } from 'react';
+import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
 
@@ -17,12 +17,22 @@ interface RenderingWysiwygEditorProps {
   placeholder?: string;
 }
 
+export type InputStateReason =
+  | 'typing-start'      // User started typing
+  | 'typing-stop'       // User stopped typing (debounced)
+  | 'composition-start' // IME input began
+  | 'composition-end'   // IME input ended
+  | 'focus-lost'        // Editor lost focus
+  | 'focus-only';       // Editor focused but no typing yet
+
 export interface EditorContentChange {
   text: string;
   tags: string[];
   richContent: Value;
   isEmpty: boolean;
   isFocused: boolean;
+  isInputting: boolean;
+  inputStateReason: InputStateReason;
 }
 
 export interface RenderingWysiwygEditorRef {
@@ -171,6 +181,14 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       value: initialValue,
     });
 
+    // Input state tracking
+    const isComposingRef = useRef(false);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastInputStateRef = useRef<{ isInputting: boolean; reason: InputStateReason }>({
+      isInputting: false,
+      reason: 'focus-lost',
+    });
+
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => {
         editor.tf.setValue([{ type: 'p', children: [{ text: '' }] }]);
@@ -182,7 +200,16 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       }
     }), [editor]);
 
-    // ✅ Simple onChange handler without side effects
+    // Cleanup timeout on unmount
+    useEffect(() => {
+      return () => {
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+      };
+    }, []);
+
+    // ✅ onChange handler with input state tracking
     const handleChange = ({ value }: { value: Value }) => {
       if (onChange) {
         const { text, tags } = extractTextContent(value);
@@ -191,12 +218,75 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         // In Slate.js, selection is null when editor loses focus
         const isFocused = editor.selection !== null;
 
+        // Determine input state and reason
+        let isInputting = false;
+        let inputStateReason: InputStateReason = 'focus-lost';
+
+        if (!isFocused) {
+          // Editor lost focus
+          isInputting = false;
+          inputStateReason = 'focus-lost';
+
+          // Clear any pending typing timeout
+          if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = null;
+          }
+        } else if (isComposingRef.current) {
+          // IME composition active
+          isInputting = true;
+          inputStateReason = 'composition-start';
+        } else {
+          // Editor is focused and not composing
+          // User is typing if onChange was triggered by user input
+          isInputting = true;
+          inputStateReason = 'typing-start';
+
+          // Clear existing timeout
+          if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+          }
+
+          // Set timeout to detect when user stops typing
+          typingTimeoutRef.current = setTimeout(() => {
+            if (onChange) {
+              const currentState = lastInputStateRef.current;
+
+              // Only emit if state changed
+              if (currentState.isInputting) {
+                lastInputStateRef.current = {
+                  isInputting: false,
+                  reason: 'typing-stop',
+                };
+
+                // Re-extract current content
+                const { text: currentText, tags: currentTags } = extractTextContent(editor.children as Value);
+
+                onChange({
+                  text: currentText,
+                  tags: currentTags,
+                  richContent: editor.children as Value,
+                  isEmpty: isEditorContentEmpty(editor.children as Value),
+                  isFocused: editor.selection !== null,
+                  isInputting: false,
+                  inputStateReason: 'typing-stop',
+                });
+              }
+            }
+          }, 1000); // 1 second debounce
+        }
+
+        // Update state tracking
+        lastInputStateRef.current = { isInputting, reason: inputStateReason };
+
         onChange({
           text,
           tags,
           richContent: value,
           isEmpty: isEditorContentEmpty(value),
           isFocused,
+          isInputting,
+          inputStateReason,
         });
       }
     };
@@ -205,6 +295,63 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
         onSubmit?.();
+      }
+    };
+
+    // Composition event handlers for IME input (Chinese, Japanese, Korean, etc.)
+    const handleCompositionStart = () => {
+      isComposingRef.current = true;
+
+      // Clear typing timeout when composition starts
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+
+    const handleCompositionEnd = () => {
+      isComposingRef.current = false;
+
+      // Trigger a state update with composition-end reason
+      if (onChange && editor.selection !== null) {
+        const { text, tags } = extractTextContent(editor.children as Value);
+
+        lastInputStateRef.current = {
+          isInputting: true,
+          reason: 'composition-end',
+        };
+
+        onChange({
+          text,
+          tags,
+          richContent: editor.children as Value,
+          isEmpty: isEditorContentEmpty(editor.children as Value),
+          isFocused: true,
+          isInputting: true,
+          inputStateReason: 'composition-end',
+        });
+
+        // Set timeout to detect when user stops typing after composition
+        typingTimeoutRef.current = setTimeout(() => {
+          if (onChange && lastInputStateRef.current.isInputting) {
+            lastInputStateRef.current = {
+              isInputting: false,
+              reason: 'typing-stop',
+            };
+
+            const { text: currentText, tags: currentTags } = extractTextContent(editor.children as Value);
+
+            onChange({
+              text: currentText,
+              tags: currentTags,
+              richContent: editor.children as Value,
+              isEmpty: isEditorContentEmpty(editor.children as Value),
+              isFocused: editor.selection !== null,
+              isInputting: false,
+              inputStateReason: 'typing-stop',
+            });
+          }
+        }, 1000);
       }
     };
 
@@ -217,6 +364,8 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
               variant="none"
               className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
               onKeyDown={handleKeyDown}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd}
             />
           </EditorContainer>
         </Plate>
