@@ -147,13 +147,14 @@ function Draggable(props: PlateElementProps) {
               )}
             >
               <Button
-                ref={handleRef}
                 variant="ghost"
-                className="absolute -left-0 h-6 w-full p-0"
+                className="absolute -left-0 h-6 w-full cursor-grab p-0 active:cursor-grabbing"
                 style={{ top: `${dragButtonTop + 3}px` }}
                 data-plate-prevent-deselect
+                draggable={false}
               >
                 <DragHandle
+                  handleRef={handleRef}
                   isDragging={isDragging}
                   previewRef={previewRef}
                   resetPreview={resetPreview}
@@ -230,11 +231,19 @@ function Gutter({
 }
 
 const DragHandle = React.memo(function DragHandle({
+  handleRef,
   isDragging,
   previewRef,
   resetPreview,
   setPreviewTop,
 }: {
+  handleRef: (
+    elementOrNode:
+      | Element
+      | React.ReactElement
+      | React.RefObject<any>
+      | null
+  ) => void;
   isDragging: boolean;
   previewRef: React.RefObject<HTMLDivElement | null>;
   resetPreview: () => void;
@@ -245,24 +254,25 @@ const DragHandle = React.memo(function DragHandle({
 
   return (
     <Tooltip>
-          <TooltipTrigger asChild>
-            <div
-              className="flex size-full items-center justify-center"
-              onClick={(e) => {
-                e.preventDefault();
-                editor.getApi(BlockSelectionPlugin).blockSelection.focus();
-              }}
-              onMouseDown={(e) => {
-                resetPreview();
+      <TooltipTrigger asChild>
+        <div
+          ref={handleRef}
+          className="flex size-full items-center justify-center"
+          onClick={(e) => {
+            e.preventDefault();
+            editor.getApi(BlockSelectionPlugin).blockSelection.focus();
+          }}
+          onMouseDown={(e) => {
+            resetPreview();
 
-                if (e.button !== 0 || e.shiftKey) {
-                  e.preventDefault();
-                  return;
-                }
+            if (e.button !== 0 || e.shiftKey) {
+              e.preventDefault();
+              return;
+            }
 
-                const blockSelection = editor
-                  .getApi(BlockSelectionPlugin)
-                  .blockSelection.getNodes({ sort: true });
+            const blockSelection = editor
+              .getApi(BlockSelectionPlugin)
+              .blockSelection.getNodes({ sort: true });
 
             let selectionNodes =
               blockSelection.length > 0
