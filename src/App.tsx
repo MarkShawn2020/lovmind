@@ -413,7 +413,7 @@ function App() {
       }
       sidebar={sidebarNode}
       editor={editorNode}
-      toolbar={<EditorToolbar mode="main" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} />}
+      toolbar={<EditorToolbar mode="main" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} allNotes={notes} />}
       userMenu={userMenuNode}
       profileModal={profileModalNode}
       tagSettingsModal={tagSettingsModalNode}

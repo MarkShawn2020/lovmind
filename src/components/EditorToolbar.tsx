@@ -1,5 +1,8 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Send, Pin, Tag } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { TagManagerPopover } from '@/components/TagManagerPopover';
+import type { Note } from '@/store';
 
 const PinButton = memo(({
   onClick,
@@ -17,10 +20,19 @@ const PinButton = memo(({
   </button>
 ));
 
-const TagsDisplay = memo(({ tags }: { tags: string[] }) => {
+const TagsDisplay = memo(({
+  tags,
+  onClick
+}: {
+  tags: string[];
+  onClick?: () => void;
+}) => {
   if (tags.length === 0) {
     return (
-      <div className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground">
+      <div
+        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground cursor-pointer hover:bg-accent rounded-md transition-colors"
+        onClick={onClick}
+      >
         <Tag size={14} className="opacity-50" />
         <span className="opacity-50">No tags</span>
       </div>
@@ -32,7 +44,10 @@ const TagsDisplay = memo(({ tags }: { tags: string[] }) => {
   const remaining = tags.length - 3;
 
   return (
-    <div className="flex items-center gap-1.5 max-w-[280px]">
+    <div
+      className="flex items-center gap-1.5 max-w-[280px] cursor-pointer hover:bg-accent px-2 py-1 -mx-2 -my-1 rounded-md transition-colors"
+      onClick={onClick}
+    >
       <Tag size={14} className="text-muted-foreground flex-shrink-0" />
       <div className="flex gap-1 flex-wrap items-center overflow-hidden">
         {displayTags.map((tag, i) => (
@@ -76,6 +91,7 @@ interface EditorToolbarProps {
   onSubmit: () => void;
   submitDisabled: boolean;
   currentTags?: string[];
+  allNotes?: Note[];
 }
 
 // Memoized toolbar to prevent any re-renders
@@ -83,16 +99,34 @@ const EditorToolbar = memo(({
   mode,
   onSubmit,
   submitDisabled,
-  currentTags = []
-}: EditorToolbarProps) => (
-  <div className={`flex-shrink-0 bg-card border-t border-border flex justify-between items-center px-[var(--spacing-s)] z-10 will-change-contents transform-gpu backface-hidden ${mode === 'float' ? 'h-11 bg-muted border-t-border opacity-95' : 'h-12'}`}>
-    <div className="flex gap-2 items-center">
-      <TagsDisplay tags={currentTags} />
+  currentTags = [],
+  allNotes = []
+}: EditorToolbarProps) => {
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
+  return (
+    <div className={`flex-shrink-0 bg-card border-t border-border flex justify-between items-center px-[var(--spacing-s)] z-10 will-change-contents transform-gpu backface-hidden ${mode === 'float' ? 'h-11 bg-muted border-t-border opacity-95' : 'h-12'}`}>
+      <div className="flex gap-2 items-center">
+        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+          <PopoverTrigger asChild>
+            <div>
+              <TagsDisplay tags={currentTags} onClick={() => setIsPopoverOpen(true)} />
+            </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" align="start" side="top" sideOffset={8}>
+            <TagManagerPopover
+              currentTags={currentTags}
+              allNotes={allNotes}
+              onClose={() => setIsPopoverOpen(false)}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+      <div className="flex gap-2 items-center">
+        <SendButton disabled={submitDisabled} onClick={onSubmit} />
+      </div>
     </div>
-    <div className="flex gap-2 items-center">
-      <SendButton disabled={submitDisabled} onClick={onSubmit} />
-    </div>
-  </div>
-));
+  );
+});
 
 export default EditorToolbar;

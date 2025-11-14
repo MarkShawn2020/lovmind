@@ -200,7 +200,7 @@ function FloatWindow() {
       }
       sidebar={sidebarNode}
       editor={editorNode}
-      toolbar={<EditorToolbar mode="float" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} />}
+      toolbar={<EditorToolbar mode="float" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} allNotes={notes} />}
       userMenu={null}
       profileModal={null}
       aboutModal={null}
