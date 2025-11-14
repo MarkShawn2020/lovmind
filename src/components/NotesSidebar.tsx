@@ -1,8 +1,8 @@
-import { Archive, Copy, Crown, Maximize2, Pin, Sparkles, Trash2 } from 'lucide-react';
+import { Archive, Copy, Crown, Maximize2, Pin, Sparkles, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
-import { memo } from 'react';
+import { memo, useState } from 'react';
 
 import type { Note } from '@/store';
 import {
@@ -37,6 +37,8 @@ const NotesSidebarComponent = ({
   onDeleteNote,
   onDuplicateNote,
 }: NotesSidebarProps) => {
+  const [isPinnedCollapsed, setIsPinnedCollapsed] = useState(false);
+
   if (notes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
@@ -124,99 +126,139 @@ const NotesSidebarComponent = ({
     noteRanks.set(note.id, index + 1);
   });
 
+  // Split notes into pinned and unpinned groups
+  const pinnedNotes = sortedNotes.filter(note => note.pinned);
+  const unpinnedNotes = sortedNotes.filter(note => !note.pinned);
+  const hasPinnedNotes = pinnedNotes.length > 0;
+
+  // Helper function to render a note item
+  const renderNoteItem = (note: Note) => {
+    const rank = note.rank ?? noteRanks.get(note.id)!;
+    const isTopThree = rank <= 3;
+
+    return (
+      <ContextMenu key={note.id}>
+        <ContextMenuTrigger asChild>
+          <div
+            className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary group ${
+              currentNoteId === note.id ? 'active' : ''
+            } ${note.pinned ? 'pinned' : ''}`}
+            onClick={() => onOpenNote(note)}
+          >
+            <div className="flex flex-col h-full">
+              <div className="flex justify-between mb-0.5 gap-2">
+                <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1 min-w-0">
+                  {isTopThree && <Crown className={`inline-flex align-middle rank-badge rank-${rank} flex-shrink-0`} size={16} fill="currentColor" />}
+                  {note.pinned && <Pin className="inline-flex align-middle text-[var(--primary)] flex-shrink-0" size={14} />}
+                  <span className="truncate">
+                    {rank}. {note.title}
+                  </span>
+                </div>
+                <span className="text-[0.625rem] text-[var(--muted-foreground)] flex-shrink-0 whitespace-nowrap">{dayjs(note.time).fromNow()}</span>
+              </div>
+              <p className="text-[0.8125rem] text-[var(--muted-foreground)] leading-6 mb-1 line-clamp-2 overflow-hidden text-ellipsis break-words">
+                {note.text.replace(/\n/g, ' ').substring(0, 100)}
+                {note.text.length > 100 ? '...' : ''}
+              </p>
+              <div className="flex gap-[3px] mt-auto mb-1">
+                {note.tags.map((tag, i) => (
+                  <span key={i} className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--secondary)] text-[var(--primary)] rounded-full font-medium border border-[var(--border)]">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-48">
+          <ContextMenuItem
+            onClick={e => {
+              e.stopPropagation();
+              onOpenNote(note);
+            }}
+          >
+            <Maximize2 className="mr-2 h-4 w-4" />
+            打开
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onClick={e => {
+              e.stopPropagation();
+              onTogglePin(note.id);
+            }}
+          >
+            <Pin className="mr-2 h-4 w-4" />
+            {note.pinned ? '取消置顶' : '置顶'}
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={e => {
+              e.stopPropagation();
+              onDuplicateNote(note);
+            }}
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            复制
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={e => {
+              e.stopPropagation();
+              onToggleArchive(note.id);
+            }}
+          >
+            <Archive className="mr-2 h-4 w-4" />
+            {showArchived ? '取消归档' : '归档'}
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            variant="destructive"
+            onClick={async e => {
+              e.stopPropagation();
+              await onDeleteNote(note.id);
+            }}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            删除
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  };
+
   return (
     <>
-      {sortedNotes.map(note => {
-        const rank = note.rank ?? noteRanks.get(note.id)!;
-        const isTopThree = rank <= 3;
+      {/* Pinned Notes Section with Collapsible Header */}
+      {hasPinnedNotes && (
+        <>
+          <button
+            onClick={() => setIsPinnedCollapsed(!isPinnedCollapsed)}
+            className="flex items-center justify-between w-full px-2.5 py-2 mb-1 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] rounded-[var(--radius)] transition-colors cursor-pointer border-none bg-transparent"
+          >
+            <div className="flex items-center gap-1.5">
+              <Pin size={12} className="text-[var(--primary)]" />
+              <span>置顶笔记</span>
+              <span className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full">
+                {pinnedNotes.length}
+              </span>
+            </div>
+            {isPinnedCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          </button>
 
-        return (
-          <ContextMenu key={note.id}>
-            <ContextMenuTrigger asChild>
-              <div
-                className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary group ${
-                  currentNoteId === note.id ? 'active' : ''
-                } ${note.pinned ? 'pinned' : ''}`}
-                onClick={() => onOpenNote(note)}
-              >
-                <div className="flex flex-col h-full">
-                  <div className="flex justify-between mb-0.5 gap-2">
-                    <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1 min-w-0">
-                      {isTopThree && <Crown className={`inline-flex align-middle rank-badge rank-${rank} flex-shrink-0`} size={16} fill="currentColor" />}
-                      {note.pinned && <Pin className="inline-flex align-middle text-[var(--primary)] flex-shrink-0" size={14} />}
-                      <span className="truncate">
-                        {rank}. {note.title}
-                      </span>
-                    </div>
-                    <span className="text-[0.625rem] text-[var(--muted-foreground)] flex-shrink-0 whitespace-nowrap">{dayjs(note.time).fromNow()}</span>
-                  </div>
-                  <p className="text-[0.8125rem] text-[var(--muted-foreground)] leading-6 mb-1 line-clamp-2 overflow-hidden text-ellipsis break-words">
-                    {note.text.replace(/\n/g, ' ').substring(0, 100)}
-                    {note.text.length > 100 ? '...' : ''}
-                  </p>
-                  <div className="flex gap-[3px] mt-auto mb-1">
-                    {note.tags.map((tag, i) => (
-                      <span key={i} className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--secondary)] text-[var(--primary)] rounded-full font-medium border border-[var(--border)]">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </ContextMenuTrigger>
-            <ContextMenuContent className="w-48">
-              <ContextMenuItem
-                onClick={e => {
-                  e.stopPropagation();
-                  onOpenNote(note);
-                }}
-              >
-                <Maximize2 className="mr-2 h-4 w-4" />
-                打开
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem
-                onClick={e => {
-                  e.stopPropagation();
-                  onTogglePin(note.id);
-                }}
-              >
-                <Pin className="mr-2 h-4 w-4" />
-                {note.pinned ? '取消置顶' : '置顶'}
-              </ContextMenuItem>
-              <ContextMenuItem
-                onClick={e => {
-                  e.stopPropagation();
-                  onDuplicateNote(note);
-                }}
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                复制
-              </ContextMenuItem>
-              <ContextMenuItem
-                onClick={e => {
-                  e.stopPropagation();
-                  onToggleArchive(note.id);
-                }}
-              >
-                <Archive className="mr-2 h-4 w-4" />
-                {showArchived ? '取消归档' : '归档'}
-              </ContextMenuItem>
-              <ContextMenuSeparator />
-              <ContextMenuItem
-                variant="destructive"
-                onClick={async e => {
-                  e.stopPropagation();
-                  await onDeleteNote(note.id);
-                }}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                删除
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
-        );
-      })}
+          {/* Pinned Notes List with Smooth Collapse Animation */}
+          <div
+            className="flex flex-col gap-2 transition-all duration-300 ease-in-out overflow-hidden"
+            style={{
+              maxHeight: isPinnedCollapsed ? '0' : `${pinnedNotes.length * 98}px`,
+              opacity: isPinnedCollapsed ? 0 : 1,
+              marginBottom: isPinnedCollapsed ? 0 : '8px',
+            }}
+          >
+            {pinnedNotes.map(renderNoteItem)}
+          </div>
+        </>
+      )}
+
+      {/* Unpinned Notes Section */}
+      {unpinnedNotes.map(renderNoteItem)}
     </>
   );
 };
