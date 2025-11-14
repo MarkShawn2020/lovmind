@@ -68,7 +68,8 @@ function Draggable(props: PlateElementProps) {
   const { children, editor, element, path } = props;
   const blockSelectionApi = editor.getApi(BlockSelectionPlugin).blockSelection;
 
-  const [hideGutterTemporarily, setHideGutterTemporarily] = React.useState(false);
+  // Track if mouse is actually over this block
+  const [isMouseOver, setIsMouseOver] = React.useState(false);
 
   const { isAboutToDrag, isDragging, nodeRef, previewRef, handleRef } =
     useDraggable({
@@ -77,9 +78,6 @@ function Draggable(props: PlateElementProps) {
         resetPreview();
         // Clear block selection after successful drop to remove highlight
         blockSelectionApi?.set([]);
-
-        // Force hide gutter to clear any stale CSS :hover state after DOM reordering
-        setHideGutterTemporarily(true);
 
         // Focus cursor at the end of the dragged element
         const dragElement = (dragItem as { element: TElement }).element;
@@ -111,14 +109,6 @@ function Draggable(props: PlateElementProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging]);
 
-  // Clear temporary gutter hide flag after a short delay to allow CSS :hover to reset
-  React.useEffect(() => {
-    if (hideGutterTemporarily) {
-      const timer = setTimeout(() => setHideGutterTemporarily(false), 200);
-      return () => clearTimeout(timer);
-    }
-  }, [hideGutterTemporarily]);
-
   React.useEffect(() => {
     if (isAboutToDrag) {
       previewRef.current?.classList.remove('opacity-0');
@@ -138,12 +128,17 @@ function Draggable(props: PlateElementProps) {
           : 'group'
       )}
       onMouseEnter={() => {
-        if (isDragging) return;
-        setDragButtonTop(calcDragButtonTop(editor, element));
+        if (!isDragging) {
+          setIsMouseOver(true);
+          setDragButtonTop(calcDragButtonTop(editor, element));
+        }
+      }}
+      onMouseLeave={() => {
+        setIsMouseOver(false);
       }}
     >
       {!isInTable && (
-        <Gutter forceHide={hideGutterTemporarily}>
+        <Gutter visible={isMouseOver && !isDragging}>
           <div
             className={cn(
               'slate-blockToolbarWrapper',
@@ -203,11 +198,9 @@ function Draggable(props: PlateElementProps) {
 function Gutter({
   children,
   className,
-  forceHide,
+  visible,
   ...props
-}: React.ComponentProps<'div'> & { forceHide?: boolean }) {
-  const editor = useEditorRef();
-  const element = useElement();
+}: React.ComponentProps<'div'> & { visible?: boolean }) {
   const isSelectionAreaVisible = usePluginOption(
     BlockSelectionPlugin,
     'isSelectionAreaVisible'
@@ -220,16 +213,9 @@ function Gutter({
         'slate-gutterLeft',
         'absolute top-0 z-50 flex h-full -translate-x-full cursor-text',
         'transition-opacity duration-150 ease-out',
-        // Default: hidden
-        'opacity-0',
-        // Show on hover
-        'hover:opacity-100 sm:opacity-0',
-        getPluginByType(editor, element.type)?.node.isContainer
-          ? 'group-hover/container:opacity-100'
-          : 'group-hover:opacity-100',
+        // Controlled by React state instead of CSS :hover
+        visible ? 'opacity-100' : 'opacity-0',
         isSelectionAreaVisible && 'hidden',
-        // Force hide when flag is set (important to override hover states)
-        forceHide && '!opacity-0',
         className
       )}
       contentEditable={false}
