@@ -181,6 +181,47 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       value: initialValue,
     });
 
+    // Track if content has been loaded (non-empty)
+    const hasLoadedContentRef = useRef(false);
+
+    // ✅ Update editor content when initialContent/initialRichContent changes
+    // This handles the case where FloatWindow loads note data asynchronously
+    useEffect(() => {
+      // Skip if content was already loaded
+      if (hasLoadedContentRef.current) return;
+
+      // 🎯 CRITICAL: Always prioritize richContent over text
+      // richContent preserves rich formatting (images, styles, etc.)
+      // text is just a markdown fallback
+      const hasRichContent = initialRichContent && !isEditorContentEmpty(initialRichContent);
+      const hasTextContent = initialContent && typeof initialContent === 'string' && initialContent.trim();
+
+      console.log('[RenderingWysiwygEditor] Content update check:', {
+        hasRichContent,
+        hasTextContent,
+        initialRichContent: initialRichContent ? JSON.stringify(initialRichContent).substring(0, 200) : null,
+        initialContent: initialContent ? initialContent.substring(0, 100) : null,
+      });
+
+      // Only proceed if we have ANY content to load
+      if (!hasRichContent && !hasTextContent) return;
+
+      // ✅ Priority: richContent > text
+      const newValue = hasRichContent
+        ? initialRichContent!
+        : createInitialValue(initialContent);
+
+      // Only update if the value is actually different
+      if (JSON.stringify(editor.children) !== JSON.stringify(newValue)) {
+        console.log('[RenderingWysiwygEditor] Loading async content into editor:', {
+          usingRichContent: hasRichContent,
+          newValuePreview: JSON.stringify(newValue).substring(0, 200),
+        });
+        editor.tf.setValue(newValue);
+        hasLoadedContentRef.current = true;
+      }
+    }, [initialContent, initialRichContent, editor]);
+
     // ✅ Track the editor container ref to check DOM focus
     const editorContainerRef = useRef<HTMLDivElement>(null);
 

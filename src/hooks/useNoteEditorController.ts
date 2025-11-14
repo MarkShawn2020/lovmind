@@ -157,6 +157,14 @@ export const useNoteEditorController = ({
           }
 
           if (noteData) {
+            console.log('[useNoteEditorController] Note data received:', {
+              id: noteData.id,
+              hasText: Boolean(noteData.text),
+              textPreview: noteData.text?.substring(0, 100),
+              hasRichContent: Boolean(noteData.richContent),
+              richContentPreview: noteData.richContent ? JSON.stringify(noteData.richContent).substring(0, 200) : null,
+            });
+
             setCurrentNote(noteData);
             setContent(noteData.text);
             setRichContent(noteData.richContent || null);

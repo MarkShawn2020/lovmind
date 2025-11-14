@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { listen } from '@tauri-apps/api/event';
+import { useAtom } from 'jotai';
 
 import './App.css';
 import { isTauri } from './utils/tauri';
+import { notesAtom, Note } from './store';
 import RenderingWysiwygEditor from './components/RenderingWysiwygEditor';
 import EditorToolbar from './components/EditorToolbar';
 import { NotesSidebar } from './components/NotesSidebar';
@@ -13,6 +16,7 @@ import type { RenderingWysiwygEditorRef } from './components/RenderingWysiwygEdi
 
 function FloatWindow() {
   const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
+  const [, setNotes] = useAtom(notesAtom);
 
   // Extract noteId synchronously to avoid double-render
   const noteId = useMemo(() => {
@@ -68,6 +72,38 @@ function FloatWindow() {
       }
     };
   }, []);
+
+  // Listen for global note updates from other windows
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    console.log('[FloatWindow] Setting up global note update listener...');
+    const unlistenNoteUpdate = listen<Note>(
+      'global-note-updated',
+      async (event) => {
+        const updatedNote = event.payload;
+        console.log('[FloatWindow] Received global note update:', updatedNote.id);
+
+        setNotes((prevNotes) => {
+          const existingNoteIndex = prevNotes.findIndex(
+            (n) => n.id === updatedNote.id
+          );
+
+          if (existingNoteIndex !== -1) {
+            const newNotes = [...prevNotes];
+            newNotes[existingNoteIndex] = updatedNote;
+            return newNotes;
+          } else {
+            return [...prevNotes, updatedNote];
+          }
+        });
+      }
+    );
+
+    return () => {
+      unlistenNoteUpdate.then((fn) => fn());
+    };
+  }, [setNotes]);
 
   if (!noteId) {
     return (
