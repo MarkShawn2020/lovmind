@@ -249,16 +249,26 @@ const NotesSidebarComponent = ({
             style={{
               maxHeight: isPinnedCollapsed ? '0' : `${pinnedNotes.length * 98}px`,
               opacity: isPinnedCollapsed ? 0 : 1,
-              marginBottom: isPinnedCollapsed ? 0 : '8px',
             }}
           >
             {pinnedNotes.map(renderNoteItem)}
           </div>
+
+          {/* Divider between pinned and unpinned sections */}
+          {unpinnedNotes.length > 0 && (
+            <div className="my-3 flex items-center gap-2">
+              <div className="flex-1 h-px bg-[var(--border)]" />
+              <span className="text-[0.625rem] text-[var(--muted-foreground)] px-1">其他笔记</span>
+              <div className="flex-1 h-px bg-[var(--border)]" />
+            </div>
+          )}
         </>
       )}
 
       {/* Unpinned Notes Section */}
-      {unpinnedNotes.map(renderNoteItem)}
+      <div className="flex flex-col gap-2">
+        {unpinnedNotes.map(renderNoteItem)}
+      </div>
     </>
   );
 };
