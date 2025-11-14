@@ -2,6 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,9 +10,48 @@ const __dirname = path.dirname(__filename);
 const packageJsonPath = path.join(__dirname, '..', 'package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
-// Get bump type from environment variable or default to patch
-// Usage: BUMP=minor git commit -m "..." or BUMP=major git commit -m "..."
-const bumpType = process.env.BUMP || 'patch';
+// Auto-detect bump type from git commit message
+function detectBumpType() {
+  // Check environment variable first
+  if (process.env.BUMP) {
+    return process.env.BUMP.toLowerCase();
+  }
+
+  try {
+    // Get the commit message being prepared
+    const gitRootPath = path.join(__dirname, '..');
+    const commitMsgFile = path.join(gitRootPath, '.git', 'COMMIT_EDITMSG');
+
+    if (fs.existsSync(commitMsgFile)) {
+      const commitMsg = fs.readFileSync(commitMsgFile, 'utf8');
+      const firstLine = commitMsg.split('\n')[0];
+
+      // Check for breaking changes (MAJOR)
+      // Look for "BREAKING CHANGE:" in footer or "!:" in header
+      const hasBreakingFooter = /^BREAKING CHANGE:/m.test(commitMsg);
+      const hasBreakingHeader = /^[a-z]+(\(.+?\))?!:/.test(firstLine);
+
+      if (hasBreakingFooter || hasBreakingHeader) {
+        return 'major';
+      }
+
+      // Check for features (MINOR)
+      // Only match feat: at the beginning of the first line
+      if (/^feat(\(.+?\))?:/.test(firstLine)) {
+        return 'minor';
+      }
+
+      // Default to PATCH for fix, docs, style, refactor, perf, test, chore, etc.
+      return 'patch';
+    }
+  } catch (error) {
+    console.warn('Warning: Could not read commit message, defaulting to patch');
+  }
+
+  return 'patch';
+}
+
+const bumpType = detectBumpType();
 const [major, minor, patch] = packageJson.version.split('.').map(Number);
 
 let version;
