@@ -65,9 +65,13 @@ export const BlockDraggable: RenderNodeWrapper = (props) => {
     return false;
   }, [editor, element, path]);
 
-  if (!enabled) return;
+  // CRITICAL FIX: Always return a render function, never undefined
+  // When disabled, pass through children unchanged
+  if (!enabled) {
+    return (renderProps) => <>{renderProps.children}</>;
+  }
 
-  return (props) => <Draggable {...props} />;
+  return (renderProps) => <Draggable {...renderProps} />;
 };
 
 function Draggable(props: PlateElementProps) {
@@ -149,7 +153,7 @@ function Draggable(props: PlateElementProps) {
               <Button
                 ref={handleRef}
                 variant="ghost"
-                className="absolute -left-0 h-6 w-full p-0"
+                className="absolute -left-0 h-6 w-full p-0 cursor-grab active:cursor-grabbing"
                 style={{ top: `${dragButtonTop + 3}px` }}
                 data-plate-prevent-deselect
               >
@@ -210,13 +214,13 @@ function Gutter({
       {...props}
       className={cn(
         'slate-gutterLeft',
-        'absolute top-0 z-50 flex h-full -translate-x-full cursor-text',
-        // Only show for the focused block or on hover
-        isFocused ? 'opacity-100' : 'opacity-0 hover:opacity-100',
-        // Show on parent hover only if not focused
-        !isFocused && (getPluginByType(editor, element.type)?.node.isContainer
+        'absolute top-0 z-50 flex h-full -translate-x-full',
+        // Always show on hover (simplified visibility logic)
+        'opacity-0 hover:opacity-100',
+        // Show on parent hover
+        getPluginByType(editor, element.type)?.node.isContainer
           ? 'group-hover/container:opacity-100'
-          : 'group-hover:opacity-100'),
+          : 'group-hover:opacity-100',
         // Hide when selection area is visible
         isSelectionAreaVisible && 'hidden',
         className
@@ -253,10 +257,12 @@ const DragHandle = React.memo(function DragHandle({
             editor.getApi(BlockSelectionPlugin).blockSelection.focus();
           }}
           onMouseDown={(e) => {
-            e.preventDefault();
-            resetPreview();
+            if (e.button !== 0 || e.shiftKey) {
+              e.preventDefault();
+              return;
+            }
 
-            if (e.button !== 0 || e.shiftKey) return;
+            resetPreview();
 
             const blockSelection = editor
               .getApi(BlockSelectionPlugin)
