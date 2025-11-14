@@ -92,6 +92,7 @@ interface EditorToolbarProps {
   submitDisabled: boolean;
   currentTags?: string[];
   allNotes?: Note[];
+  leftContent?: React.ReactNode;
 }
 
 // Memoized toolbar to prevent any re-renders
@@ -100,13 +101,15 @@ const EditorToolbar = memo(({
   onSubmit,
   submitDisabled,
   currentTags = [],
-  allNotes = []
+  allNotes = [],
+  leftContent
 }: EditorToolbarProps) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   return (
     <div className={`flex-shrink-0 bg-card border-t border-border flex justify-between items-center px-[var(--spacing-s)] z-10 will-change-contents transform-gpu backface-hidden ${mode === 'float' ? 'h-11 bg-muted border-t-border opacity-95' : 'h-12'}`}>
       <div className="flex gap-2 items-center">
+        {leftContent}
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <PopoverTrigger asChild>
             <div>

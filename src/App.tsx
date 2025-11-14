@@ -200,6 +200,7 @@ function App() {
   const editorNode = (
     <div ref={editorContainerRef}>
       <RenderingWysiwygEditor
+        key={viewingNoteId || 'create-mode'}
         ref={editorRef}
         initialContent={content}
         initialRichContent={richContent}
@@ -431,19 +432,23 @@ function App() {
       sidebar={sidebarNode}
       editor={editorNode}
       toolbar={
-        <div className="flex items-center gap-2">
-          {viewingNoteId && (
-            <button
-              onClick={handleBackToCreate}
-              className="px-3 py-1.5 text-sm bg-secondary text-foreground rounded-md hover:bg-accent transition-colors border border-border"
-            >
-              ← 返回新建
-            </button>
-          )}
-          <div className="flex-1">
-            <EditorToolbar mode="main" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} allNotes={notes} />
-          </div>
-        </div>
+        <EditorToolbar
+          mode="main"
+          onSubmit={handleSubmit}
+          submitDisabled={submitDisabled}
+          currentTags={currentTags}
+          allNotes={notes}
+          leftContent={
+            viewingNoteId ? (
+              <button
+                onClick={handleBackToCreate}
+                className="px-3 py-1.5 text-sm bg-secondary text-foreground rounded-md hover:bg-accent transition-colors border border-border flex items-center gap-1"
+              >
+                ← 返回新建
+              </button>
+            ) : null
+          }
+        />
       }
       userMenu={userMenuNode}
       profileModal={profileModalNode}
