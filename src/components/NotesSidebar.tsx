@@ -120,10 +120,12 @@ const NotesSidebarComponent = ({
               >
                 <div className="flex flex-col h-full">
                   <div className="flex justify-between mb-0.5 gap-2">
-                    <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1 truncate min-w-0">
-                      {isTopThree && <Crown className={`inline-flex align-middle rank-badge rank-${rank}`} size={16} fill="currentColor" />}
-                      {note.pinned && <Pin className="inline-flex align-middle text-[var(--primary)]" size={14} />}
-                      {rank}. {note.title}
+                    <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1 min-w-0">
+                      {isTopThree && <Crown className={`inline-flex align-middle rank-badge rank-${rank} flex-shrink-0`} size={16} fill="currentColor" />}
+                      {note.pinned && <Pin className="inline-flex align-middle text-[var(--primary)] flex-shrink-0" size={14} />}
+                      <span className="truncate">
+                        {rank}. {note.title}
+                      </span>
                     </div>
                     <span className="text-[0.625rem] text-[var(--muted-foreground)] flex-shrink-0 whitespace-nowrap">{dayjs(note.time).fromNow()}</span>
                   </div>
