@@ -3,6 +3,7 @@ import { Send, Pin, Tag, Plus } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { TagManagerPopover } from '@/components/TagManagerPopover';
 import type { Note } from '@/store';
+import type { RenderingWysiwygEditorRef } from '@/components/RenderingWysiwygEditor';
 
 const PinButton = memo(({
   onClick,
@@ -110,6 +111,7 @@ interface EditorToolbarProps {
   currentTags?: string[];
   allNotes?: Note[];
   isViewingMode?: boolean;
+  editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
 }
 
 // Memoized toolbar to prevent any re-renders
@@ -119,7 +121,8 @@ const EditorToolbar = memo(({
   submitDisabled,
   currentTags = [],
   allNotes = [],
-  isViewingMode = false
+  isViewingMode = false,
+  editorRef
 }: EditorToolbarProps) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
@@ -136,6 +139,7 @@ const EditorToolbar = memo(({
             <TagManagerPopover
               currentTags={currentTags}
               allNotes={allNotes}
+              editorRef={editorRef}
               onClose={() => setIsPopoverOpen(false)}
             />
           </PopoverContent>

@@ -38,6 +38,8 @@ export interface EditorContentChange {
 export interface RenderingWysiwygEditorRef {
   resetAndFocus: () => void;
   focus: () => void;
+  insertTag: (tag: string) => void;
+  removeTag: (tag: string) => void;
 }
 
 const createInitialValue = (text: string = ''): Value => {
@@ -248,6 +250,56 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       },
       focus: () => {
         editor.tf.focus();
+      },
+      insertTag: (tag: string) => {
+        // Insert hashtag at cursor position or end of document
+        try {
+          const { selection } = editor;
+
+          // If no selection, insert at the end of the last node
+          if (!selection) {
+            const lastPath = [editor.children.length - 1];
+            editor.tf.select(editor.api.end(lastPath));
+          }
+
+          editor.tf.insertNodes(
+            [
+              { text: ' ' }, // Leading space
+              {
+                type: HASHTAG_KEY,
+                value: tag,
+                children: [{ text: '' }],
+              },
+              { text: ' ' }, // Trailing space
+            ],
+            { select: true }
+          );
+
+          editor.tf.focus();
+        } catch (error) {
+          console.error('[RenderingWysiwygEditor] Failed to insert tag:', error);
+        }
+      },
+      removeTag: (tag: string) => {
+        // Find and remove all instances of this hashtag
+        try {
+          const nodes = Array.from(
+            editor.api.nodes({
+              at: [],
+              match: (n: any) => n.type === HASHTAG_KEY && n.value === tag,
+            })
+          );
+
+          // Remove in reverse order to maintain valid paths
+          for (let i = nodes.length - 1; i >= 0; i--) {
+            const [, path] = nodes[i];
+            editor.tf.removeNodes({ at: path });
+          }
+
+          editor.tf.focus();
+        } catch (error) {
+          console.error('[RenderingWysiwygEditor] Failed to remove tag:', error);
+        }
       }
     }), [editor]);
 

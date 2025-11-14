@@ -440,6 +440,7 @@ function App() {
           currentTags={currentTags}
           allNotes={notes}
           isViewingMode={!!viewingNoteId}
+          editorRef={editorRef}
         />
       }
       userMenu={userMenuNode}

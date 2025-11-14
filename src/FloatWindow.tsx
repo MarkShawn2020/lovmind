@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 import { useAtom } from 'jotai';
 
 import './App.css';
@@ -72,6 +73,30 @@ function FloatWindow() {
       }
     };
   }, []);
+
+  // Sync with backend on startup
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    const syncWithBackend = async () => {
+      try {
+        const backendNotes = await invoke<Note[]>('get_all_temp_notes');
+        if (backendNotes.length > 0) {
+          setNotes((prevNotes) => {
+            const noteMap = new Map(prevNotes.map((n) => [n.id, n]));
+            backendNotes.forEach((backendNote) => {
+              noteMap.set(backendNote.id, backendNote);
+            });
+            return Array.from(noteMap.values());
+          });
+        }
+      } catch (error) {
+        console.error('[FloatWindow] Failed to sync with backend:', error);
+      }
+    };
+
+    syncWithBackend();
+  }, [setNotes]);
 
   // Listen for global note updates from other windows
   useEffect(() => {
@@ -200,7 +225,7 @@ function FloatWindow() {
       }
       sidebar={sidebarNode}
       editor={editorNode}
-      toolbar={<EditorToolbar mode="float" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} allNotes={notes} />}
+      toolbar={<EditorToolbar mode="float" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} allNotes={notes} editorRef={controlledEditorRef} />}
       userMenu={null}
       profileModal={null}
       aboutModal={null}

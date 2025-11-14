@@ -1,11 +1,12 @@
 import { memo, useState, useMemo, useCallback } from 'react';
 import { Plus, Search, X, Check, Hash } from 'lucide-react';
 import type { Note } from '@/store';
+import type { RenderingWysiwygEditorRef } from '@/components/RenderingWysiwygEditor';
 
 interface TagManagerPopoverProps {
   currentTags: string[];
   allNotes: Note[];
-  onInsertTag?: (tag: string) => void; // Callback to insert tag into editor
+  editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
   onClose?: () => void;
 }
 
@@ -27,7 +28,7 @@ const getAllTagsWithCount = (notes: Note[]): Map<string, number> => {
 export const TagManagerPopover = memo(({
   currentTags,
   allNotes,
-  onInsertTag,
+  editorRef,
   onClose,
 }: TagManagerPopoverProps) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,26 +51,37 @@ export const TagManagerPopover = memo(({
     return sortedTags.filter(tag => tag.toLowerCase().includes(query));
   }, [sortedTags, searchQuery]);
 
-  // Copy tag to clipboard for manual pasting
-  const handleCopyTag = useCallback(async (tag: string) => {
-    const tagText = `#${tag} `;
-    try {
-      await navigator.clipboard.writeText(tagText);
-      // Optional: Show toast notification
-      console.log(`Copied: ${tagText}`);
-    } catch (error) {
-      console.error('Failed to copy tag:', error);
+  // Toggle tag: add if not present, remove if already in currentTags
+  const handleToggleTag = useCallback((tag: string) => {
+    if (!editorRef?.current) {
+      console.warn('Editor ref not available');
+      return;
     }
-  }, []);
 
-  // Create and copy new tag
+    const isInCurrent = currentTags.includes(tag);
+
+    if (isInCurrent) {
+      // Remove tag
+      editorRef.current.removeTag(tag);
+    } else {
+      // Add tag
+      editorRef.current.insertTag(tag);
+    }
+  }, [editorRef, currentTags]);
+
+  // Create and insert new tag
   const handleCreateNewTag = useCallback(() => {
     const trimmedTag = newTagInput.trim();
     if (!trimmedTag) return;
 
-    handleCopyTag(trimmedTag);
+    if (!editorRef?.current) {
+      console.warn('Editor ref not available');
+      return;
+    }
+
+    editorRef.current.insertTag(trimmedTag);
     setNewTagInput('');
-  }, [newTagInput, handleCopyTag]);
+  }, [newTagInput, editorRef]);
 
   // Handle Enter key in new tag input
   const handleNewTagKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -98,33 +110,36 @@ export const TagManagerPopover = memo(({
         </div>
       </div>
 
-      {/* Current Tags Section (Read-only) */}
+      {/* Current Tags Section - Click to remove */}
       {currentTags.length > 0 && (
         <div className="py-3 border-b border-border">
           <div className="text-xs font-medium text-muted-foreground mb-2">
-            Current Tags ({currentTags.length})
+            Current Tags ({currentTags.length}) - Click to remove
           </div>
           <div className="flex flex-wrap gap-1.5">
             {currentTags.map(tag => (
-              <div
+              <button
                 key={tag}
-                className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary text-primary-foreground rounded-md"
+                onClick={() => handleToggleTag(tag)}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-colors cursor-pointer bg-primary text-primary-foreground hover:bg-red-500 hover:text-white group"
+                title="Click to remove"
               >
+                <X size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                 #{tag}
-              </div>
+              </button>
             ))}
           </div>
           <div className="mt-2 text-xs text-muted-foreground">
             <Hash size={12} className="inline mr-1" />
-            Type in editor to add/remove tags
+            Click tags below to add, or type #tag in editor
           </div>
         </div>
       )}
 
-      {/* All Tags List - Click to copy */}
+      {/* All Tags List - Click to add */}
       <div className="flex-1 overflow-y-auto py-3 space-y-1">
         <div className="text-xs font-medium text-muted-foreground mb-2 px-1">
-          All Tags ({allTagsWithCount.size}) - Click to copy
+          All Tags ({allTagsWithCount.size}) - Click to add
         </div>
 
         {filteredTags.length === 0 ? (
@@ -139,13 +154,14 @@ export const TagManagerPopover = memo(({
             return (
               <button
                 key={tag}
-                onClick={() => handleCopyTag(tag)}
+                onClick={() => handleToggleTag(tag)}
+                disabled={isInCurrent}
                 className={`w-full flex items-center justify-between px-2 py-1.5 text-sm rounded-md transition-colors ${
                   isInCurrent
-                    ? 'bg-primary/5 text-primary border border-primary/20'
-                    : 'hover:bg-accent hover:text-accent-foreground'
+                    ? 'bg-primary/5 text-primary border border-primary/20 cursor-default'
+                    : 'hover:bg-accent hover:text-accent-foreground cursor-pointer'
                 }`}
-                title={isInCurrent ? 'Already in note - Click to copy' : 'Click to copy to clipboard'}
+                title={isInCurrent ? 'Already in note' : 'Click to add'}
               >
                 <div className="flex items-center gap-2">
                   {isInCurrent && <Check size={14} className="text-primary flex-shrink-0" />}
@@ -160,10 +176,10 @@ export const TagManagerPopover = memo(({
         )}
       </div>
 
-      {/* Quick Copy New Tag */}
+      {/* Quick Add New Tag */}
       <div className="pt-3 border-t border-border">
         <div className="text-xs font-medium text-muted-foreground mb-2">
-          Quick Copy
+          Create New Tag
         </div>
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -180,14 +196,14 @@ export const TagManagerPopover = memo(({
             onClick={handleCreateNewTag}
             disabled={!newTagInput.trim()}
             className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-            title="Copy to clipboard"
+            title="Add tag to note"
           >
             <Plus size={14} />
-            Copy
+            Add
           </button>
         </div>
         <div className="mt-2 text-xs text-muted-foreground">
-          Then paste into editor
+          Adds tag to the note immediately
         </div>
       </div>
     </div>
