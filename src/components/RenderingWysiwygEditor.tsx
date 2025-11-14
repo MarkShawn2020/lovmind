@@ -145,15 +145,26 @@ export const isEditorContentEmpty = (richContent: Value | null | undefined): boo
   if (!richContent) return true;
   if (!Array.isArray(richContent)) return false;
 
-  return richContent.every((node: any) => {
-    if (!node.children || !Array.isArray(node.children)) return true;
+  // Empty editor = only one block + that block contains only empty text nodes + no other node types
+  if (richContent.length === 0) return true;
+  if (richContent.length > 1) return false;  // Multiple blocks = has content
 
-    return node.children.every((child: any) => {
-      if (typeof child.text === 'string') {
-        return !child.text.trim();
-      }
-      return false;
-    });
+  const singleNode = richContent[0];
+
+  // Check node type: non-paragraph types = has content (e.g., image, heading, etc.)
+  if (singleNode.type && singleNode.type !== 'p') return false;
+
+  // Check children
+  if (!singleNode.children || !Array.isArray(singleNode.children)) return true;
+
+  // All children must be empty text nodes (no element nodes)
+  return singleNode.children.every((child: any) => {
+    // Element node (has type property) = has content
+    if (child.type) return false;
+    // Text node: check if empty
+    if (typeof child.text === 'string') return !child.text.trim();
+    // Other cases: treat as having content
+    return false;
   });
 };
 
@@ -190,35 +201,20 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       // Skip if content was already loaded
       if (hasLoadedContentRef.current) return;
 
-      // 🎯 CRITICAL: Always prioritize richContent over text
-      // richContent preserves rich formatting (images, styles, etc.)
-      // text is just a markdown fallback
       const hasRichContent = initialRichContent && !isEditorContentEmpty(initialRichContent);
       const hasTextContent = initialContent && typeof initialContent === 'string' && initialContent.trim();
 
-      console.log('[RenderingWysiwygEditor] Content update check:', {
-        hasRichContent,
-        hasTextContent,
-        initialRichContent: initialRichContent ? JSON.stringify(initialRichContent).substring(0, 200) : null,
-        initialContent: initialContent ? initialContent.substring(0, 100) : null,
-      });
+      if (hasRichContent || hasTextContent) {
+        const newValue = hasRichContent
+          ? initialRichContent!
+          : createInitialValue(initialContent);
 
-      // Only proceed if we have ANY content to load
-      if (!hasRichContent && !hasTextContent) return;
-
-      // ✅ Priority: richContent > text
-      const newValue = hasRichContent
-        ? initialRichContent!
-        : createInitialValue(initialContent);
-
-      // Only update if the value is actually different
-      if (JSON.stringify(editor.children) !== JSON.stringify(newValue)) {
-        console.log('[RenderingWysiwygEditor] Loading async content into editor:', {
-          usingRichContent: hasRichContent,
-          newValuePreview: JSON.stringify(newValue).substring(0, 200),
-        });
-        editor.tf.setValue(newValue);
-        hasLoadedContentRef.current = true;
+        // Only update if the value is actually different
+        if (JSON.stringify(editor.children) !== JSON.stringify(newValue)) {
+          console.log('[RenderingWysiwygEditor] Loading async content into editor');
+          editor.tf.setValue(newValue);
+          hasLoadedContentRef.current = true;
+        }
       }
     }, [initialContent, initialRichContent, editor]);
 
@@ -235,9 +231,20 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => {
-        editor.tf.setValue([{ type: 'p', children: [{ text: '' }] }]);
-        editor.tf.select({ path: [0, 0], offset: 0 });
-        editor.tf.focus();
+        const emptyValue = [{ type: 'p', children: [{ text: '' }] }];
+        editor.tf.setValue(emptyValue);
+
+        // Delay selection to ensure DOM is updated and plugins are ready
+        requestAnimationFrame(() => {
+          try {
+            editor.tf.select({ path: [0, 0], offset: 0 });
+            editor.tf.focus();
+          } catch (error) {
+            console.error('[RenderingWysiwygEditor] Failed to set selection after reset:', error);
+            // Fallback: just focus
+            editor.tf.focus();
+          }
+        });
       },
       focus: () => {
         editor.tf.focus();
