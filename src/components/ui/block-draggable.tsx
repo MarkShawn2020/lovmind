@@ -72,17 +72,10 @@ function Draggable(props: PlateElementProps) {
   const { isAboutToDrag, isDragging, nodeRef, previewRef, handleRef } =
     useDraggable({
       element,
-      onDropHandler: (_, { dragItem }) => {
-        const id = (dragItem as { id: string[] | string }).id;
-
-        if (blockSelectionApi) {
-          blockSelectionApi.add(id);
-          // Clear selection after a short delay to avoid highlight remaining
-          setTimeout(() => {
-            blockSelectionApi.clear();
-          }, 0);
-        }
+      onDropHandler: () => {
         resetPreview();
+        // Clear block selection after successful drop to remove highlight
+        blockSelectionApi?.set([]);
       },
     });
 
@@ -324,6 +317,8 @@ const DragHandle = React.memo(function DragHandle({
       }}
       onMouseUp={() => {
         resetPreview();
+        // Clear block selection when mouse released to remove highlight
+        editor.getApi(BlockSelectionPlugin).blockSelection.set([]);
       }}
       data-plate-prevent-deselect
       role="button"
