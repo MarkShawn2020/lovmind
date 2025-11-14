@@ -126,11 +126,31 @@ async fn open_devtools(window: tauri::WebviewWindow) -> Result<(), String> {
         window.open_devtools();
         Ok(())
     }
-    
+
     #[cfg(not(debug_assertions))]
     {
         Err("Developer tools are only available in debug builds".to_string())
     }
+}
+
+#[tauri::command]
+async fn get_tag_merge_strategy(app: tauri::AppHandle) -> Result<String, String> {
+    let store = app.store("settings.json").map_err(|e| e.to_string())?;
+    let strategy = store.get("tag_merge_strategy")
+        .and_then(|v| v.as_str().map(String::from))
+        .unwrap_or_else(|| "union".to_string());
+    Ok(strategy)
+}
+
+#[tauri::command]
+async fn save_tag_merge_strategy(app: tauri::AppHandle, strategy: String) -> Result<(), String> {
+    let store = app.store("settings.json").map_err(|e| e.to_string())?;
+    store.set("tag_merge_strategy", serde_json::Value::String(strategy.clone()));
+    store.save().map_err(|e| e.to_string())?;
+
+    // Broadcast to all windows for cross-window sync
+    app.emit("tag-merge-strategy-changed", &strategy).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -518,6 +538,8 @@ pub fn run() {
             save_shortcut_settings,
             reset_shortcut_settings,
             open_settings_window,
+            get_tag_merge_strategy,
+            save_tag_merge_strategy,
         ])
         .setup(|app| {
             // Create menu with AI toggle

@@ -34,6 +34,15 @@ export const MainHeader = ({
       <h1 className="text-lg font-semibold tracking-tight">Lovmind ({noteStats.total})</h1>
     </div>
     <div className="flex gap-2 items-center">
+      {noteStats.streak > 2 && (
+        <span
+          className="px-2.5 py-1 bg-gradient-to-br from-[#ff6b6b] to-[#ffd93d] text-white rounded-xl text-xs font-medium tracking-tight backdrop-blur-lg streak-badge"
+          title={`${noteStats.streak} day streak!`}
+        >
+          🔥 {noteStats.streak}d
+        </span>
+      )}
+
       <button
         ref={userButtonRef}
         className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer border-none overflow-hidden"
@@ -50,15 +59,6 @@ export const MainHeader = ({
           <User size={18} className="text-white" />
         )}
       </button>
-
-      {noteStats.streak > 2 && (
-        <span
-          className="px-2.5 py-1 bg-gradient-to-br from-[#ff6b6b] to-[#ffd93d] text-white rounded-xl text-xs font-medium tracking-tight backdrop-blur-lg streak-badge ml-2"
-          title={`${noteStats.streak} day streak!`}
-        >
-          🔥 {noteStats.streak}d
-        </span>
-      )}
     </div>
   </div>
 );

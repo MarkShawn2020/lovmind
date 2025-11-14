@@ -1,7 +1,7 @@
 {
   "name": "lovmind",
   "private": true,
-  "version": "0.52.132",
+  "version": "0.52.133",
   "type": "module",
   "scripts": {
     "dev": "vite",

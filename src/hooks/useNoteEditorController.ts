@@ -13,6 +13,7 @@ import { isTauri } from '@/utils/tauri';
 import { useNoteOperations } from '@/hooks/useNoteOperations';
 import { useWindowOperations } from '@/hooks/useWindowOperations';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useTagMergeStrategy } from '@/hooks/useTagMergeStrategy';
 import type { NoteStatsSummary } from '@/features/note/types';
 
 interface UseNoteEditorControllerOptions {
@@ -36,6 +37,7 @@ export const useNoteEditorController = ({
   const { openNoteInNewWindow } = useWindowOperations(notes, setNotes);
   const noteStats = useAtomValue(noteStatsAtom) as NoteStatsSummary;
   const { userProfile, reloadProfile } = useUserProfile();
+  const { mergeTagsByStrategy } = useTagMergeStrategy();
 
   const [content, setContent] = useState('');
   const [richContent, setRichContent] = useState<EditorContentChange['richContent'] | null>(null);
@@ -45,6 +47,7 @@ export const useNoteEditorController = ({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isTagSettingsModalOpen, setIsTagSettingsModalOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
@@ -273,7 +276,8 @@ export const useNoteEditorController = ({
           { content }
         );
         newNote.title = generatedTitle;
-        newNote.tags = generatedTags;
+        // 🔧 Fix: Merge tags based on user strategy instead of overwriting
+        newNote.tags = mergeTagsByStrategy(tags, generatedTags);
         setNotes((prev) => [...prev.slice(0, -1), newNote]);
         await invoke("store_temp_note", { note: newNote });
       } catch (error) {
@@ -417,6 +421,8 @@ export const useNoteEditorController = ({
     setIsProfileModalOpen,
     isAboutModalOpen,
     setIsAboutModalOpen,
+    isTagSettingsModalOpen,
+    setIsTagSettingsModalOpen,
     menuPosition,
     setMenuPosition,
     isEditingTitle,

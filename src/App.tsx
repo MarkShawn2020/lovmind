@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useAtom } from "jotai";
-import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from "lucide-react";
+import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X, Tag } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
@@ -11,6 +11,7 @@ import { NotesSidebar } from "./components/NotesSidebar";
 import RenderingWysiwygEditor from "./components/RenderingWysiwygEditor";
 import EditorToolbar from "./components/EditorToolbar";
 import ProfileModal from "./components/ProfileModal";
+import TagSettingsModal from "./components/TagSettingsModal";
 import { EditorLayout } from "./components/note-editor/EditorLayout";
 import { MainHeader } from "./components/note-editor/MainHeader";
 import { useNoteEditorController } from "./hooks/useNoteEditorController";
@@ -140,6 +141,8 @@ function App() {
     setIsProfileModalOpen,
     isAboutModalOpen,
     setIsAboutModalOpen,
+    isTagSettingsModalOpen,
+    setIsTagSettingsModalOpen,
     menuPosition,
     handleUserMenuToggle,
     handleHeaderMouseDown,
@@ -231,6 +234,17 @@ function App() {
         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
         onClick={() => {
           setIsUserMenuOpen(false);
+          setIsTagSettingsModalOpen(true);
+        }}
+      >
+        <Tag size={16} />
+        Tag Settings
+      </button>
+
+      <button
+        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+        onClick={() => {
+          setIsUserMenuOpen(false);
           setShowArchived(!showArchived);
         }}
       >
@@ -303,6 +317,8 @@ function App() {
   );
 
   const profileModalNode = <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />;
+
+  const tagSettingsModalNode = <TagSettingsModal isOpen={isTagSettingsModalOpen} onClose={() => setIsTagSettingsModalOpen(false)} />;
 
   const aboutModalNode = !isAboutModalOpen ? null : (
     <div
@@ -399,6 +415,7 @@ function App() {
       toolbar={<EditorToolbar mode="main" onSubmit={handleSubmit} submitDisabled={submitDisabled} />}
       userMenu={userMenuNode}
       profileModal={profileModalNode}
+      tagSettingsModal={tagSettingsModalNode}
       aboutModal={aboutModalNode}
     />
   );
