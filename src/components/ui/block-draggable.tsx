@@ -28,6 +28,10 @@ import { cn } from '@/lib/utils';
 
 const UNDRAGGABLE_KEYS = [KEYS.column, KEYS.tr, KEYS.td];
 
+const GutterContext = React.createContext<{ isGutterHovered: boolean }>({
+  isGutterHovered: false,
+});
+
 export const BlockDraggable: RenderNodeWrapper = (props) => {
   const { editor, element, path } = props;
 
@@ -200,27 +204,32 @@ function Gutter({
     'isSelectionAreaVisible'
   );
   const selected = useSelected();
+  const [isGutterHovered, setIsGutterHovered] = React.useState(false);
 
   return (
-    <div
-      {...props}
-      className={cn(
-        'slate-gutterLeft',
-        'absolute top-0 z-50 flex h-full -translate-x-full cursor-text',
-        // Use visibility instead of opacity for better pointer-events behavior
-        'transition-opacity duration-150 ease-out',
-        'hover:opacity-100 sm:opacity-0',
-        getPluginByType(editor, element.type)?.node.isContainer
-          ? 'group-hover/container:opacity-100'
-          : 'group-hover:opacity-100',
-        isSelectionAreaVisible && 'hidden',
-        !selected && 'opacity-0',
-        className
-      )}
-      contentEditable={false}
-    >
-      {children}
-    </div>
+    <GutterContext.Provider value={{ isGutterHovered }}>
+      <div
+        {...props}
+        className={cn(
+          'slate-gutterLeft',
+          'absolute top-0 z-50 flex h-full -translate-x-full cursor-text',
+          // Use visibility instead of opacity for better pointer-events behavior
+          'transition-opacity duration-150 ease-out',
+          'hover:opacity-100 sm:opacity-0',
+          getPluginByType(editor, element.type)?.node.isContainer
+            ? 'group-hover/container:opacity-100'
+            : 'group-hover:opacity-100',
+          isSelectionAreaVisible && 'hidden',
+          !selected && 'opacity-0',
+          className
+        )}
+        onMouseEnter={() => setIsGutterHovered(true)}
+        onMouseLeave={() => setIsGutterHovered(false)}
+        contentEditable={false}
+      >
+        {children}
+      </div>
+    </GutterContext.Provider>
   );
 }
 
@@ -237,9 +246,10 @@ const DragHandle = React.memo(function DragHandle({
 }) {
   const editor = useEditorRef();
   const element = useElement();
+  const { isGutterHovered } = React.useContext(GutterContext);
 
   return (
-    <Tooltip>
+    <Tooltip delayDuration={0} open={isGutterHovered ? undefined : false}>
       <TooltipTrigger asChild>
         <div
           className="flex size-full items-center justify-center"
