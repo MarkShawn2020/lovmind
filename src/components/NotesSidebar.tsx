@@ -97,16 +97,27 @@ const NotesSidebarComponent = ({
     return bTime - aTime;
   });
 
+  // Calculate persistent ranks based on creation order (for notes without pre-assigned rank)
+  // This represents the note's position in the overall creation timeline, regardless of pin/archive status
   const noteRanks = new Map<string, number>();
   const rankedNotes = [...notes].sort((a, b) => {
-    const aNum = Number(a.id);
-    const bNum = Number(b.id);
+    // Sort by creation time descending (newest first) to match creation order
+    const aTime = new Date(a.time).getTime();
+    const bTime = new Date(b.time).getTime();
 
-    if (!isNaN(aNum) && !isNaN(bNum)) {
-      return bNum - aNum;
+    // Handle invalid dates - fallback to id-based comparison
+    if (isNaN(aTime) || isNaN(bTime)) {
+      const aNum = Number(a.id);
+      const bNum = Number(b.id);
+
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return bNum - aNum;
+      }
+
+      return b.id.localeCompare(a.id);
     }
 
-    return b.id.localeCompare(a.id);
+    return bTime - aTime;
   });
 
   rankedNotes.forEach((note, index) => {
