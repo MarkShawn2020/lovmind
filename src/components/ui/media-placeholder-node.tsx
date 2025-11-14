@@ -131,14 +131,21 @@ export const PlaceholderElement = withHOC(
         updateUploadHistory(editor, node);
 
         // ✅ Restore selection after inserting node to maintain focus
-        // Calculate the position after the inserted node
-        const nextPath = [...path];
-        nextPath[nextPath.length - 1] += 1;
-
-        // Select the position after the inserted node
-        editor.tf.select({ path: nextPath, offset: 0 });
-
-        console.log('[PlaceholderElement] 已恢复编辑器选区:', nextPath);
+        // Use Slate's `after` API to find the next valid selection point
+        try {
+          const after = editor.api.after(path);
+          if (after) {
+            editor.tf.select(after);
+            console.log('[PlaceholderElement] 已恢复编辑器选区:', after);
+          } else {
+            // Fallback: select end of document
+            const endPoint = editor.api.end([]);
+            editor.tf.select(endPoint);
+            console.log('[PlaceholderElement] 已恢复编辑器选区（文档末尾）:', endPoint);
+          }
+        } catch (error) {
+          console.warn('[PlaceholderElement] 恢复选区失败:', error);
+        }
       });
 
       // ✅ Ensure editor regains focus after async operation
