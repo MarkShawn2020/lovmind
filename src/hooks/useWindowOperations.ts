@@ -122,6 +122,8 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
    * Create and open a new empty note in a float window
    */
   const createNewNoteWindow = useCallback(async () => {
+    console.log('[createNewNoteWindow] Called! Creating new float window...');
+
     if (!isTauri()) {
       // Browser environment: generate new note ID
       const newNoteId = Date.now().toString();

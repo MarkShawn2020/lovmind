@@ -182,6 +182,17 @@ function App() {
     onViewingModeChange: handleViewingModeChange,
   });
 
+  // Wrapper for submit that handles both create and viewing modes
+  const handleSubmitWrapper = useCallback(() => {
+    if (viewingNoteId) {
+      // In viewing mode: create new window instead of submitting
+      createNewNoteWindow();
+    } else {
+      // In create mode: normal submit
+      handleSubmit();
+    }
+  }, [viewingNoteId, createNewNoteWindow, handleSubmit]);
+
   const sidebarNode = (
     <div ref={notesListRef}>
       <NotesSidebar
@@ -206,7 +217,7 @@ function App() {
         initialContent={content}
         initialRichContent={richContent}
         onChange={handleContentChange}
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmitWrapper}
         placeholder={placeholder}
       />
     </div>
@@ -435,7 +446,7 @@ function App() {
       toolbar={
         <EditorToolbar
           mode="main"
-          onSubmit={viewingNoteId ? createNewNoteWindow : handleSubmit}
+          onSubmit={handleSubmitWrapper}
           submitDisabled={submitDisabled}
           currentTags={currentTags}
           allNotes={notes}
