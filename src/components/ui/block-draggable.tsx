@@ -293,57 +293,8 @@ const DragHandle = React.memo(function DragHandle({
               handleRef(el);
             }
           }}
-          className="flex size-full items-center justify-center"
-          onClick={(e) => {
-            e.preventDefault();
-            editor.getApi(BlockSelectionPlugin).blockSelection.focus();
-          }}
-          onMouseDown={(e) => {
-            console.log('[DragHandle] onMouseDown', {
-              button: e.button,
-              shiftKey: e.shiftKey,
-              target: e.target
-            });
-
-            if (e.button !== 0 || e.shiftKey) {
-              e.preventDefault();
-              console.log('[DragHandle] Prevented non-left-click');
-              return;
-            }
-
-            console.log('[DragHandle] Starting drag preparation');
-            resetPreview();
-
-            const blockSelection = editor
-              .getApi(BlockSelectionPlugin)
-              .blockSelection.getNodes({ sort: true });
-
-            let selectionNodes =
-              blockSelection.length > 0
-                ? blockSelection
-                : editor.api.blocks({ mode: 'highest' });
-
-            // If current block is not in selection, use it as the starting point
-            if (!selectionNodes.some(([node]) => node.id === element.id)) {
-              selectionNodes = [[element, editor.api.findPath(element)!]];
-            }
-
-            // Process selection nodes to include list children
-            const blocks = expandListItemsWithChildren(
-              editor,
-              selectionNodes
-            ).map(([node]) => node);
-
-            const elements = createDragPreviewElements(editor, blocks);
-            previewRef.current?.append(...elements);
-            previewRef.current?.classList.remove('hidden');
-            previewRef.current?.classList.add('opacity-0');
-            editor.setOption(DndPlugin, 'multiplePreviewRef', previewRef);
-
-            editor
-              .getApi(BlockSelectionPlugin)
-              .blockSelection.set(blocks.map((block) => block.id as string));
-          }}
+          className="flex size-full items-center justify-center cursor-grab"
+          data-plate-prevent-deselect
           onMouseEnter={() => {
             if (isDragging) return;
 
@@ -379,11 +330,6 @@ const DragHandle = React.memo(function DragHandle({
               setPreviewTop(0);
             }
           }}
-          onMouseUp={() => {
-            resetPreview();
-          }}
-          data-plate-prevent-deselect
-          role="button"
         >
           <GripVertical className="text-muted-foreground" />
         </div>
