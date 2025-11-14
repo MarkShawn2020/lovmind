@@ -114,7 +114,10 @@ function Draggable(props: PlateElementProps) {
     isDragging,
     hasNodeRef: !!nodeRef,
     hasPreviewRef: !!previewRef,
-    hasHandleRef: !!handleRef
+    hasHandleRef: !!handleRef,
+    handleRefType: typeof handleRef,
+    nodeRefCurrent: nodeRef?.current,
+    previewRefCurrent: previewRef?.current
   });
 
   const isInColumn = path.length === 3;
@@ -177,15 +180,15 @@ function Draggable(props: PlateElementProps) {
               )}
             >
               <Button
-                ref={handleRef}
                 variant="ghost"
                 className="absolute -left-0 h-6 w-full p-0 cursor-grab active:cursor-grabbing"
                 style={{ top: `${dragButtonTop + 3}px` }}
                 data-plate-prevent-deselect
                 onMouseEnter={() => console.log('[Button] Mouse entered drag handle')}
-                onMouseDown={(e) => console.log('[Button] Mouse down on drag handle', { button: e.button })}
+                draggable={false}
               >
                 <DragHandle
+                  handleRef={handleRef}
                   isDragging={isDragging}
                   previewRef={previewRef}
                   resetPreview={resetPreview}
@@ -262,11 +265,13 @@ function Gutter({
 }
 
 const DragHandle = React.memo(function DragHandle({
+  handleRef,
   isDragging,
   previewRef,
   resetPreview,
   setPreviewTop,
 }: {
+  handleRef: (elementOrNode: Element | React.ReactElement<any> | React.RefObject<any> | null) => void;
   isDragging: boolean;
   previewRef: React.RefObject<HTMLDivElement | null>;
   resetPreview: () => void;
@@ -279,6 +284,15 @@ const DragHandle = React.memo(function DragHandle({
     <Tooltip>
       <TooltipTrigger asChild>
         <div
+          ref={(el) => {
+            console.log('[DragHandle div] ref callback', {
+              el,
+              handleRefType: typeof handleRef
+            });
+            if (typeof handleRef === 'function') {
+              handleRef(el);
+            }
+          }}
           className="flex size-full items-center justify-center"
           onClick={(e) => {
             e.preventDefault();
