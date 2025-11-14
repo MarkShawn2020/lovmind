@@ -65,60 +65,27 @@ export const BlockDraggable: RenderNodeWrapper = (props) => {
     return false;
   }, [editor, element, path]);
 
-  // CRITICAL FIX: Always return a render function, never undefined
-  // When disabled, pass through children unchanged
-  if (!enabled) {
-    return (renderProps) => <>{renderProps.children}</>;
-  }
+  if (!enabled) return;
 
-  return (renderProps) => <Draggable {...renderProps} />;
+  return (props) => <Draggable {...props} />;
 };
 
 function Draggable(props: PlateElementProps) {
   const { children, editor, element, path } = props;
   const blockSelectionApi = editor.getApi(BlockSelectionPlugin).blockSelection;
 
-  console.log('[Draggable] Rendering for element:', {
-    type: element.type,
-    id: element.id,
-    path
-  });
-
   const { isAboutToDrag, isDragging, nodeRef, previewRef, handleRef } =
     useDraggable({
       element,
-      type: 'block',  // 明确指定拖拽类型
-      onDropHandler: (editor, { dragItem, id, monitor }) => {
-        console.log('[Draggable] ✨ onDropHandler called!', {
-          id,
-          dragItem,
-          hasMonitor: !!monitor,
-          elementId: element.id
-        });
-
-        const dragId = (dragItem as { id: string[] | string }).id;
+      onDropHandler: (_, { dragItem }) => {
+        const id = (dragItem as { id: string[] | string }).id;
 
         if (blockSelectionApi) {
-          blockSelectionApi.add(dragId);
+          blockSelectionApi.add(id);
         }
         resetPreview();
-
-        // 🔥 重要：返回 false 让默认的 onDropNode 继续处理！
-        console.log('[Draggable] onDropHandler returning false to trigger default drop behavior');
-        return false;
       },
     });
-
-  console.log('[Draggable] useDraggable result:', {
-    isAboutToDrag,
-    isDragging,
-    hasNodeRef: !!nodeRef,
-    hasPreviewRef: !!previewRef,
-    hasHandleRef: !!handleRef,
-    handleRefType: typeof handleRef,
-    nodeRefCurrent: nodeRef?.current,
-    previewRefCurrent: previewRef?.current
-  });
 
   const isInColumn = path.length === 3;
   const isInTable = path.length === 4;
@@ -180,15 +147,13 @@ function Draggable(props: PlateElementProps) {
               )}
             >
               <Button
+                ref={handleRef}
                 variant="ghost"
-                className="absolute -left-0 h-6 w-full p-0 cursor-grab active:cursor-grabbing"
+                className="absolute -left-0 h-6 w-full p-0"
                 style={{ top: `${dragButtonTop + 3}px` }}
                 data-plate-prevent-deselect
-                onMouseEnter={() => console.log('[Button] Mouse entered drag handle')}
-                draggable={false}
               >
                 <DragHandle
-                  handleRef={handleRef}
                   isDragging={isDragging}
                   previewRef={previewRef}
                   resetPreview={resetPreview}
@@ -245,13 +210,13 @@ function Gutter({
       {...props}
       className={cn(
         'slate-gutterLeft',
-        'absolute top-0 z-50 flex h-full -translate-x-full',
-        // Always show on hover (simplified visibility logic)
-        'opacity-0 hover:opacity-100',
-        // Show on parent hover
-        getPluginByType(editor, element.type)?.node.isContainer
+        'absolute top-0 z-50 flex h-full -translate-x-full cursor-text',
+        // Only show for the focused block or on hover
+        isFocused ? 'opacity-100' : 'opacity-0 hover:opacity-100',
+        // Show on parent hover only if not focused
+        !isFocused && (getPluginByType(editor, element.type)?.node.isContainer
           ? 'group-hover/container:opacity-100'
-          : 'group-hover:opacity-100',
+          : 'group-hover:opacity-100'),
         // Hide when selection area is visible
         isSelectionAreaVisible && 'hidden',
         className
@@ -265,13 +230,11 @@ function Gutter({
 }
 
 const DragHandle = React.memo(function DragHandle({
-  handleRef,
   isDragging,
   previewRef,
   resetPreview,
   setPreviewTop,
 }: {
-  handleRef: (elementOrNode: Element | React.ReactElement<any> | React.RefObject<any> | null) => void;
   isDragging: boolean;
   previewRef: React.RefObject<HTMLDivElement | null>;
   resetPreview: () => void;
@@ -282,19 +245,51 @@ const DragHandle = React.memo(function DragHandle({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <div
-          ref={(el) => {
-            console.log('[DragHandle div] ref callback', {
-              el,
-              handleRefType: typeof handleRef
-            });
-            if (typeof handleRef === 'function') {
-              handleRef(el);
+          <TooltipTrigger asChild>
+            <div
+              className="flex size-full items-center justify-center"
+              onClick={(e) => {
+                e.preventDefault();
+                editor.getApi(BlockSelectionPlugin).blockSelection.focus();
+              }}
+              onMouseDown={(e) => {
+                resetPreview();
+
+                if (e.button !== 0 || e.shiftKey) {
+                  e.preventDefault();
+                  return;
+                }
+
+                const blockSelection = editor
+                  .getApi(BlockSelectionPlugin)
+                  .blockSelection.getNodes({ sort: true });
+
+            let selectionNodes =
+              blockSelection.length > 0
+                ? blockSelection
+                : editor.api.blocks({ mode: 'highest' });
+
+            // If current block is not in selection, use it as the starting point
+            if (!selectionNodes.some(([node]) => node.id === element.id)) {
+              selectionNodes = [[element, editor.api.findPath(element)!]];
             }
+
+            // Process selection nodes to include list children
+            const blocks = expandListItemsWithChildren(
+              editor,
+              selectionNodes
+            ).map(([node]) => node);
+
+            const elements = createDragPreviewElements(editor, blocks);
+            previewRef.current?.append(...elements);
+            previewRef.current?.classList.remove('hidden');
+            previewRef.current?.classList.add('opacity-0');
+            editor.setOption(DndPlugin, 'multiplePreviewRef', previewRef);
+
+            editor
+              .getApi(BlockSelectionPlugin)
+              .blockSelection.set(blocks.map((block) => block.id as string));
           }}
-          className="flex size-full items-center justify-center cursor-grab"
-          data-plate-prevent-deselect
           onMouseEnter={() => {
             if (isDragging) return;
 
@@ -330,6 +325,11 @@ const DragHandle = React.memo(function DragHandle({
               setPreviewTop(0);
             }
           }}
+          onMouseUp={() => {
+            resetPreview();
+          }}
+          data-plate-prevent-deselect
+          role="button"
         >
           <GripVertical className="text-muted-foreground" />
         </div>
