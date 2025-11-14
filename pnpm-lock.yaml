@@ -252,8 +252,8 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       code-inspector-plugin:
-        specifier: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.3.0.tgz
-        version: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.3.0.tgz
+        specifier: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.0.tgz
+        version: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.0.tgz
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -584,6 +584,10 @@ packages:
     resolution: {integrity: sha512-D2hP9eA+Sqx1kBZgzxZh0y1trbuU+JoDkiEwqhQ36nodYqJwyEIhPSdMNd7lOm/4io72luTPWH20Yda0xOuUow==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/helper-validator-identifier@7.28.5':
+    resolution: {integrity: sha512-qSs4ifwzKJSV39ucNjsvc6WVHs6b7S03sOh2OcHF9UHfVPqWWALUsNUVzhSBiItjRZoLHx7nIarVjqKVusUZ1Q==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/helper-validator-option@7.27.1':
     resolution: {integrity: sha512-YvjJow9FxbhFFKDSuFnVCe2WxXk1zWc22fFePVNEaWJEu8IrZVlda6N0uHwzZrUM1il7NC9Mlp4MaJYbYd9JSg==}
     engines: {node: '>=6.9.0'}
@@ -594,6 +598,11 @@ packages:
 
   '@babel/parser@7.28.3':
     resolution: {integrity: sha512-7+Ey1mAgYqFAx2h0RuoxcQT5+MlG3GTV0TQrgr7/ZliKsm/MNDxVVutlWaziMq7wJNAz8MTqz55XLpWvva6StA==}
+    engines: {node: '>=6.0.0'}
+    hasBin: true
+
+  '@babel/parser@7.28.5':
+    resolution: {integrity: sha512-KKBU1VGYR7ORr3At5HAtUQ+TV3SzRCXmA/8OdDZiLDBIZxVyzXuztPjfLd3BV1PRAQGCMWWSHYhL0F8d5uHBDQ==}
     engines: {node: '>=6.0.0'}
     hasBin: true
 
@@ -613,6 +622,10 @@ packages:
     resolution: {integrity: sha512-9uIQ10o0WGdpP6GDhXcdOJPJuDgFtIDtN/9+ArJQ2NAfAmiuhTQdzkaTGR33v43GYS2UrSA0eX2pPPHoFVvpxA==}
     engines: {node: '>=6.9.0'}
 
+  '@babel/runtime@7.28.4':
+    resolution: {integrity: sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==}
+    engines: {node: '>=6.9.0'}
+
   '@babel/template@7.27.2':
     resolution: {integrity: sha512-LPDZ85aEJyYSd18/DkjNh4/y1ntkE5KwUHWTiqgRxruuZL2F1yuHligVHLvcHY2vMHXttKFpJn6LwfI7cw7ODw==}
     engines: {node: '>=6.9.0'}
@@ -625,23 +638,27 @@ packages:
     resolution: {integrity: sha512-ruv7Ae4J5dUYULmeXw1gmb7rYRz57OWCPM57pHojnLq/3Z1CK2lNSLTCVjxVk1F/TZHwOZZrOWi0ur95BbLxNQ==}
     engines: {node: '>=6.9.0'}
 
-  '@code-inspector/core@1.3.0':
-    resolution: {integrity: sha512-B/OPMWeGAvaysD+HtJL0LgDqnJwZmdcCJzoCcAuQKTb8nio2rP8JVpgx/tN1etKvHlxUVx6w5LJv/3iUY59FGw==}
+  '@babel/types@7.28.5':
+    resolution: {integrity: sha512-qQ5m48eI/MFLQ5PxQj4PFaprjyCTLI37ElWMmNs0K8Lk3dVeOdNpB3ks8jc7yM5CDmVC73eMVk/trk3fgmrUpA==}
+    engines: {node: '>=6.9.0'}
 
-  '@code-inspector/esbuild@1.3.0':
-    resolution: {integrity: sha512-e4MsZvSUy6FPSs//dMr1SWU/EW7J0Tk2dugwoI1cw1HMe6PFGAP+0z6+k8pr1F/dn7JF1cLHuTB9180n0HRZUw==}
+  '@code-inspector/core@1.4.0':
+    resolution: {integrity: sha512-1AqRxiPXnYxCHoM1V0mjNHzFfhb0KkYhu6WFUW22QMxyrpd9NzzfiedODXlaH0+R5iiWSFYJKku0C0eXVEaIIw==}
 
-  '@code-inspector/mako@1.3.0':
-    resolution: {integrity: sha512-gDlIBLGB/ncI+8U4Xe55gIYUDzu9D4ObBdiUHQVrPk2/wBm0oDhG2G6h4L3Ne1r42PInkZHeIrutE8utP4k+7Q==}
+  '@code-inspector/esbuild@1.4.0':
+    resolution: {integrity: sha512-QlXfzA1fP3G3/oqmhj+CcNDfXszHoBTeFmGV8Lz09FBERGDRtc9b9mTkHjj/jv8y9+UegNFD1h+2osnJiHfunQ==}
 
-  '@code-inspector/turbopack@1.3.0':
-    resolution: {integrity: sha512-WM9Wh8cXp2ui6zg7BVq9WzpT2jBx+kuIdcafTQDvBjdaPfs32lGY4eJjIWAVbP5Y57UweMXa0w2BnGm7f/RErQ==}
+  '@code-inspector/mako@1.4.0':
+    resolution: {integrity: sha512-+wx3RSKhUwnjk/IVE7Mcq/0RWs9F6GgCGbF17gl94fidWJqIN2fBDJWriGkFlBthbWKAXdRRQSVhYxEEtkVStQ==}
 
-  '@code-inspector/vite@1.3.0':
-    resolution: {integrity: sha512-bHJF7fXMqMr7snAWVJEQunqDSYxPgeDfDeQzs1R8LUR3NYKh1UTlzs/rMj87bp5KK23WvfaHoe9y+aPY37sMUw==}
+  '@code-inspector/turbopack@1.4.0':
+    resolution: {integrity: sha512-KFgFAYm9pfU7SFjKLB87IPEqypW/9b/gGISUcKQVXo/P/U6i5Ctg/3ZMUT+WF0OEQsNYFx5YNwyowMxHImFXrA==}
 
-  '@code-inspector/webpack@1.3.0':
-    resolution: {integrity: sha512-qA163V9pcsKDNo/VaSCnle5yPULrl2KfkPECtZmscqI7YufPPQQqfry2jhBpn8+yFj02hEq08yjhhBGEVfX9fw==}
+  '@code-inspector/vite@1.4.0':
+    resolution: {integrity: sha512-vMTpyo0kW3k86zB9uk3Wz9UeS9cTs/3cJVdMasjjVgeEAe7tdKgx5qI3ca8PArtJakNIhtJhNRcmnEww9CeKSA==}
+
+  '@code-inspector/webpack@1.4.0':
+    resolution: {integrity: sha512-XGNVX0yDE9r5ieCb9vYqpV9zvU/MmxcJyOpFL43V8E6CRflMU0Tt4WWAEYFcSMK1uAli451Kb0bLkVqn6/Kv8g==}
 
   '@colors/colors@1.5.0':
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
@@ -2577,14 +2594,14 @@ packages:
   '@vitest/utils@4.0.8':
     resolution: {integrity: sha512-pdk2phO5NDvEFfUTxcTP8RFYjVj/kfLSPIN5ebP2Mu9kcIMeAQTbknqcFEyBcC4z2pJlJI9aS5UQjcYfhmKAow==}
 
-  '@vue/compiler-core@3.5.21':
-    resolution: {integrity: sha512-8i+LZ0vf6ZgII5Z9XmUvrCyEzocvWT+TeR2VBUVlzIH6Tyv57E20mPZ1bCS+tbejgUgmjrEh7q/0F0bibskAmw==}
+  '@vue/compiler-core@3.5.24':
+    resolution: {integrity: sha512-eDl5H57AOpNakGNAkFDH+y7kTqrQpJkZFXhWZQGyx/5Wh7B1uQYvcWkvZi11BDhscPgj8N7XV3oRwiPnx1Vrig==}
 
-  '@vue/compiler-dom@3.5.21':
-    resolution: {integrity: sha512-jNtbu/u97wiyEBJlJ9kmdw7tAr5Vy0Aj5CgQmo+6pxWNQhXZDPsRr1UWPN4v3Zf82s2H3kF51IbzZ4jMWAgPlQ==}
+  '@vue/compiler-dom@3.5.24':
+    resolution: {integrity: sha512-1QHGAvs53gXkWdd3ZMGYuvQFXHW4ksKWPG8HP8/2BscrbZ0brw183q2oNWjMrSWImYLHxHrx1ItBQr50I/q2zw==}
 
-  '@vue/shared@3.5.21':
-    resolution: {integrity: sha512-+2k1EQpnYuVuu3N7atWyG3/xoFWIVJZq4Mz8XNOdScFI0etES75fbny/oU4lKWk/577P1zmg0ioYvpGEDZ3DLw==}
+  '@vue/shared@3.5.24':
+    resolution: {integrity: sha512-9cwHL2EsJBdi8NY22pngYYWzkTDhld6fAD6jlaeloNGciNSJL6bLpbxVgXl96X00Jtc6YWQv96YA/0sxex/k1A==}
 
   JSONStream@1.3.5:
     resolution: {integrity: sha512-E+iruNOY8VV9s4JEbe1aNEm6MiszPRr/UfcHMz0TQh1BXSxHK+ASV1R6W4HpjBhSeS+54PIsAMCBmwD06LLsqQ==}
@@ -2877,9 +2894,9 @@ packages:
       react: ^18 || ^19 || ^19.0.0-rc
       react-dom: ^18 || ^19 || ^19.0.0-rc
 
-  code-inspector-plugin@https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.3.0.tgz:
-    resolution: {tarball: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.3.0.tgz}
-    version: 1.3.0
+  code-inspector-plugin@https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.0.tgz:
+    resolution: {tarball: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.0.tgz}
+    version: 1.4.0
 
   codem-isoboxer@0.3.10:
     resolution: {integrity: sha512-eNk3TRV+xQMJ1PEj0FQGY8KD4m0GPxT487XJ+Iftm7mVa9WpPFDMWqPt+46buiP5j5Wzqe5oMIhqBcAeKfygSA==}
@@ -4732,8 +4749,8 @@ packages:
   player.style@0.1.10:
     resolution: {integrity: sha512-Jxv7tlaQ3SFCddsN35jzoGnCHB3/xMTbJOgn4zcsmF0lcZvRPq5UkRRAD5tZm8CvzKndUvtoDlG6GSPL/N/SrA==}
 
-  portfinder@1.0.37:
-    resolution: {integrity: sha512-yuGIEjDAYnnOex9ddMnKZEMFE0CcGo6zbfzDklkmT1m5z734ss6JMzN9rNB3+RR7iS+F10D4/BVIaXOyh8PQKw==}
+  portfinder@1.0.38:
+    resolution: {integrity: sha512-rEwq/ZHlJIKw++XtLAO8PPuOQA/zaPJOZJ37BVuN97nLpMJeuDVLVGRwbFoBgLudgdTMP2hdRJP++H+8QOA3vg==}
     engines: {node: '>= 10.12'}
 
   postcss-value-parser@4.2.0:
@@ -6025,6 +6042,8 @@ snapshots:
 
   '@babel/helper-validator-identifier@7.27.1': {}
 
+  '@babel/helper-validator-identifier@7.28.5': {}
+
   '@babel/helper-validator-option@7.27.1': {}
 
   '@babel/helpers@7.28.3':
@@ -6035,6 +6054,10 @@ snapshots:
   '@babel/parser@7.28.3':
     dependencies:
       '@babel/types': 7.28.2
+
+  '@babel/parser@7.28.5':
+    dependencies:
+      '@babel/types': 7.28.5
 
   '@babel/plugin-transform-react-jsx-self@7.27.1(@babel/core@7.28.3)':
     dependencies:
@@ -6047,6 +6070,8 @@ snapshots:
       '@babel/helper-plugin-utils': 7.27.1
 
   '@babel/runtime@7.28.3': {}
+
+  '@babel/runtime@7.28.4': {}
 
   '@babel/template@7.27.2':
     dependencies:
@@ -6071,45 +6096,50 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@code-inspector/core@1.3.0':
+  '@babel/types@7.28.5':
     dependencies:
-      '@vue/compiler-dom': 3.5.21
+      '@babel/helper-string-parser': 7.27.1
+      '@babel/helper-validator-identifier': 7.28.5
+
+  '@code-inspector/core@1.4.0':
+    dependencies:
+      '@vue/compiler-dom': 3.5.24
       chalk: 4.1.1
       dotenv: 16.6.1
       launch-ide: 1.2.0
-      portfinder: 1.0.37
+      portfinder: 1.0.38
     transitivePeerDependencies:
       - supports-color
 
-  '@code-inspector/esbuild@1.3.0':
+  '@code-inspector/esbuild@1.4.0':
     dependencies:
-      '@code-inspector/core': 1.3.0
+      '@code-inspector/core': 1.4.0
     transitivePeerDependencies:
       - supports-color
 
-  '@code-inspector/mako@1.3.0':
+  '@code-inspector/mako@1.4.0':
     dependencies:
-      '@code-inspector/core': 1.3.0
+      '@code-inspector/core': 1.4.0
     transitivePeerDependencies:
       - supports-color
 
-  '@code-inspector/turbopack@1.3.0':
+  '@code-inspector/turbopack@1.4.0':
     dependencies:
-      '@code-inspector/core': 1.3.0
-      '@code-inspector/webpack': 1.3.0
+      '@code-inspector/core': 1.4.0
+      '@code-inspector/webpack': 1.4.0
     transitivePeerDependencies:
       - supports-color
 
-  '@code-inspector/vite@1.3.0':
+  '@code-inspector/vite@1.4.0':
     dependencies:
-      '@code-inspector/core': 1.3.0
+      '@code-inspector/core': 1.4.0
       chalk: 4.1.1
     transitivePeerDependencies:
       - supports-color
 
-  '@code-inspector/webpack@1.3.0':
+  '@code-inspector/webpack@1.4.0':
     dependencies:
-      '@code-inspector/core': 1.3.0
+      '@code-inspector/core': 1.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -7859,7 +7889,7 @@ snapshots:
   '@testing-library/dom@10.4.1':
     dependencies:
       '@babel/code-frame': 7.27.1
-      '@babel/runtime': 7.28.3
+      '@babel/runtime': 7.28.4
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       dom-accessibility-api: 0.5.16
@@ -8107,20 +8137,20 @@ snapshots:
       '@vitest/pretty-format': 4.0.8
       tinyrainbow: 3.0.3
 
-  '@vue/compiler-core@3.5.21':
+  '@vue/compiler-core@3.5.24':
     dependencies:
-      '@babel/parser': 7.28.3
-      '@vue/shared': 3.5.21
+      '@babel/parser': 7.28.5
+      '@vue/shared': 3.5.24
       entities: 4.5.0
       estree-walker: 2.0.2
       source-map-js: 1.2.1
 
-  '@vue/compiler-dom@3.5.21':
+  '@vue/compiler-dom@3.5.24':
     dependencies:
-      '@vue/compiler-core': 3.5.21
-      '@vue/shared': 3.5.21
+      '@vue/compiler-core': 3.5.24
+      '@vue/shared': 3.5.24
 
-  '@vue/shared@3.5.21': {}
+  '@vue/shared@3.5.24': {}
 
   JSONStream@1.3.5:
     dependencies:
@@ -8413,14 +8443,14 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
 
-  code-inspector-plugin@https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.3.0.tgz:
+  code-inspector-plugin@https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.0.tgz:
     dependencies:
-      '@code-inspector/core': 1.3.0
-      '@code-inspector/esbuild': 1.3.0
-      '@code-inspector/mako': 1.3.0
-      '@code-inspector/turbopack': 1.3.0
-      '@code-inspector/vite': 1.3.0
-      '@code-inspector/webpack': 1.3.0
+      '@code-inspector/core': 1.4.0
+      '@code-inspector/esbuild': 1.4.0
+      '@code-inspector/mako': 1.4.0
+      '@code-inspector/turbopack': 1.4.0
+      '@code-inspector/vite': 1.4.0
+      '@code-inspector/webpack': 1.4.0
       chalk: 4.1.1
     transitivePeerDependencies:
       - supports-color
@@ -10461,7 +10491,7 @@ snapshots:
     transitivePeerDependencies:
       - react
 
-  portfinder@1.0.37:
+  portfinder@1.0.38:
     dependencies:
       async: 3.2.6
       debug: 4.4.3
