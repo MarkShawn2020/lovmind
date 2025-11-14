@@ -240,7 +240,7 @@ const DragHandle = React.memo(function DragHandle({
 
   return (
     <div
-      className="flex size-full items-center justify-center"
+      className="flex size-full items-center justify-center cursor-grab active:cursor-grabbing group/drag"
       onClick={(e) => {
         e.preventDefault();
         editor.getApi(BlockSelectionPlugin).blockSelection.focus();
@@ -331,7 +331,7 @@ const DragHandle = React.memo(function DragHandle({
       data-plate-prevent-deselect
       role="button"
     >
-      <GripVertical className="text-muted-foreground" />
+      <GripVertical className="text-muted-foreground group-hover/drag:text-white transition-colors" />
     </div>
   );
 });
