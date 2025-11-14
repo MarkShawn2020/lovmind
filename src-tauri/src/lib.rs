@@ -110,11 +110,8 @@ async fn generate_title_and_tags(content: String) -> Result<(String, Vec<String>
         first_line
     };
 
-    let tags = if content.contains('#') {
-        vec!["markdown".to_string()]
-    } else {
-        vec!["text".to_string()]
-    };
+    // Return empty tags array - will be replaced with AI-generated tags later
+    let tags = Vec::new();
 
     Ok((title, tags))
 }
