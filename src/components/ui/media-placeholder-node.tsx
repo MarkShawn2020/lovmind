@@ -106,6 +106,11 @@ export const PlaceholderElement = withHOC(
       const path = editor.api.findPath(element);
       console.log('[PlaceholderElement] 找到元素路径:', path);
 
+      if (!path) {
+        console.log('[PlaceholderElement] 未找到元素路径，跳过');
+        return;
+      }
+
       editor.tf.withoutSaving(() => {
         editor.tf.removeNodes({ at: path });
 
@@ -124,7 +129,23 @@ export const PlaceholderElement = withHOC(
         editor.tf.insertNodes(node, { at: path });
 
         updateUploadHistory(editor, node);
+
+        // ✅ Restore selection after inserting node to maintain focus
+        // Calculate the position after the inserted node
+        const nextPath = [...path];
+        nextPath[nextPath.length - 1] += 1;
+
+        // Select the position after the inserted node
+        editor.tf.select({ path: nextPath, offset: 0 });
+
+        console.log('[PlaceholderElement] 已恢复编辑器选区:', nextPath);
       });
+
+      // ✅ Ensure editor regains focus after async operation
+      setTimeout(() => {
+        editor.tf.focus();
+        console.log('[PlaceholderElement] 已恢复编辑器焦点');
+      }, 0);
 
       api.placeholder.removeUploadingFile(element.id as string);
       console.log('[PlaceholderElement] 节点插入完成');

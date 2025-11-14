@@ -181,6 +181,9 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       value: initialValue,
     });
 
+    // ✅ Track the editor container ref to check DOM focus
+    const editorContainerRef = useRef<HTMLDivElement>(null);
+
     // Input state tracking
     const isComposingRef = useRef(false);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -214,9 +217,16 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       if (onChange) {
         const { text, tags } = extractTextContent(value);
 
-        // Check focus state: editor has selection when focused
-        // In Slate.js, selection is null when editor loses focus
-        const isFocused = editor.selection !== null;
+        // Check focus state with a hybrid approach:
+        // 1. Slate selection check: editor.selection !== null
+        // 2. DOM focus check: does the editor container have focus?
+        // This prevents false "focus lost" during programmatic operations
+        const slateHasFocus = editor.selection !== null;
+        const domHasFocus = editorContainerRef.current?.contains(document.activeElement) ?? false;
+
+        // Consider focused if either Slate OR DOM indicates focus
+        // This handles cases where Slate temporarily clears selection during node operations
+        const isFocused = slateHasFocus || domHasFocus;
 
         // Determine input state and reason
         let isInputting = false;
@@ -358,7 +368,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     return (
       <div className="h-full w-full flex flex-col">
         <Plate editor={editor} onChange={handleChange}>
-          <EditorContainer className="h-full w-full flex flex-col flex-1">
+          <EditorContainer ref={editorContainerRef} className="h-full w-full flex flex-col flex-1">
             <Editor
               placeholder={placeholder}
               variant="none"
