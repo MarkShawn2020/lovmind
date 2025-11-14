@@ -77,6 +77,10 @@ function Draggable(props: PlateElementProps) {
 
         if (blockSelectionApi) {
           blockSelectionApi.add(id);
+          // Clear selection after a short delay to avoid highlight remaining
+          setTimeout(() => {
+            blockSelectionApi.clear();
+          }, 0);
         }
         resetPreview();
       },
