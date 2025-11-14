@@ -195,10 +195,15 @@ export const useNoteEditorController = ({
   }, [mode, noteId, notes]);
 
   const handleContentChange = useCallback((payload: EditorContentChange) => {
+    console.log("handleContentChange: ", payload);
+
     setContent(payload.text);
     setCurrentTags(payload.tags);
     setRichContent(payload.richContent);
     setIsEditorEmpty(payload.isEmpty);
+
+    // isFocused is now available in payload for conditional logic
+    // Example: if (!payload.isFocused) { ... }
   }, []);
 
   const handleSubmit = useCallback(async () => {

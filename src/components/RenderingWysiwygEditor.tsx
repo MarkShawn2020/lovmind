@@ -22,6 +22,7 @@ export interface EditorContentChange {
   tags: string[];
   richContent: Value;
   isEmpty: boolean;
+  isFocused: boolean;
 }
 
 export interface RenderingWysiwygEditorRef {
@@ -185,11 +186,17 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     const handleChange = ({ value }: { value: Value }) => {
       if (onChange) {
         const { text, tags } = extractTextContent(value);
+
+        // Check focus state: editor has selection when focused
+        // In Slate.js, selection is null when editor loses focus
+        const isFocused = editor.selection !== null;
+
         onChange({
           text,
           tags,
           richContent: value,
           isEmpty: isEditorContentEmpty(value),
+          isFocused,
         });
       }
     };
