@@ -17,6 +17,7 @@ export function BlockContextMenu() {
   const { api, editor } = useEditorPlugin(BlockMenuPlugin);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [menuPosition, setMenuPosition] = React.useState({ x: 0, y: 0 });
+  const [initialPosition, setInitialPosition] = React.useState({ x: 0, y: 0 });
   const menuRef = React.useRef<HTMLDivElement>(null);
   const isTouch = useIsTouchDevice();
   const [readOnly] = usePlateState('readOnly');
@@ -49,6 +50,46 @@ export function BlockContextMenu() {
     [editor]
   );
 
+  // Adjust menu position after render to prevent overflow
+  React.useLayoutEffect(() => {
+    if (!menuOpen || !menuRef.current) return;
+
+    const menu = menuRef.current;
+    const menuRect = menu.getBoundingClientRect();
+    const padding = 8;
+
+    let newX = initialPosition.x;
+    let newY = initialPosition.y;
+
+    // Check horizontal overflow
+    if (newX + menuRect.width + padding > window.innerWidth) {
+      newX = window.innerWidth - menuRect.width - padding;
+    }
+    if (newX < padding) {
+      newX = padding;
+    }
+
+    // Check vertical overflow - this is the critical fix
+    if (newY + menuRect.height + padding > window.innerHeight) {
+      // Try to position above the cursor first
+      const positionAbove = newY - menuRect.height;
+      if (positionAbove >= padding) {
+        newY = positionAbove;
+      } else {
+        // If doesn't fit above, position at top with padding
+        newY = padding;
+      }
+    }
+    if (newY < padding) {
+      newY = padding;
+    }
+
+    // Only update if position changed
+    if (newX !== menuPosition.x || newY !== menuPosition.y) {
+      setMenuPosition({ x: newX, y: newY });
+    }
+  }, [menuOpen, initialPosition, menuPosition.x, menuPosition.y]);
+
   // Only set up context menu listener, nothing else
   React.useEffect(() => {
     if (isTouch || readOnly) return;
@@ -60,37 +101,9 @@ export function BlockContextMenu() {
       if (target.closest('[data-slate-editor="true"]')) {
         event.preventDefault();
 
-        // Calculate position with viewport boundaries
-        const menuWidth = 256; // w-64 = 16rem = 256px
-        const menuMaxHeight = window.innerHeight - 16; // max-h with padding
-        const padding = 8;
-
-        let x = event.clientX;
-        let y = event.clientY;
-
-        // Adjust horizontal position if overflowing right
-        if (x + menuWidth + padding > window.innerWidth) {
-          x = window.innerWidth - menuWidth - padding;
-        }
-
-        // Adjust horizontal position if overflowing left
-        if (x < padding) {
-          x = padding;
-        }
-
-        // Adjust vertical position if overflowing bottom
-        // Estimate menu height (rough calculation based on content)
-        const estimatedHeight = Math.min(500, menuMaxHeight);
-        if (y + estimatedHeight + padding > window.innerHeight) {
-          y = Math.max(padding, window.innerHeight - estimatedHeight - padding);
-        }
-
-        // Ensure menu doesn't go above top
-        if (y < padding) {
-          y = padding;
-        }
-
-        setMenuPosition({ x, y });
+        // Store initial click position - will be adjusted after render
+        setInitialPosition({ x: event.clientX, y: event.clientY });
+        setMenuPosition({ x: event.clientX, y: event.clientY });
         setMenuOpen(true);
         api.blockMenu.show(BLOCK_CONTEXT_MENU_ID, {
           x: event.clientX,

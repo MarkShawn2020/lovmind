@@ -252,8 +252,8 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       code-inspector-plugin:
-        specifier: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.1.tgz
-        version: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.1.tgz
+        specifier: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.2.tgz
+        version: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.2.tgz
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -642,23 +642,23 @@ packages:
     resolution: {integrity: sha512-qQ5m48eI/MFLQ5PxQj4PFaprjyCTLI37ElWMmNs0K8Lk3dVeOdNpB3ks8jc7yM5CDmVC73eMVk/trk3fgmrUpA==}
     engines: {node: '>=6.9.0'}
 
-  '@code-inspector/core@1.4.1':
-    resolution: {integrity: sha512-WpE1Xdka3HSEF4N6sFUzCYmyxx4moYG40LOYp55hv7NZdgd/8SKRpvNkTkwT4mK9UsWPwjpN/0+33A/fEPdWKg==}
+  '@code-inspector/core@1.4.2':
+    resolution: {integrity: sha512-6qHdMrGDciYe2L9JibJLDHB9pUdPSBk7IMt7vTQsh8UB5dZRhHVD1vnME+zloN/bP8AHLC/KTghsb+9McT06JA==}
 
-  '@code-inspector/esbuild@1.4.1':
-    resolution: {integrity: sha512-kMw3XfvMR8UHPVDYH9fsFNqBYVyLvK0fXXVYO+GPM89x4357Ak7VjrESkCkdZgmPKcF/Bni4NoFBkOEikkLAFA==}
+  '@code-inspector/esbuild@1.4.2':
+    resolution: {integrity: sha512-uC1lDCNtvrvOxsFIAVBSQEalStnNfs9axBYWe2Ors9L3GajAQtQUNy4GL5jQolzDrRJXfmhVu58g/kzrbzPmCQ==}
 
-  '@code-inspector/mako@1.4.1':
-    resolution: {integrity: sha512-xq30acDpJux3Nr6Nvl3HY5VEqXte4jrZrCNpAnc/gAFhlVLGemsHSTvKnUT0LCSxB3bby+mV9ZNbtr9kO146wg==}
+  '@code-inspector/mako@1.4.2':
+    resolution: {integrity: sha512-kSoSF2pOt/kMXVwNJbQASJzZQkeuI6ruF7gjT0zxbfnTzmvDyAyEMPiaxKLr49+3IefzT+Beglq/U8MmEBpb8w==}
 
-  '@code-inspector/turbopack@1.4.1':
-    resolution: {integrity: sha512-tN3Sh75ZeYlS5QngkNHQURV6wrJ6ba4aNwnOrTanjAJjfI8xJjqu7RP07Qm9jgNFKorS2vp82+jmyarshD3CVA==}
+  '@code-inspector/turbopack@1.4.2':
+    resolution: {integrity: sha512-Z4lZXr5zWpYA67DvA4M0i3vNF6j9Q5qjG0nNoCM2pDE+PNqza4zO2LYDMfwP2PwopbLEKltHOjaH/WnnY9m7Rw==}
 
-  '@code-inspector/vite@1.4.1':
-    resolution: {integrity: sha512-Ca8X0xCKu3Q6lVR8uwpkcjqvWD8hJpVo00hreqIkkT1hImMZTVmx/5xkbPrNWSnyiUfzEMSCxSiV06EjtWHpHA==}
+  '@code-inspector/vite@1.4.2':
+    resolution: {integrity: sha512-XOzUfeqyWPU55rXE1nIin0/zrtHfeZinWNozfZ426x+tw3a3OeXlk6bGFSmoZgY+Pbqq/v7dkMx8hqBbuaT4GA==}
 
-  '@code-inspector/webpack@1.4.1':
-    resolution: {integrity: sha512-8jrSPvwoRnrXVYYDGjQHWgcPcER1jAuVPYwzK+FhXlTGdIKNYP62tyzaUxd7TVTAc0lNDASuuAztA67EtrLP8Q==}
+  '@code-inspector/webpack@1.4.2':
+    resolution: {integrity: sha512-py7iir+Nx6Tkj07m/K6W1IymPQtC+hVUCsQKed+U8L4KKI9H99pbqyFDcMBwGuGLgBis2TXAejQq7Fv6A6qTtg==}
 
   '@colors/colors@1.5.0':
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
@@ -2894,9 +2894,9 @@ packages:
       react: ^18 || ^19 || ^19.0.0-rc
       react-dom: ^18 || ^19 || ^19.0.0-rc
 
-  code-inspector-plugin@https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.1.tgz:
-    resolution: {tarball: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.1.tgz}
-    version: 1.4.1
+  code-inspector-plugin@https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.2.tgz:
+    resolution: {tarball: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.2.tgz}
+    version: 1.4.2
 
   codem-isoboxer@0.3.10:
     resolution: {integrity: sha512-eNk3TRV+xQMJ1PEj0FQGY8KD4m0GPxT487XJ+Iftm7mVa9WpPFDMWqPt+46buiP5j5Wzqe5oMIhqBcAeKfygSA==}
@@ -6101,7 +6101,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@code-inspector/core@1.4.1':
+  '@code-inspector/core@1.4.2':
     dependencies:
       '@vue/compiler-dom': 3.5.24
       chalk: 4.1.1
@@ -6111,35 +6111,35 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@code-inspector/esbuild@1.4.1':
+  '@code-inspector/esbuild@1.4.2':
     dependencies:
-      '@code-inspector/core': 1.4.1
+      '@code-inspector/core': 1.4.2
     transitivePeerDependencies:
       - supports-color
 
-  '@code-inspector/mako@1.4.1':
+  '@code-inspector/mako@1.4.2':
     dependencies:
-      '@code-inspector/core': 1.4.1
+      '@code-inspector/core': 1.4.2
     transitivePeerDependencies:
       - supports-color
 
-  '@code-inspector/turbopack@1.4.1':
+  '@code-inspector/turbopack@1.4.2':
     dependencies:
-      '@code-inspector/core': 1.4.1
-      '@code-inspector/webpack': 1.4.1
+      '@code-inspector/core': 1.4.2
+      '@code-inspector/webpack': 1.4.2
     transitivePeerDependencies:
       - supports-color
 
-  '@code-inspector/vite@1.4.1':
+  '@code-inspector/vite@1.4.2':
     dependencies:
-      '@code-inspector/core': 1.4.1
+      '@code-inspector/core': 1.4.2
       chalk: 4.1.1
     transitivePeerDependencies:
       - supports-color
 
-  '@code-inspector/webpack@1.4.1':
+  '@code-inspector/webpack@1.4.2':
     dependencies:
-      '@code-inspector/core': 1.4.1
+      '@code-inspector/core': 1.4.2
     transitivePeerDependencies:
       - supports-color
 
@@ -8443,14 +8443,14 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
 
-  code-inspector-plugin@https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.1.tgz:
+  code-inspector-plugin@https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.2.tgz:
     dependencies:
-      '@code-inspector/core': 1.4.1
-      '@code-inspector/esbuild': 1.4.1
-      '@code-inspector/mako': 1.4.1
-      '@code-inspector/turbopack': 1.4.1
-      '@code-inspector/vite': 1.4.1
-      '@code-inspector/webpack': 1.4.1
+      '@code-inspector/core': 1.4.2
+      '@code-inspector/esbuild': 1.4.2
+      '@code-inspector/mako': 1.4.2
+      '@code-inspector/turbopack': 1.4.2
+      '@code-inspector/vite': 1.4.2
+      '@code-inspector/webpack': 1.4.2
       chalk: 4.1.1
     transitivePeerDependencies:
       - supports-color
