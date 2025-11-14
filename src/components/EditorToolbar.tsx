@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Send, Pin, Tag } from 'lucide-react';
+import { Send, Pin, Tag, Plus } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { TagManagerPopover } from '@/components/TagManagerPopover';
 import type { Note } from '@/store';
@@ -71,20 +71,37 @@ const TagsDisplay = memo(({
 
 const SendButton = memo(({
   disabled,
-  onClick
+  onClick,
+  isViewingMode
 }: {
   disabled: boolean;
   onClick: () => void;
-}) => (
-  <button
-    className="w-10 h-10 rounded-full border-none bg-primary text-primary-foreground flex items-center justify-center cursor-pointer transition-[transform,box-shadow,background-color] duration-200 ease-in-out shadow-[0_2px_8px_rgba(217,119,87,0.25)] transform-gpu will-change-transform hover:enabled:-translate-y-0.5 hover:enabled:scale-105 hover:enabled:shadow-[0_4px_16px_rgba(217,119,87,0.35)] hover:enabled:bg-accent active:enabled:translate-y-0 active:enabled:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none send-btn"
-    onClick={onClick}
-    disabled={disabled}
-    title="Submit (⌘+Enter)"
-  >
-    <Send size={18} />
-  </button>
-));
+  isViewingMode?: boolean;
+}) => {
+  if (isViewingMode) {
+    return (
+      <button
+        className="h-10 px-4 rounded-full border-none bg-primary text-primary-foreground flex items-center justify-center gap-2 cursor-pointer transition-[transform,box-shadow,background-color] duration-200 ease-in-out shadow-[0_2px_8px_rgba(217,119,87,0.25)] transform-gpu will-change-transform hover:-translate-y-0.5 hover:scale-105 hover:shadow-[0_4px_16px_rgba(217,119,87,0.35)] hover:bg-accent active:translate-y-0 active:scale-[0.98] send-btn"
+        onClick={onClick}
+        title="Create new note"
+      >
+        <Plus size={18} />
+        <span className="text-sm font-medium">新建</span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      className="w-10 h-10 rounded-full border-none bg-primary text-primary-foreground flex items-center justify-center cursor-pointer transition-[transform,box-shadow,background-color] duration-200 ease-in-out shadow-[0_2px_8px_rgba(217,119,87,0.25)] transform-gpu will-change-transform hover:enabled:-translate-y-0.5 hover:enabled:scale-105 hover:enabled:shadow-[0_4px_16px_rgba(217,119,87,0.35)] hover:enabled:bg-accent active:enabled:translate-y-0 active:enabled:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none send-btn"
+      onClick={onClick}
+      disabled={disabled}
+      title="Submit (⌘+Enter)"
+    >
+      <Send size={18} />
+    </button>
+  );
+});
 
 interface EditorToolbarProps {
   mode: 'main' | 'float';
@@ -92,7 +109,7 @@ interface EditorToolbarProps {
   submitDisabled: boolean;
   currentTags?: string[];
   allNotes?: Note[];
-  leftContent?: React.ReactNode;
+  isViewingMode?: boolean;
 }
 
 // Memoized toolbar to prevent any re-renders
@@ -102,14 +119,13 @@ const EditorToolbar = memo(({
   submitDisabled,
   currentTags = [],
   allNotes = [],
-  leftContent
+  isViewingMode = false
 }: EditorToolbarProps) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   return (
     <div className={`flex-shrink-0 bg-card border-t border-border flex justify-between items-center px-[var(--spacing-s)] z-10 will-change-contents transform-gpu backface-hidden ${mode === 'float' ? 'h-11 bg-muted border-t-border opacity-95' : 'h-12'}`}>
       <div className="flex gap-2 items-center">
-        {leftContent}
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <PopoverTrigger asChild>
             <div>
@@ -126,7 +142,7 @@ const EditorToolbar = memo(({
         </Popover>
       </div>
       <div className="flex gap-2 items-center">
-        <SendButton disabled={submitDisabled} onClick={onSubmit} />
+        <SendButton disabled={submitDisabled} onClick={onSubmit} isViewingMode={isViewingMode} />
       </div>
     </div>
   );

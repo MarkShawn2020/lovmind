@@ -438,16 +438,7 @@ function App() {
           submitDisabled={submitDisabled}
           currentTags={currentTags}
           allNotes={notes}
-          leftContent={
-            viewingNoteId ? (
-              <button
-                onClick={handleBackToCreate}
-                className="px-3 py-1.5 text-sm bg-secondary text-foreground rounded-md hover:bg-accent transition-colors border border-border flex items-center gap-1"
-              >
-                ← 返回新建
-              </button>
-            ) : null
-          }
+          isViewingMode={!!viewingNoteId}
         />
       }
       userMenu={userMenuNode}
