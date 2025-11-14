@@ -68,6 +68,8 @@ function Draggable(props: PlateElementProps) {
   const { children, editor, element, path } = props;
   const blockSelectionApi = editor.getApi(BlockSelectionPlugin).blockSelection;
 
+  const [hideGutterTemporarily, setHideGutterTemporarily] = React.useState(false);
+
   const { isAboutToDrag, isDragging, nodeRef, previewRef, handleRef } =
     useDraggable({
       element,
@@ -75,6 +77,9 @@ function Draggable(props: PlateElementProps) {
         resetPreview();
         // Clear block selection after successful drop to remove highlight
         blockSelectionApi?.set([]);
+
+        // Force hide gutter to clear any stale CSS :hover state after DOM reordering
+        setHideGutterTemporarily(true);
 
         // Focus cursor at the end of the dragged element
         const dragElement = (dragItem as { element: TElement }).element;
@@ -106,6 +111,14 @@ function Draggable(props: PlateElementProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDragging]);
 
+  // Clear temporary gutter hide flag after a short delay to allow CSS :hover to reset
+  React.useEffect(() => {
+    if (hideGutterTemporarily) {
+      const timer = setTimeout(() => setHideGutterTemporarily(false), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [hideGutterTemporarily]);
+
   React.useEffect(() => {
     if (isAboutToDrag) {
       previewRef.current?.classList.remove('opacity-0');
@@ -130,7 +143,7 @@ function Draggable(props: PlateElementProps) {
       }}
     >
       {!isInTable && (
-        <Gutter>
+        <Gutter forceHide={hideGutterTemporarily}>
           <div
             className={cn(
               'slate-blockToolbarWrapper',
@@ -190,8 +203,9 @@ function Draggable(props: PlateElementProps) {
 function Gutter({
   children,
   className,
+  forceHide,
   ...props
-}: React.ComponentProps<'div'>) {
+}: React.ComponentProps<'div'> & { forceHide?: boolean }) {
   const editor = useEditorRef();
   const element = useElement();
   const isSelectionAreaVisible = usePluginOption(
@@ -214,6 +228,8 @@ function Gutter({
           ? 'group-hover/container:opacity-100'
           : 'group-hover:opacity-100',
         isSelectionAreaVisible && 'hidden',
+        // Force hide when flag is set (important to override hover states)
+        forceHide && '!opacity-0',
         className
       )}
       contentEditable={false}
