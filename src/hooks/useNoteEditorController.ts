@@ -23,6 +23,8 @@ interface UseNoteEditorControllerOptions {
   placeholder?: string;
   currentNoteId?: string | null;
   editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
+  viewingNoteId?: string | null;
+  onViewingModeChange?: (noteId: string | null) => void;
 }
 
 export const useNoteEditorController = ({
@@ -32,6 +34,8 @@ export const useNoteEditorController = ({
   placeholder = "此时此刻，你在想什么呢？",
   currentNoteId,
   editorRef: externalEditorRef,
+  viewingNoteId,
+  onViewingModeChange,
 }: UseNoteEditorControllerOptions) => {
   const { notes, setNotes, deleteNote, togglePin, toggleArchive, updateNote } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, setNotes);
@@ -197,6 +201,45 @@ export const useNoteEditorController = ({
     }
   }, [mode, noteId, notes]);
 
+  // Handle viewing mode in main window - load note when viewingNoteId changes
+  useEffect(() => {
+    if (mode === 'main' && viewingNoteId) {
+      const loadViewingNote = async () => {
+        try {
+          let noteData: Note | null = null;
+
+          if (isTauri()) {
+            noteData = await invoke<Note | null>('get_temp_note', { id: viewingNoteId });
+            console.log('Retrieved viewing note from Tauri backend:', noteData);
+          } else {
+            noteData = notes.find(n => n.id === viewingNoteId) || null;
+            console.log('Retrieved viewing note from Jotai atom:', noteData);
+          }
+
+          if (noteData) {
+            setCurrentNote(noteData);
+            setContent(noteData.text);
+            setRichContent(noteData.richContent || null);
+            setCurrentTags(noteData.tags || []);
+            const hasText = Boolean(noteData.text?.trim());
+            setIsEditorEmpty(!hasText && isEditorContentEmpty(noteData.richContent));
+          }
+        } catch (error) {
+          console.error('Failed to load viewing note:', error);
+        }
+      };
+
+      loadViewingNote();
+    } else if (mode === 'main' && !viewingNoteId) {
+      // Reset to create mode
+      setCurrentNote(null);
+      setContent('');
+      setRichContent(null);
+      setCurrentTags([]);
+      setIsEditorEmpty(true);
+    }
+  }, [mode, viewingNoteId, notes]);
+
   const handleContentChange = useCallback((payload: EditorContentChange) => {
     console.log("handleContentChange: ", payload);
     console.log(`  📝 Input State: ${payload.isInputting ? '✍️  INPUTTING' : '⏸️  STOPPED'} (${payload.inputStateReason})`);
@@ -224,6 +267,26 @@ export const useNoteEditorController = ({
   const handleSubmit = useCallback(async () => {
     const hasTypedContent = typeof content === 'string' && Boolean(content.trim());
     if (!hasTypedContent && isEditorEmpty) {
+      return;
+    }
+
+    // Handle viewing mode - update existing note
+    if (mode === 'main' && viewingNoteId && currentNote) {
+      const updatedNote: Note = {
+        ...currentNote,
+        text: content,
+        title: content.split('\n')[0].substring(0, 50) || 'Untitled Note',
+        time: new Date().toLocaleString(),
+        tags: currentTags.length > 0 ? currentTags : currentNote.tags,
+        richContent: richContent,
+      };
+
+      try {
+        await updateNote(updatedNote);
+        setCurrentNote(updatedNote);
+      } catch (error) {
+        console.error('Failed to save viewing note:', error);
+      }
       return;
     }
 
@@ -313,7 +376,7 @@ export const useNoteEditorController = ({
         console.error('Failed to save note:', error);
       }
     }
-  }, [content, currentTags, currentNote, editorRef, isEditorEmpty, mode, notes, richContent, showConfetti, updateNote]);
+  }, [content, currentTags, currentNote, editorRef, isEditorEmpty, mode, notes, richContent, showConfetti, updateNote, viewingNoteId, mergeTagsByStrategy, setNotes]);
 
   const handleTogglePin = useCallback(async () => {
     if (mode === 'float' && currentNote) {
@@ -399,6 +462,13 @@ export const useNoteEditorController = ({
     }
   }, [currentNote, editingTitle, updateNote]);
 
+  const handleBackToCreate = useCallback(() => {
+    if (onViewingModeChange) {
+      onViewingModeChange(null);
+    }
+    editorRef.current?.resetAndFocus();
+  }, [onViewingModeChange, editorRef]);
+
   const submitDisabled = (!content || typeof content !== 'string' || !content.trim()) && isEditorEmpty;
 
   return {
@@ -452,6 +522,8 @@ export const useNoteEditorController = ({
     handleStartEditingTitle,
     handleCancelEditingTitle,
     handleFloatWindowClose,
+    handleBackToCreate,
     submitDisabled,
+    viewingNoteId,
   };
 };

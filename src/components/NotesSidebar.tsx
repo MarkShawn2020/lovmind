@@ -21,6 +21,7 @@ interface NotesSidebarProps {
   currentNoteId?: string | null;
   showArchived: boolean;
   onOpenNote: (note: Note) => void;
+  onOpenNoteInNewWindow?: (note: Note) => void;
   onTogglePin: (id: string) => void | Promise<unknown>;
   onToggleArchive: (id: string) => void | Promise<unknown>;
   onDeleteNote: (id: string) => void | Promise<unknown>;
@@ -32,6 +33,7 @@ const NotesSidebarComponent = ({
   currentNoteId,
   showArchived,
   onOpenNote,
+  onOpenNoteInNewWindow,
   onTogglePin,
   onToggleArchive,
   onDeleteNote,
@@ -171,16 +173,34 @@ const NotesSidebarComponent = ({
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-48">
-          <ContextMenuItem
-            onClick={e => {
-              e.stopPropagation();
-              onOpenNote(note);
-            }}
-          >
-            <Maximize2 className="mr-2 h-4 w-4" />
-            打开
-          </ContextMenuItem>
-          <ContextMenuSeparator />
+          {onOpenNoteInNewWindow && (
+            <>
+              <ContextMenuItem
+                onClick={e => {
+                  e.stopPropagation();
+                  onOpenNoteInNewWindow(note);
+                }}
+              >
+                <Maximize2 className="mr-2 h-4 w-4" />
+                在新窗口打开
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+            </>
+          )}
+          {!onOpenNoteInNewWindow && (
+            <>
+              <ContextMenuItem
+                onClick={e => {
+                  e.stopPropagation();
+                  onOpenNote(note);
+                }}
+              >
+                <Maximize2 className="mr-2 h-4 w-4" />
+                打开
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+            </>
+          )}
           <ContextMenuItem
             onClick={e => {
               e.stopPropagation();

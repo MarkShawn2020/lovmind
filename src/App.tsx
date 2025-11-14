@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAtom } from "jotai";
 import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X, Tag } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
@@ -20,6 +20,7 @@ import packageJson from "../package.json";
 
 function App() {
   const [, setNotes] = useAtom(notesAtom);
+  const [viewingNoteId, setViewingNoteId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isTauri()) {
@@ -129,6 +130,14 @@ function App() {
     syncWithBackend();
   }, [setNotes]);
 
+  const handleViewingModeChange = useCallback((noteId: string | null) => {
+    setViewingNoteId(noteId);
+  }, []);
+
+  const openNoteInCurrentWindow = useCallback((note: Note) => {
+    setViewingNoteId(note.id);
+  }, []);
+
   const {
     notes,
     noteStats,
@@ -163,15 +172,23 @@ function App() {
     richContent,
     currentTags,
     submitDisabled,
-  } = useNoteEditorController({ mode: "main", placeholder: "此时此刻，你在想什么呢？" });
+    handleBackToCreate,
+    viewingNoteId: controllerViewingNoteId,
+  } = useNoteEditorController({
+    mode: "main",
+    placeholder: "此时此刻，你在想什么呢？",
+    viewingNoteId,
+    onViewingModeChange: handleViewingModeChange,
+  });
 
   const sidebarNode = (
     <div ref={notesListRef}>
       <NotesSidebar
         notes={notes}
-        currentNoteId={undefined}
+        currentNoteId={viewingNoteId ?? undefined}
         showArchived={showArchived}
-        onOpenNote={openNoteInNewWindow}
+        onOpenNote={openNoteInCurrentWindow}
+        onOpenNoteInNewWindow={openNoteInNewWindow}
         onTogglePin={togglePin}
         onToggleArchive={toggleArchive}
         onDeleteNote={deleteNote}
@@ -413,7 +430,21 @@ function App() {
       }
       sidebar={sidebarNode}
       editor={editorNode}
-      toolbar={<EditorToolbar mode="main" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} allNotes={notes} />}
+      toolbar={
+        <div className="flex items-center gap-2">
+          {viewingNoteId && (
+            <button
+              onClick={handleBackToCreate}
+              className="px-3 py-1.5 text-sm bg-secondary text-foreground rounded-md hover:bg-accent transition-colors border border-border"
+            >
+              ← 返回新建
+            </button>
+          )}
+          <div className="flex-1">
+            <EditorToolbar mode="main" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} allNotes={notes} />
+          </div>
+        </div>
+      }
       userMenu={userMenuNode}
       profileModal={profileModalNode}
       tagSettingsModal={tagSettingsModalNode}
