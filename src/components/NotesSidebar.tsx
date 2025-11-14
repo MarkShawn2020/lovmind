@@ -120,7 +120,7 @@ const NotesSidebarComponent = ({
               >
                 <div className="flex flex-col h-full">
                   <div className="flex justify-between mb-0.5">
-                    <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1">
+                    <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1 truncate">
                       {isTopThree && <Crown className={`inline-flex align-middle rank-badge rank-${rank}`} size={16} fill="currentColor" />}
                       {note.pinned && <Pin className="inline-flex align-middle text-[var(--primary)]" size={14} />}
                       {rank}. {note.title}
