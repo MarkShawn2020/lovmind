@@ -72,10 +72,18 @@ function Draggable(props: PlateElementProps) {
   const { isAboutToDrag, isDragging, nodeRef, previewRef, handleRef } =
     useDraggable({
       element,
-      onDropHandler: () => {
+      onDropHandler: (_, { dragItem }) => {
         resetPreview();
         // Clear block selection after successful drop to remove highlight
         blockSelectionApi?.set([]);
+
+        // Focus cursor at the end of the dragged element
+        const dragElement = (dragItem as { element: TElement }).element;
+        if (dragElement) {
+          editor.tf.select(dragElement);
+          editor.tf.collapse({ edge: 'end' });
+          editor.tf.focus();
+        }
       },
     });
 
