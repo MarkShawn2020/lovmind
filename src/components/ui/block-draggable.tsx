@@ -253,6 +253,7 @@ const DragHandle = React.memo(function DragHandle({
             editor.getApi(BlockSelectionPlugin).blockSelection.focus();
           }}
           onMouseDown={(e) => {
+            e.preventDefault();
             resetPreview();
 
             if (e.button !== 0 || e.shiftKey) return;
@@ -276,11 +277,6 @@ const DragHandle = React.memo(function DragHandle({
               editor,
               selectionNodes
             ).map(([node]) => node);
-
-            if (blockSelection.length === 0) {
-              editor.tf.blur();
-              editor.tf.collapse();
-            }
 
             const elements = createDragPreviewElements(editor, blocks);
             previewRef.current?.append(...elements);

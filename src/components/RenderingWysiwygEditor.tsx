@@ -176,13 +176,7 @@ export const isEditorContentEmpty = (richContent: Value | null | undefined): boo
   });
 };
 
-const defer = (fn: () => void) => {
-  if (typeof queueMicrotask === 'function') {
-    queueMicrotask(fn);
-  } else {
-    Promise.resolve().then(fn);
-  }
-};
+const serializeValue = (value: Value): string => JSON.stringify(value);
 
 const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWysiwygEditorProps>(
   function RenderingWysiwygEditor({
@@ -197,127 +191,68 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     // Ensure initialContent is a string
     const safeInitialContent = typeof initialContent === 'string' ? initialContent : '';
 
-    // Use richContent if available AND non-empty, otherwise fallback to text content
-    const initialValue = (initialRichContent && !isEditorContentEmpty(initialRichContent))
-      ? initialRichContent
-      : createInitialValue(safeInitialContent);
+    const initialValueRef = useRef<Value>(
+      (initialRichContent && !isEditorContentEmpty(initialRichContent))
+        ? initialRichContent
+        : createInitialValue(safeInitialContent)
+    );
 
     console.time('[Perf] usePlateEditor init');
     const editor = usePlateEditor({
       plugins: EditorKit,
-      value: initialValue,
+      value: initialValueRef.current,
     });
     console.timeEnd('[Perf] usePlateEditor init');
 
-    // Track whether we have already synced initial content into the editor
-    const hasLoadedInitialContent = useRef(false);
-
-    // CRITICAL FIX: Blur immediately after initialization if content has images
-    // This prevents autoformat/plugins from converting image nodes in first block to text
-    useEffect(() => {
-      if (initialRichContent && !isEditorContentEmpty(initialRichContent)) {
-        const firstBlock = initialRichContent[0];
-        const hasImageInFirstBlock = JSON.stringify(firstBlock).includes('"type":"img"');
-
-        if (hasImageInFirstBlock) {
-          defer(() => {
-            editor.tf.blur();
-            console.log('[RenderingWysiwygEditor] Blurred to protect first block image');
-          });
-        }
-      }
-    }, [editor, initialRichContent]);
-
-    // Parse markdown content if it contains markdown syntax (e.g., images)
-    // Only run once on mount to avoid re-parsing during editing
-    const hasProcessedMarkdown = useRef(false);
-    useEffect(() => {
-      if (hasProcessedMarkdown.current) return;
-
-      if (!initialRichContent && safeInitialContent && safeInitialContent.includes('![')) {
-        try {
-          console.log('[Markdown] Parsing content with images...');
-          const markdownValue = editor.api.markdown?.deserialize?.(safeInitialContent);
-          if (markdownValue) {
-            console.log('[Markdown] Parsed value:', markdownValue);
-            editor.tf.setValue(markdownValue);
-            hasProcessedMarkdown.current = true;
-            hasLoadedInitialContent.current = true;
-            defer(() => {
-              editor.tf.blur();
-            });
-          }
-        } catch (error) {
-          console.error('Failed to parse markdown:', error);
-        }
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    const lastAppliedValueRef = useRef<string>(serializeValue(initialValueRef.current));
+    const markdownCacheRef = useRef<{ source: string; value: Value } | null>(null);
 
     console.timeEnd('[Perf] RenderingWysiwygEditor init');
 
     useEffect(() => {
-      console.log('[RenderingWysiwygEditor] useEffect 触发:', {
-        hasInitialRichContent: !!initialRichContent,
-        hasInitialContent: !!safeInitialContent,
-        safeInitialContentTrimmed: safeInitialContent?.trim(),
-        hasLoadedBefore: hasLoadedInitialContent.current,
-        editorCurrentValue: editor.children,
-      });
+      const hasRichContent =
+        !!initialRichContent && !isEditorContentEmpty(initialRichContent);
+      const deserializeMarkdown = editor.api.markdown?.deserialize;
+      const shouldParseMarkdown =
+        !hasRichContent &&
+        !!safeInitialContent &&
+        safeInitialContent.includes('![') &&
+        typeof deserializeMarkdown === 'function';
 
-      // Check if editor already has user-entered content
-      const editorIsEmpty =
-        editor.children.length === 1 &&
-        editor.children[0].type === 'p' &&
-        editor.children[0].children?.length === 1 &&
-        editor.children[0].children[0].text === '';
+      let nextValue: Value;
 
-      // If we've already loaded content AND editor has content, don't overwrite
-      if (hasLoadedInitialContent.current && !editorIsEmpty) {
-        console.log('[RenderingWysiwygEditor] 编辑器已有用户内容，跳过更新 (防止覆盖)');
-        return;
-      }
-
-      // Check if there's new content to load
-      const hasContentToLoad =
-        (initialRichContent && !isEditorContentEmpty(initialRichContent)) ||
-        (safeInitialContent && safeInitialContent.trim());
-
-      if (!hasContentToLoad) {
-        console.log('[RenderingWysiwygEditor] 无内容需要加载，等待数据...');
-        return; // Don't mark as loaded - wait for real content
-      }
-
-      // CRITICAL FIX: Deep compare incoming content with current editor content
-      // This prevents setValue from being called when content is the same,
-      // which would cause focus loss
-      const currentEditorValue = editor.children;
-      const newContentToLoad = initialRichContent || createInitialValue(safeInitialContent || '');
-
-      // Compare content by stringifying (simple but effective)
-      const isSameContent = JSON.stringify(currentEditorValue) === JSON.stringify(newContentToLoad);
-
-      if (isSameContent) {
-        console.log('[RenderingWysiwygEditor] 内容相同，跳过 setValue (防止焦点丢失)');
-        // Mark as loaded to prevent future unnecessary checks
-        hasLoadedInitialContent.current = true;
-        return;
-      }
-
-      // Load the content
-      if (initialRichContent && !isEditorContentEmpty(initialRichContent)) {
-        console.log('[RenderingWysiwygEditor] 加载 richContent:', initialRichContent);
-        editor.tf.setValue(initialRichContent);
-        hasLoadedInitialContent.current = true;
-        console.log('[RenderingWysiwygEditor] 编辑器内容已更新 (richContent)');
+      if (hasRichContent) {
+        nextValue = initialRichContent as Value;
+      } else if (shouldParseMarkdown) {
+        let cached = markdownCacheRef.current;
+        if (!cached || cached.source !== safeInitialContent) {
+          try {
+            const parsed = deserializeMarkdown?.(safeInitialContent);
+            if (parsed) {
+              cached = { source: safeInitialContent, value: parsed };
+              markdownCacheRef.current = cached;
+            }
+          } catch (error) {
+            console.error('Failed to parse markdown:', error);
+          }
+        }
+        nextValue = cached?.value ?? createInitialValue(safeInitialContent);
       } else if (safeInitialContent && safeInitialContent.trim()) {
-        console.log('[RenderingWysiwygEditor] 从文本创建 richContent:', safeInitialContent);
-        editor.tf.setValue(createInitialValue(safeInitialContent));
-        hasLoadedInitialContent.current = true;
-        console.log('[RenderingWysiwygEditor] 编辑器内容已更新 (text)');
+        markdownCacheRef.current = null;
+        nextValue = createInitialValue(safeInitialContent);
+      } else {
+        markdownCacheRef.current = null;
+        nextValue = createInitialValue('');
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initialRichContent, safeInitialContent]); // Depend on both richContent and text content
+
+      const serialized = serializeValue(nextValue);
+      if (serialized === lastAppliedValueRef.current) {
+        return;
+      }
+
+      editor.tf.setValue(nextValue);
+      lastAppliedValueRef.current = serialized;
+    }, [editor, initialRichContent, safeInitialContent]);
 
     // Expose methods to parent
     useImperativeHandle(ref, () => ({
@@ -343,18 +278,8 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
     // Handle content changes
     const handleChange = ({ value }: { value: Value }) => {
-      console.log('[RenderingWysiwygEditor] 内容变化:', {
-        valueLength: value.length,
-        value: JSON.stringify(value, null, 2),
-      });
-
       if (onChange) {
         const { text, tags } = extractTextContent(value);
-        console.log('[RenderingWysiwygEditor] 提取的文本内容:', {
-          textLength: text.length,
-          textPreview: text.substring(0, 200),
-          tags,
-        });
         onChange({
           text,
           tags,
@@ -362,6 +287,8 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
           isEmpty: isEditorContentEmpty(value),
         });
       }
+
+      lastAppliedValueRef.current = serializeValue(value);
     };
 
     // Handle keyboard shortcuts (Cmd+Enter to submit)
