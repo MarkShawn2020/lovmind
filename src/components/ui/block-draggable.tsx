@@ -16,7 +16,6 @@ import {
   useElement,
   usePluginOption,
 } from 'platejs/react';
-import { useSelected } from 'platejs/react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -199,7 +198,6 @@ function Gutter({
     BlockSelectionPlugin,
     'isSelectionAreaVisible'
   );
-  const selected = useSelected();
 
   return (
     <div
@@ -207,14 +205,15 @@ function Gutter({
       className={cn(
         'slate-gutterLeft',
         'absolute top-0 z-50 flex h-full -translate-x-full cursor-text',
-        // Use visibility instead of opacity for better pointer-events behavior
         'transition-opacity duration-150 ease-out',
+        // Default: hidden
+        'opacity-0',
+        // Show on hover
         'hover:opacity-100 sm:opacity-0',
         getPluginByType(editor, element.type)?.node.isContainer
           ? 'group-hover/container:opacity-100'
           : 'group-hover:opacity-100',
         isSelectionAreaVisible && 'hidden',
-        !selected && 'opacity-0',
         className
       )}
       contentEditable={false}
@@ -283,9 +282,8 @@ const DragHandle = React.memo(function DragHandle({
           previewRef.current?.classList.add('opacity-0');
           editor.setOption(DndPlugin, 'multiplePreviewRef', previewRef);
 
-          editor
-            .getApi(BlockSelectionPlugin)
-            .blockSelection.set(blocks.map((block) => block.id as string));
+          // Note: We don't set blockSelection here to avoid persistent highlight
+          // The drag preview is sufficient visual feedback during drag
         });
       }}
       onMouseEnter={() => {
@@ -325,8 +323,6 @@ const DragHandle = React.memo(function DragHandle({
       }}
       onMouseUp={() => {
         resetPreview();
-        // Clear block selection when mouse released to remove highlight
-        editor.getApi(BlockSelectionPlugin).blockSelection.set([]);
       }}
       data-plate-prevent-deselect
       role="button"
