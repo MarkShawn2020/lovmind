@@ -74,17 +74,27 @@ const NotesSidebarComponent = ({
   const filteredNotes = showArchived ? notes.filter(note => note.archived) : notes.filter(note => !note.archived);
 
   const sortedNotes = [...filteredNotes].sort((a, b) => {
+    // Priority 1: Pinned notes first
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
 
-    const aNum = Number(a.id);
-    const bNum = Number(b.id);
+    // Priority 2: Sort by creation date (time field) descending (newest first)
+    const aTime = new Date(a.time).getTime();
+    const bTime = new Date(b.time).getTime();
 
-    if (!isNaN(aNum) && !isNaN(bNum)) {
-      return bNum - aNum;
+    // Handle invalid dates - fallback to id-based comparison
+    if (isNaN(aTime) || isNaN(bTime)) {
+      const aNum = Number(a.id);
+      const bNum = Number(b.id);
+
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return bNum - aNum;
+      }
+
+      return b.id.localeCompare(a.id);
     }
 
-    return b.id.localeCompare(a.id);
+    return bTime - aTime;
   });
 
   const noteRanks = new Map<string, number>();
