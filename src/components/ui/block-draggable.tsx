@@ -78,11 +78,20 @@ function Draggable(props: PlateElementProps) {
   const { children, editor, element, path } = props;
   const blockSelectionApi = editor.getApi(BlockSelectionPlugin).blockSelection;
 
+  console.log('[Draggable] Rendering for element:', {
+    type: element.type,
+    id: element.id,
+    path
+  });
+
   const { isAboutToDrag, isDragging, nodeRef, previewRef, handleRef } =
     useDraggable({
       element,
+      type: 'block',  // 明确指定拖拽类型
       onDropHandler: (_, { dragItem }) => {
         const id = (dragItem as { id: string[] | string }).id;
+
+        console.log('[Draggable] onDropHandler called', { id });
 
         if (blockSelectionApi) {
           blockSelectionApi.add(id);
@@ -90,6 +99,14 @@ function Draggable(props: PlateElementProps) {
         resetPreview();
       },
     });
+
+  console.log('[Draggable] useDraggable result:', {
+    isAboutToDrag,
+    isDragging,
+    hasNodeRef: !!nodeRef,
+    hasPreviewRef: !!previewRef,
+    hasHandleRef: !!handleRef
+  });
 
   const isInColumn = path.length === 3;
   const isInTable = path.length === 4;
@@ -156,6 +173,8 @@ function Draggable(props: PlateElementProps) {
                 className="absolute -left-0 h-6 w-full p-0 cursor-grab active:cursor-grabbing"
                 style={{ top: `${dragButtonTop + 3}px` }}
                 data-plate-prevent-deselect
+                onMouseEnter={() => console.log('[Button] Mouse entered drag handle')}
+                onMouseDown={(e) => console.log('[Button] Mouse down on drag handle', { button: e.button })}
               >
                 <DragHandle
                   isDragging={isDragging}
@@ -257,11 +276,19 @@ const DragHandle = React.memo(function DragHandle({
             editor.getApi(BlockSelectionPlugin).blockSelection.focus();
           }}
           onMouseDown={(e) => {
+            console.log('[DragHandle] onMouseDown', {
+              button: e.button,
+              shiftKey: e.shiftKey,
+              target: e.target
+            });
+
             if (e.button !== 0 || e.shiftKey) {
               e.preventDefault();
+              console.log('[DragHandle] Prevented non-left-click');
               return;
             }
 
+            console.log('[DragHandle] Starting drag preparation');
             resetPreview();
 
             const blockSelection = editor
