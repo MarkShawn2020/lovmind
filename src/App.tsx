@@ -173,6 +173,7 @@ function App() {
     currentTags,
     submitDisabled,
     handleBackToCreate,
+    createNewNoteWindow,
     viewingNoteId: controllerViewingNoteId,
   } = useNoteEditorController({
     mode: "main",
@@ -434,7 +435,7 @@ function App() {
       toolbar={
         <EditorToolbar
           mode="main"
-          onSubmit={handleSubmit}
+          onSubmit={viewingNoteId ? createNewNoteWindow : handleSubmit}
           submitDisabled={submitDisabled}
           currentTags={currentTags}
           allNotes={notes}

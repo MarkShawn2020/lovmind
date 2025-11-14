@@ -38,7 +38,7 @@ export const useNoteEditorController = ({
   onViewingModeChange,
 }: UseNoteEditorControllerOptions) => {
   const { notes, setNotes, deleteNote, togglePin, toggleArchive, updateNote } = useNoteOperations();
-  const { openNoteInNewWindow } = useWindowOperations(notes, setNotes);
+  const { openNoteInNewWindow, createNewNoteWindow } = useWindowOperations(notes, setNotes);
   const noteStats = useAtomValue(noteStatsAtom) as NoteStatsSummary;
   const { userProfile, reloadProfile } = useUserProfile();
   const { mergeTagsByStrategy } = useTagMergeStrategy();
@@ -270,7 +270,7 @@ export const useNoteEditorController = ({
       return;
     }
 
-    // Handle viewing mode - update existing note and return to create mode
+    // Handle viewing mode - update existing note
     if (mode === 'main' && viewingNoteId && currentNote) {
       const updatedNote: Note = {
         ...currentNote,
@@ -283,10 +283,7 @@ export const useNoteEditorController = ({
 
       try {
         await updateNote(updatedNote);
-        // Return to create mode after saving
-        if (onViewingModeChange) {
-          onViewingModeChange(null);
-        }
+        setCurrentNote(updatedNote);
       } catch (error) {
         console.error('Failed to save viewing note:', error);
       }
@@ -526,6 +523,7 @@ export const useNoteEditorController = ({
     handleCancelEditingTitle,
     handleFloatWindowClose,
     handleBackToCreate,
+    createNewNoteWindow,
     submitDisabled,
     viewingNoteId,
   };

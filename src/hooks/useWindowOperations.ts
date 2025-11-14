@@ -118,8 +118,72 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
     [notes, setNotes]
   );
 
+  /**
+   * Create and open a new empty note in a float window
+   */
+  const createNewNoteWindow = useCallback(async () => {
+    if (!isTauri()) {
+      // Browser environment: generate new note ID
+      const newNoteId = Date.now().toString();
+      const url = `/?window=editor&noteId=${newNoteId}`;
+      window.open(url, `note-editor-${newNoteId}`, 'width=600,height=500');
+      return;
+    }
+
+    try {
+      // Generate a new note ID
+      const newNoteId = Date.now().toString();
+
+      // Calculate rank for the new note
+      const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
+      const newRank = Math.max(maxRank + 1, notes.length + 1);
+
+      // Determine URL based on environment
+      const isDev = window.location.protocol === 'http:';
+      const url = isDev
+        ? `http://localhost:1420/?window=editor&noteId=${newNoteId}&rank=${newRank}`
+        : `index.html?window=editor&noteId=${newNoteId}&rank=${newRank}`;
+
+      console.log('Creating new note window with URL:', url);
+
+      // Create new float window
+      const windowLabel = `note-editor-${newNoteId}`;
+      const webview = new WebviewWindow(windowLabel, {
+        url: url,
+        title: 'New Note',
+        width: WINDOW_CONFIG.EDITOR.WIDTH,
+        height: WINDOW_CONFIG.EDITOR.HEIGHT,
+        minWidth: WINDOW_CONFIG.EDITOR.MIN_WIDTH,
+        minHeight: WINDOW_CONFIG.EDITOR.MIN_HEIGHT,
+        resizable: true,
+        center: true,
+        alwaysOnTop: false,
+        focus: true,
+        skipTaskbar: false,
+        decorations: false,
+        transparent: true,
+        dragDropEnabled: false,
+      });
+
+      // Focus window after creation
+      webview.once('tauri://created', async () => {
+        try {
+          await webview.show();
+          await webview.setFocus();
+          console.log('New note window created and focused');
+        } catch (error) {
+          console.error('Failed to focus new note window:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to create new note window:', error);
+      alert(`Failed to create new note window: ${error}`);
+    }
+  }, [notes]);
+
   return {
     handleHeaderMouseDown,
     openNoteInNewWindow,
+    createNewNoteWindow,
   };
 };
