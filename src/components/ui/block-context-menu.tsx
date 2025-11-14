@@ -55,11 +55,42 @@ export function BlockContextMenu() {
 
     const handleContextMenu = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      
+
       // Only handle if it's in the editor
       if (target.closest('[data-slate-editor="true"]')) {
         event.preventDefault();
-        setMenuPosition({ x: event.clientX, y: event.clientY });
+
+        // Calculate position with viewport boundaries
+        const menuWidth = 256; // w-64 = 16rem = 256px
+        const menuMaxHeight = window.innerHeight - 16; // max-h with padding
+        const padding = 8;
+
+        let x = event.clientX;
+        let y = event.clientY;
+
+        // Adjust horizontal position if overflowing right
+        if (x + menuWidth + padding > window.innerWidth) {
+          x = window.innerWidth - menuWidth - padding;
+        }
+
+        // Adjust horizontal position if overflowing left
+        if (x < padding) {
+          x = padding;
+        }
+
+        // Adjust vertical position if overflowing bottom
+        // Estimate menu height (rough calculation based on content)
+        const estimatedHeight = Math.min(500, menuMaxHeight);
+        if (y + estimatedHeight + padding > window.innerHeight) {
+          y = Math.max(padding, window.innerHeight - estimatedHeight - padding);
+        }
+
+        // Ensure menu doesn't go above top
+        if (y < padding) {
+          y = padding;
+        }
+
+        setMenuPosition({ x, y });
         setMenuOpen(true);
         api.blockMenu.show(BLOCK_CONTEXT_MENU_ID, {
           x: event.clientX,
@@ -105,7 +136,7 @@ export function BlockContextMenu() {
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md w-64"
+      className="fixed z-50 min-w-[8rem] max-h-[calc(100vh-16px)] overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md w-64"
       style={{
         left: `${menuPosition.x}px`,
         top: `${menuPosition.y}px`,
