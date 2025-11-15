@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
@@ -19,6 +19,7 @@ function FloatWindow() {
   const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
   const [, setNotes] = useAtom(notesAtom);
   const setImageMaxHeight = useSetAtom(imageMaxHeightAtom);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Extract noteId synchronously to avoid double-render
   const noteId = useMemo(() => {
@@ -238,10 +239,22 @@ function FloatWindow() {
       }
       sidebar={sidebarNode}
       editor={editorNode}
-      toolbar={<EditorToolbar mode="float" onSubmit={handleSubmit} submitDisabled={submitDisabled} currentTags={currentTags} allNotes={notes} editorRef={controlledEditorRef} />}
+      toolbar={
+        <EditorToolbar
+          mode="float"
+          onSubmit={handleSubmit}
+          submitDisabled={submitDisabled}
+          currentTags={currentTags}
+          allNotes={notes}
+          editorRef={controlledEditorRef}
+          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+        />
+      }
       userMenu={null}
       profileModal={null}
       aboutModal={null}
+      isMobileSidebarOpen={isMobileSidebarOpen}
+      onMobileSidebarChange={setIsMobileSidebarOpen}
     />
   );
 }

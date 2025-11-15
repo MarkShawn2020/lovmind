@@ -21,6 +21,7 @@ function App() {
   const [, setNotes] = useAtom(notesAtom);
   const [viewingNoteId, setViewingNoteId] = useState<string | null>(null);
   const setImageMaxHeight = useSetAtom(imageMaxHeightAtom);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!isTauri()) {
@@ -438,11 +439,14 @@ function App() {
           allNotes={notes}
           isViewingMode={!!viewingNoteId}
           editorRef={editorRef}
+          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
         />
       }
       userMenu={userMenuNode}
       profileModal={profileModalNode}
       aboutModal={aboutModalNode}
+      isMobileSidebarOpen={isMobileSidebarOpen}
+      onMobileSidebarChange={setIsMobileSidebarOpen}
     />
   );
 }

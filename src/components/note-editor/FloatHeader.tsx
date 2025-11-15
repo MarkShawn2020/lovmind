@@ -90,19 +90,21 @@ export const FloatHeader = ({
       </div>
       <div className="flex items-center gap-1">
         <button
-          className="w-9 h-9 bg-transparent border-none flex items-center justify-center cursor-pointer transition-colors duration-150"
+          className="w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 bg-transparent border-none flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 touch-manipulation"
           onClick={onToggleAlwaysOnTop}
           title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
           style={{
             color: isWindowAlwaysOnTop ? 'white' : 'rgba(255, 255, 255, 0.5)',
           }}
+          type="button"
         >
           <Pin size={16} />
         </button>
         <button
-          className="w-9 h-9 bg-transparent border-none flex items-center justify-center cursor-pointer transition-colors duration-150 text-white/50 hover:text-white"
+          className="w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 bg-transparent border-none flex items-center justify-center cursor-pointer transition-all duration-150 text-white/50 hover:text-white active:scale-95 touch-manipulation"
           onClick={onCloseWindow}
           title="Close window"
+          type="button"
         >
           <X size={16} />
         </button>

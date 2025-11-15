@@ -142,10 +142,18 @@ const NotesSidebarComponent = ({
       <ContextMenu key={note.id}>
         <ContextMenuTrigger asChild>
           <div
-            className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary group ${
+            className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary active:scale-[0.98] touch-manipulation group ${
               currentNoteId === note.id ? 'active' : ''
             } ${note.pinned ? 'pinned' : ''}`}
             onClick={() => onOpenNote(note)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onOpenNote(note);
+              }
+            }}
           >
             <div className="flex flex-col h-full">
               <div className="flex justify-between mb-0.5 gap-2">
@@ -251,7 +259,8 @@ const NotesSidebarComponent = ({
         <>
           <button
             onClick={() => setIsPinnedCollapsed(!isPinnedCollapsed)}
-            className="flex items-center justify-between w-full px-2.5 py-2 mb-1 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] rounded-[var(--radius)] transition-colors cursor-pointer border-none bg-transparent"
+            className="flex items-center justify-between w-full px-2.5 py-2 min-h-[44px] mb-1 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] rounded-[var(--radius)] transition-colors cursor-pointer border-none bg-transparent active:scale-[0.98] touch-manipulation"
+            type="button"
           >
             <div className="flex items-center gap-1.5">
               <Pin size={12} className="text-[var(--primary)]" />
