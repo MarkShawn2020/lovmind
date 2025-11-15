@@ -90,6 +90,26 @@ export const CaptionTextarea = React.forwardRef<
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      const textarea = e.currentTarget;
+
+      // Handle Backspace on empty caption: select parent image
+      if (e.key === 'Backspace' && textarea.value === '') {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Hide the caption
+        editor.setOption(CaptionPlugin, 'visibleId', null);
+
+        // Select the parent media element
+        const path = editor.api.findPath(element);
+        if (path) {
+          editor.tf.select(path);
+          editor.tf.focus();
+        }
+
+        return;
+      }
+
       // Handle Enter key to create a new block below
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
