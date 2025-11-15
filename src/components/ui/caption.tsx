@@ -102,6 +102,62 @@ export const CaptionTextarea = React.forwardRef<
         return;
       }
 
+      // Handle ArrowUp at the start: jump to parent image node
+      if (e.key === 'ArrowUp' && textarea.selectionStart === 0) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Hide the caption
+        editor.setOption(CaptionPlugin, 'visibleId', null);
+
+        // Select the parent media element
+        const path = editor.api.findPath(element);
+        if (path) {
+          editor.tf.select(path);
+          editor.tf.focus();
+        }
+
+        return;
+      }
+
+      // Handle ArrowDown at the end: jump to next block
+      if (e.key === 'ArrowDown' && textarea.selectionEnd === textarea.value.length) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const path = editor.api.findPath(element);
+        if (!path) return;
+
+        // Hide the caption immediately
+        editor.setOption(CaptionPlugin, 'visibleId', null);
+
+        // Try to move to the next block
+        const nextPath = PathApi.next(path);
+        const nextNode = editor.api.node(nextPath);
+
+        if (nextNode) {
+          // Next block exists, select its start
+          editor.tf.select(nextPath);
+          editor.tf.collapse({ edge: 'start' });
+          editor.tf.focus();
+        } else {
+          // No next block, create a new one
+          editor.tf.insertNodes(
+            editor.api.create.block({ type: KEYS.p }),
+            {
+              at: nextPath,
+              select: true,
+            }
+          );
+
+          setTimeout(() => {
+            editor.tf.focus({ at: nextPath });
+          }, 10);
+        }
+
+        return;
+      }
+
       // Handle Enter key to create a new block below
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -138,7 +194,7 @@ export const CaptionTextarea = React.forwardRef<
         return;
       }
 
-      // Call the original onKeyDown if provided (for arrow keys, etc.)
+      // Call the original onKeyDown if provided (for other keys)
       props.onKeyDown?.(e);
     },
     [editor, element, props]

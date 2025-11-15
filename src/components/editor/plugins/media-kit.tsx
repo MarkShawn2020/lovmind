@@ -9,7 +9,8 @@ import {
   PlaceholderPlugin,
   VideoPlugin,
 } from '@platejs/media/react';
-import { KEYS } from 'platejs';
+import { KEYS, isType } from 'platejs';
+import type { PlateEditor } from 'platejs/react';
 
 import { AudioElement } from '@/components/ui/media-audio-node';
 import { MediaEmbedElement } from '@/components/ui/media-embed-node';
@@ -24,6 +25,42 @@ export const MediaKit = [
   ImagePlugin.configure({
     options: { disableUploadInsert: false },
     render: { afterEditable: MediaPreviewDialog, node: ImageElement },
+    extendEditor: ({ editor }) => {
+      const { insertBreak } = editor;
+      const originalInsertBreak = insertBreak as () => void;
+
+      editor.insertBreak = () => {
+        const { selection } = editor;
+
+        if (!selection) {
+          return originalInsertBreak();
+        }
+
+        // Check if we're in an image node
+        const imageEntry = (editor as PlateEditor).api.above({
+          match: (n) => isType(editor, n, KEYS.img),
+        });
+
+        if (imageEntry) {
+          const [, imagePath] = imageEntry;
+
+          // Insert a new paragraph block before the image
+          (editor as PlateEditor).tf.insertNodes(
+            (editor as PlateEditor).api.create.block({ type: KEYS.p }),
+            {
+              at: imagePath,
+              select: true,
+            }
+          );
+
+          return;
+        }
+
+        return originalInsertBreak();
+      };
+
+      return editor;
+    },
   }),
   MediaEmbedPlugin.withComponent(MediaEmbedElement),
   VideoPlugin.withComponent(VideoElement),
