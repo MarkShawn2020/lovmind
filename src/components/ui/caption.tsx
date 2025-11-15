@@ -52,6 +52,35 @@ export const CaptionTextarea = React.forwardRef<
 >(function CaptionTextarea(props, ref) {
   const editor = useEditorRef();
   const element = useElement();
+  const internalRef = React.useRef<HTMLTextAreaElement>(null);
+
+  // Merge refs
+  React.useImperativeHandle(ref, () => internalRef.current!);
+
+  // Auto-focus when parent image has autoFocusCaption flag
+  React.useEffect(() => {
+    const parentElement = element as any;
+    console.log('[CaptionTextarea] useEffect:', {
+      autoFocusCaption: parentElement.autoFocusCaption,
+      internalRefCurrent: internalRef.current,
+    });
+
+    if (parentElement.autoFocusCaption && internalRef.current) {
+      console.log('[CaptionTextarea] Auto-focusing textarea');
+      internalRef.current.focus();
+      console.log('[CaptionTextarea] After focus, activeElement:', document.activeElement);
+
+      // Clear the flag
+      const path = editor.api.findPath(element);
+      if (path) {
+        editor.tf.setNodes(
+          { autoFocusCaption: undefined },
+          { at: path }
+        );
+        console.log('[CaptionTextarea] Cleared autoFocusCaption flag');
+      }
+    }
+  }, [(element as any).autoFocusCaption, editor, element]);
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -99,7 +128,7 @@ export const CaptionTextarea = React.forwardRef<
 
   return (
     <CaptionTextareaPrimitive
-      ref={ref}
+      ref={internalRef}
       {...props}
       onKeyDown={handleKeyDown}
       className={cn(

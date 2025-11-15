@@ -28,46 +28,19 @@ export const ImageElement = withHOC(
     const { align = 'center', focused, readOnly, selected } = useMediaState();
     const width = useResizableValue('width');
     const editor = useEditorRef();
-    const captionRef = React.useRef<HTMLTextAreaElement>(null);
 
     const { isDragging, handleRef } = useDraggable({
       element: props.element,
     });
 
-    // Auto-focus caption when image is newly inserted
+    // Show caption when image is newly inserted (CaptionTextarea handles focus)
     React.useEffect(() => {
       const element = props.element as any;
-      console.log('[ImageElement] useEffect triggered:', {
-        autoFocusCaption: element.autoFocusCaption,
-        readOnly,
-        captionRefCurrent: captionRef.current,
-      });
-
       if (element.autoFocusCaption && !readOnly) {
-        console.log('[ImageElement] Setting visibleId:', element.id);
-        // Show the caption
+        console.log('[ImageElement] Showing caption for new image:', element.id);
         editor.setOption(CaptionPlugin, 'visibleId', element.id as string);
-
-        // Wait for caption to render, then focus
-        if (captionRef.current) {
-          console.log('[ImageElement] Caption ref exists, focusing immediately');
-          captionRef.current.focus();
-          console.log('[ImageElement] After focus, activeElement:', document.activeElement);
-
-          // Clear the flag to prevent re-triggering
-          const path = editor.api.findPath(element);
-          if (path) {
-            editor.tf.setNodes(
-              { autoFocusCaption: undefined },
-              { at: path }
-            );
-            console.log('[ImageElement] Cleared autoFocusCaption flag');
-          }
-        } else {
-          console.log('[ImageElement] Caption ref is null, will wait for next render');
-        }
       }
-    }, [(props.element as any).autoFocusCaption, readOnly, captionRef.current]);
+    }, [(props.element as any).autoFocusCaption, readOnly, editor]);
 
     return (
       <MediaToolbar plugin={ImagePlugin}>
@@ -104,7 +77,6 @@ export const ImageElement = withHOC(
 
             <Caption style={{ width }} align={align}>
               <CaptionTextarea
-                ref={captionRef}
                 readOnly={readOnly}
                 placeholder="Write a caption..."
               />
