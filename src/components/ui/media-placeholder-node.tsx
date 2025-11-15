@@ -10,7 +10,6 @@ import {
   PlaceholderProvider,
   updateUploadHistory,
 } from '@platejs/media/react';
-import { CaptionPlugin } from '@platejs/caption/react';
 import { AudioLines, FileUp, Film, ImageIcon, Loader2Icon } from 'lucide-react';
 import { KEYS } from 'platejs';
 import { PlateElement, useEditorPlugin, withHOC } from 'platejs/react';
@@ -94,7 +93,6 @@ export const PlaceholderElement = withHOC(
       if (!uploadedFile) return;
 
       const path = editor.api.findPath(element);
-      let insertedNodeId: string | undefined;
 
       if (!path) return;
 
@@ -110,15 +108,14 @@ export const PlaceholderElement = withHOC(
           placeholderId: element.id as string,
           type: element.mediaType!,
           url: uploadedFile.url,
+          // Auto-focus caption for pasted/uploaded media
+          autoFocusCaption:
+            element.mediaType === KEYS.img ||
+            element.mediaType === KEYS.video ||
+            element.mediaType === KEYS.audio,
         };
 
         editor.tf.insertNodes(node, { at: path });
-
-        // Get the inserted node's ID for caption auto-focus
-        const insertedNode = editor.api.node({ at: path });
-        if (insertedNode) {
-          insertedNodeId = insertedNode[0].id as string;
-        }
 
         updateUploadHistory(editor, node);
       });
@@ -130,80 +127,6 @@ export const PlaceholderElement = withHOC(
       }, 0);
 
       api.placeholder.removeUploadingFile(element.id as string);
-
-      // Auto-focus caption for image/video/audio media types
-      if (
-        insertedNodeId &&
-        (element.mediaType === KEYS.img ||
-          element.mediaType === KEYS.video ||
-          element.mediaType === KEYS.audio)
-      ) {
-        console.log('[AutoFocus] 开始自动聚焦流程:', {
-          insertedNodeId,
-          mediaType: element.mediaType,
-          path,
-        });
-
-        // Set the caption as visible immediately
-        console.log('[AutoFocus] 设置 visibleId');
-        editor.setOption(CaptionPlugin, 'visibleId', insertedNodeId!);
-        console.log('[AutoFocus] visibleId 已设置为:', insertedNodeId);
-
-        // Retry mechanism to wait for caption to be rendered in DOM
-        const tryFocusCaption = (attempt = 1, maxAttempts = 10) => {
-          console.log(`[AutoFocus] 尝试 #${attempt}/${maxAttempts}`);
-
-          // Find all figcaption textareas in the document
-          const allTextareas = document.querySelectorAll<HTMLTextAreaElement>(
-            'figcaption textarea'
-          );
-          console.log('[AutoFocus] 找到的所有 figcaption textarea:', allTextareas.length);
-
-          // Find the one that's visible (caption plugin sets visibility via CSS)
-          let captionTextarea: HTMLTextAreaElement | null = null;
-          for (const textarea of allTextareas) {
-            const figcaption = textarea.closest('figcaption');
-            const computedStyle = figcaption ? getComputedStyle(figcaption) : null;
-
-            console.log('[AutoFocus] 检查 textarea:', {
-              textarea,
-              figcaption,
-              hasHiddenAttr: figcaption?.hasAttribute('hidden'),
-              display: computedStyle?.display,
-              visibility: computedStyle?.visibility,
-              opacity: computedStyle?.opacity,
-            });
-
-            if (
-              figcaption &&
-              !figcaption.hasAttribute('hidden') &&
-              computedStyle &&
-              computedStyle.display !== 'none' &&
-              computedStyle.visibility !== 'hidden' &&
-              computedStyle.opacity !== '0'
-            ) {
-              captionTextarea = textarea;
-              console.log('[AutoFocus] 找到可见的 textarea');
-              break;
-            }
-          }
-
-          if (captionTextarea) {
-            console.log('[AutoFocus] 执行 focus()');
-            captionTextarea.focus();
-            console.log('[AutoFocus] focus() 完成，activeElement:', document.activeElement);
-          } else if (attempt < maxAttempts) {
-            // Retry after a short delay
-            console.log(`[AutoFocus] 未找到 textarea，${50}ms 后重试`);
-            setTimeout(() => tryFocusCaption(attempt + 1, maxAttempts), 50);
-          } else {
-            console.error('[AutoFocus] 达到最大重试次数，仍未找到 caption textarea');
-          }
-        };
-
-        // Start trying to focus after a small initial delay
-        setTimeout(() => tryFocusCaption(), 100);
-      }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [uploadedFile, element.id]);
 

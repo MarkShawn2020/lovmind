@@ -46,9 +46,10 @@ export function Caption({
   );
 }
 
-export function CaptionTextarea(
-  props: React.ComponentProps<typeof CaptionTextareaPrimitive>
-) {
+export const CaptionTextarea = React.forwardRef<
+  HTMLTextAreaElement,
+  React.ComponentProps<typeof CaptionTextareaPrimitive>
+>(function CaptionTextarea(props, ref) {
   const editor = useEditorRef();
   const element = useElement();
 
@@ -98,6 +99,7 @@ export function CaptionTextarea(
 
   return (
     <CaptionTextareaPrimitive
+      ref={ref}
       {...props}
       onKeyDown={handleKeyDown}
       className={cn(
@@ -108,7 +110,7 @@ export function CaptionTextarea(
       )}
     />
   );
-}
+});
 
 export const CaptionButton = createPrimitiveComponent(Button)({
   propsHook: useCaptionButton,

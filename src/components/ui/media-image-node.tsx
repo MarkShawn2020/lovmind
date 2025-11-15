@@ -19,16 +19,43 @@ import {
   Resizable,
   ResizeHandle,
 } from './resize-handle';
+import { CaptionPlugin } from '@platejs/caption/react';
+import { useEditorRef } from 'platejs/react';
 
 export const ImageElement = withHOC(
   ResizableProvider,
   function ImageElement(props: PlateElementProps<TImageElement>) {
     const { align = 'center', focused, readOnly, selected } = useMediaState();
     const width = useResizableValue('width');
+    const editor = useEditorRef();
+    const captionRef = React.useRef<HTMLTextAreaElement>(null);
 
     const { isDragging, handleRef } = useDraggable({
       element: props.element,
     });
+
+    // Auto-focus caption when image is newly inserted
+    React.useEffect(() => {
+      const element = props.element as any;
+      if (element.autoFocusCaption && !readOnly) {
+        // Show the caption
+        editor.setOption(CaptionPlugin, 'visibleId', element.id as string);
+
+        // Focus the caption textarea after a small delay for DOM update
+        setTimeout(() => {
+          captionRef.current?.focus();
+
+          // Clear the flag to prevent re-triggering
+          const path = editor.api.findPath(element);
+          if (path) {
+            editor.tf.setNodes(
+              { autoFocusCaption: undefined },
+              { at: path }
+            );
+          }
+        }, 50);
+      }
+    }, [(props.element as any).autoFocusCaption, readOnly]);
 
     return (
       <MediaToolbar plugin={ImagePlugin}>
@@ -65,6 +92,7 @@ export const ImageElement = withHOC(
 
             <Caption style={{ width }} align={align}>
               <CaptionTextarea
+                ref={captionRef}
                 readOnly={readOnly}
                 placeholder="Write a caption..."
               />
