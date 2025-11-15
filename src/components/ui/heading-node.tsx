@@ -10,12 +10,12 @@ import { PlateElement } from 'platejs/react';
 const headingVariants = cva('relative mb-1', {
   variants: {
     variant: {
-      h1: 'mt-[1.6em] pb-1 font-heading text-4xl font-bold',
-      h2: 'mt-[1.4em] pb-px font-heading text-2xl font-semibold tracking-tight',
-      h3: 'mt-[1em] pb-px font-heading text-xl font-semibold tracking-tight',
-      h4: 'mt-[0.75em] font-heading text-lg font-semibold tracking-tight',
-      h5: 'mt-[0.75em] text-lg font-semibold tracking-tight',
-      h6: 'mt-[0.75em] text-base font-semibold tracking-tight',
+      h1: 'mt-[1em] pb-0.5 font-heading text-2xl font-bold md:mt-[1.1em] md:pb-0.5 md:text-3xl',
+      h2: 'mt-[0.9em] pb-px font-heading text-xl font-semibold tracking-tight md:mt-[1em] md:text-2xl',
+      h3: 'mt-[0.75em] pb-px font-heading text-lg font-semibold tracking-tight md:mt-[0.8em] md:text-lg',
+      h4: 'mt-[0.6em] font-heading text-base font-semibold tracking-tight md:mt-[0.65em] md:text-base',
+      h5: 'mt-[0.6em] text-base font-semibold tracking-tight md:mt-[0.65em] md:text-base',
+      h6: 'mt-[0.6em] text-sm font-semibold tracking-tight md:mt-[0.65em] md:text-sm',
     },
   },
 });
