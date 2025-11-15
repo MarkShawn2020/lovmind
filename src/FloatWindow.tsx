@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
-import { useAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 
 import './App.css';
 import { isTauri } from './utils/tauri';
-import { notesAtom, Note } from './store';
+import { notesAtom, Note, imageMaxHeightAtom } from './store';
 import RenderingWysiwygEditor from './components/RenderingWysiwygEditor';
 import EditorToolbar from './components/EditorToolbar';
 import { NotesSidebar } from './components/NotesSidebar';
@@ -18,6 +18,7 @@ import type { RenderingWysiwygEditorRef } from './components/RenderingWysiwygEdi
 function FloatWindow() {
   const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
   const [, setNotes] = useAtom(notesAtom);
+  const setImageMaxHeight = useSetAtom(imageMaxHeightAtom);
 
   // Extract noteId synchronously to avoid double-render
   const noteId = useMemo(() => {
@@ -125,10 +126,22 @@ function FloatWindow() {
       }
     );
 
+    // 监听图片最大高度变化事件
+    console.log('[FloatWindow] Setting up image max height listener...');
+    const unlistenImageHeight = listen<{ value: number }>(
+      'image-max-height-changed',
+      (event) => {
+        const newHeight = event.payload.value;
+        console.log('[FloatWindow] Received image-max-height-changed:', newHeight);
+        setImageMaxHeight(newHeight);
+      }
+    );
+
     return () => {
       unlistenNoteUpdate.then((fn) => fn());
+      unlistenImageHeight.then((fn) => fn());
     };
-  }, [setNotes]);
+  }, [setNotes, setImageMaxHeight]);
 
   if (!noteId) {
     return (

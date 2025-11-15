@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { X, Keyboard, RotateCcw, Image as ImageIcon, Tag, Info } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { emit } from '@tauri-apps/api/event';
 import { isTauri } from './utils/tauri';
 import { useAtom } from 'jotai';
 import { imageMaxHeightAtom } from './store';
@@ -109,6 +110,21 @@ export default function SettingsWindow() {
   useEffect(() => {
     loadSettings();
   }, []);
+
+  // Helper function to update image max height and broadcast to other windows
+  const updateImageMaxHeight = useCallback(async (newHeight: number) => {
+    setImageMaxHeight(newHeight);
+
+    // Broadcast to all windows (main, editor windows)
+    if (isTauri()) {
+      try {
+        await emit('image-max-height-changed', { value: newHeight });
+        console.log('[SettingsWindow] Broadcast image-max-height-changed:', newHeight);
+      } catch (error) {
+        console.error('[SettingsWindow] Failed to emit event:', error);
+      }
+    }
+  }, [setImageMaxHeight]);
 
   // Auto-focus window after component mounts
   useEffect(() => {
@@ -390,14 +406,14 @@ export default function SettingsWindow() {
                     max="1200"
                     step="100"
                     value={imageMaxHeight}
-                    onChange={(e) => setImageMaxHeight(Number(e.target.value))}
+                    onChange={(e) => updateImageMaxHeight(Number(e.target.value))}
                     className="flex-1 h-2 bg-[#E8E6DC] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D97757] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#D97757] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                   />
                   <div className="flex gap-2">
                     {[0, 300, 600, 900].map(height => (
                       <button
                         key={height}
-                        onClick={() => setImageMaxHeight(height)}
+                        onClick={() => updateImageMaxHeight(height)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           imageMaxHeight === height
                             ? 'bg-[#D97757] text-white'

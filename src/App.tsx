@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 import "./App.css";
 import { isTauri } from "./utils/tauri";
-import { notesAtom, Note } from "./store";
+import { notesAtom, Note, imageMaxHeightAtom } from "./store";
 import { NotesSidebar } from "./components/NotesSidebar";
 import RenderingWysiwygEditor from "./components/RenderingWysiwygEditor";
 import EditorToolbar from "./components/EditorToolbar";
@@ -20,6 +20,7 @@ import packageJson from "../package.json";
 function App() {
   const [, setNotes] = useAtom(notesAtom);
   const [viewingNoteId, setViewingNoteId] = useState<string | null>(null);
+  const setImageMaxHeight = useSetAtom(imageMaxHeightAtom);
 
   useEffect(() => {
     if (!isTauri()) {
@@ -56,6 +57,17 @@ function App() {
       }
     );
 
+    // 监听图片最大高度变化事件
+    console.log("Setting up image max height listener...");
+    const unlistenImageHeight = listen<{ value: number }>(
+      "image-max-height-changed",
+      (event) => {
+        const newHeight = event.payload.value;
+        console.log("[App] Received image-max-height-changed:", newHeight);
+        setImageMaxHeight(newHeight);
+      }
+    );
+
     // 添加键盘快捷键监听（开发者工具）
     const handleKeyDown = async (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "I") {
@@ -77,9 +89,10 @@ function App() {
     return () => {
       unlisten.then((fn) => fn());
       unlistenNoteUpdate.then((fn) => fn());
+      unlistenImageHeight.then((fn) => fn());
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [setNotes]);
+  }, [setNotes, setImageMaxHeight]);
 
   // 在浏览器环境下，监听 BroadcastChannel 的笔记更新
   useEffect(() => {
