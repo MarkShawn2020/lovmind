@@ -138,47 +138,71 @@ export const PlaceholderElement = withHOC(
           element.mediaType === KEYS.video ||
           element.mediaType === KEYS.audio)
       ) {
+        console.log('[AutoFocus] 开始自动聚焦流程:', {
+          insertedNodeId,
+          mediaType: element.mediaType,
+          path,
+        });
+
         // Use requestAnimationFrame for better timing with React rendering
         requestAnimationFrame(() => {
+          console.log('[AutoFocus] RAF #1 执行，设置 visibleId');
           // Set the caption as visible
           editor.setOption(CaptionPlugin, 'visibleId', insertedNodeId!);
+          console.log('[AutoFocus] visibleId 已设置为:', insertedNodeId);
 
           // Wait for the caption to render and become visible
           requestAnimationFrame(() => {
+            console.log('[AutoFocus] RAF #2 执行，开始查找 textarea');
             // Try multiple selectors to find the caption textarea
             let captionTextarea: HTMLTextAreaElement | null = null;
 
             // Method 1: Find by data-key attribute (Plate.js uses this for nodes)
-            const imageNode = document.querySelector(
-              `[data-key="${path?.[0] ?? 0}"][data-type="${element.mediaType}"]`
-            );
+            const selector1 = `[data-key="${path?.[0] ?? 0}"][data-type="${element.mediaType}"]`;
+            console.log('[AutoFocus] 尝试选择器 #1:', selector1);
+            const imageNode = document.querySelector(selector1);
+            console.log('[AutoFocus] 选择器 #1 结果:', imageNode);
+
             if (imageNode) {
               captionTextarea = imageNode.querySelector(
                 'figcaption textarea'
               ) as HTMLTextAreaElement;
+              console.log('[AutoFocus] 在 imageNode 中找到 textarea:', captionTextarea);
             }
 
             // Method 2: Fallback to finding any visible caption textarea in the editor
             if (!captionTextarea) {
-              const allTextareas = document.querySelectorAll<HTMLTextAreaElement>(
-                `[data-plate-editor-id="${editor.id}"] figcaption textarea`
-              );
+              const selector2 = `[data-plate-editor-id="${editor.id}"] figcaption textarea`;
+              console.log('[AutoFocus] 尝试选择器 #2:', selector2);
+              const allTextareas = document.querySelectorAll<HTMLTextAreaElement>(selector2);
+              console.log('[AutoFocus] 找到的所有 textarea:', allTextareas.length);
+
               // Find the one that's not hidden
               for (const textarea of allTextareas) {
                 const figcaption = textarea.closest('figcaption');
+                console.log('[AutoFocus] 检查 textarea 的 figcaption:', {
+                  figcaption,
+                  hasHiddenAttr: figcaption?.hasAttribute('hidden'),
+                  display: figcaption ? getComputedStyle(figcaption).display : null,
+                });
                 if (
                   figcaption &&
                   !figcaption.hasAttribute('hidden') &&
                   getComputedStyle(figcaption).display !== 'none'
                 ) {
                   captionTextarea = textarea;
+                  console.log('[AutoFocus] 找到可见的 textarea');
                   break;
                 }
               }
             }
 
             if (captionTextarea) {
+              console.log('[AutoFocus] 执行 focus()');
               captionTextarea.focus();
+              console.log('[AutoFocus] focus() 完成，activeElement:', document.activeElement);
+            } else {
+              console.error('[AutoFocus] 未找到 caption textarea');
             }
           });
         });
