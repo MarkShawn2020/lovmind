@@ -84,12 +84,6 @@ export const PlaceholderElement = withHOC(
 
     const replaceCurrentPlaceholder = React.useCallback(
       (file: File) => {
-        console.log('[PlaceholderElement] replaceCurrentPlaceholder 被调用:', {
-          elementId: element.id,
-          fileName: file.name,
-          fileSize: file.size,
-          fileType: file.type,
-        });
         void uploadFile(file);
         api.placeholder.addUploadingFile(element.id as string, file);
       },
@@ -99,18 +93,10 @@ export const PlaceholderElement = withHOC(
     React.useEffect(() => {
       if (!uploadedFile) return;
 
-      console.log('[PlaceholderElement] uploadedFile 更新，准备插入节点:', {
-        elementId: element.id,
-        uploadedFile,
-      });
-
       const path = editor.api.findPath(element);
-      console.log('[PlaceholderElement] 找到元素路径:', path);
+      let insertedNodeId: string | undefined;
 
-      if (!path) {
-        console.log('[PlaceholderElement] 未找到元素路径，跳过');
-        return;
-      }
+      if (!path) return;
 
       editor.tf.withoutSaving(() => {
         editor.tf.removeNodes({ at: path });
@@ -126,60 +112,15 @@ export const PlaceholderElement = withHOC(
           url: uploadedFile.url,
         };
 
-        console.log('[PlaceholderElement] 插入新节点:', node);
         editor.tf.insertNodes(node, { at: path });
 
-        updateUploadHistory(editor, node);
-
-        // Auto-focus caption for media elements after upload completes
-        if (
-          element.mediaType === KEYS.img ||
-          element.mediaType === KEYS.video ||
-          element.mediaType === KEYS.audio
-        ) {
-          // Use queueMicrotask to execute after the current editor operation completes
-          // This is more reliable than setTimeout and executes in the same frame
-          queueMicrotask(() => {
-            const insertedElement = editor.api.node({ at: path });
-            if (insertedElement && 'type' in insertedElement[0]) {
-              const insertedNodeId = insertedElement[0].id as string;
-              console.log('[PlaceholderElement] 准备自动聚焦 caption:', insertedNodeId);
-
-              // Set the caption as visible using CaptionPlugin
-              editor.setOption(CaptionPlugin, 'visibleId', insertedNodeId);
-              console.log('[PlaceholderElement] 已设置 visibleId:', insertedNodeId);
-
-              // Focus the caption textarea after a tick to ensure DOM is ready
-              setTimeout(() => {
-                const captionTextarea = document.querySelector(
-                  `[data-plate-editor-id="${editor.id}"] textarea[placeholder*="caption"]`
-                ) as HTMLTextAreaElement;
-
-                if (captionTextarea) {
-                  captionTextarea.focus();
-                  console.log('[PlaceholderElement] Caption textarea 已聚焦');
-                } else {
-                  console.warn('[PlaceholderElement] 未找到 caption textarea');
-                }
-              }, 50);
-            }
-          });
-        } else {
-          // For non-media elements, restore selection to maintain focus
-          try {
-            const after = editor.api.after(path);
-            if (after) {
-              editor.tf.select(after);
-              console.log('[PlaceholderElement] 已恢复编辑器选区:', after);
-            } else {
-              const endPoint = editor.api.end([]);
-              editor.tf.select(endPoint);
-              console.log('[PlaceholderElement] 已恢复编辑器选区（文档末尾）:', endPoint);
-            }
-          } catch (error) {
-            console.warn('[PlaceholderElement] 恢复选区失败:', error);
-          }
+        // Get the inserted node's ID for caption auto-focus
+        const insertedNode = editor.api.node({ at: path });
+        if (insertedNode) {
+          insertedNodeId = insertedNode[0].id as string;
         }
+
+        updateUploadHistory(editor, node);
       });
 
       // ✅ Ensure editor regains focus after async operation
@@ -189,7 +130,59 @@ export const PlaceholderElement = withHOC(
       }, 0);
 
       api.placeholder.removeUploadingFile(element.id as string);
-      console.log('[PlaceholderElement] 节点插入完成');
+
+      // Auto-focus caption for image/video/audio media types
+      if (
+        insertedNodeId &&
+        (element.mediaType === KEYS.img ||
+          element.mediaType === KEYS.video ||
+          element.mediaType === KEYS.audio)
+      ) {
+        // Use requestAnimationFrame for better timing with React rendering
+        requestAnimationFrame(() => {
+          // Set the caption as visible
+          editor.setOption(CaptionPlugin, 'visibleId', insertedNodeId!);
+
+          // Wait for the caption to render and become visible
+          requestAnimationFrame(() => {
+            // Try multiple selectors to find the caption textarea
+            let captionTextarea: HTMLTextAreaElement | null = null;
+
+            // Method 1: Find by data-key attribute (Plate.js uses this for nodes)
+            const imageNode = document.querySelector(
+              `[data-key="${path?.[0] ?? 0}"][data-type="${element.mediaType}"]`
+            );
+            if (imageNode) {
+              captionTextarea = imageNode.querySelector(
+                'figcaption textarea'
+              ) as HTMLTextAreaElement;
+            }
+
+            // Method 2: Fallback to finding any visible caption textarea in the editor
+            if (!captionTextarea) {
+              const allTextareas = document.querySelectorAll<HTMLTextAreaElement>(
+                `[data-plate-editor-id="${editor.id}"] figcaption textarea`
+              );
+              // Find the one that's not hidden
+              for (const textarea of allTextareas) {
+                const figcaption = textarea.closest('figcaption');
+                if (
+                  figcaption &&
+                  !figcaption.hasAttribute('hidden') &&
+                  getComputedStyle(figcaption).display !== 'none'
+                ) {
+                  captionTextarea = textarea;
+                  break;
+                }
+              }
+            }
+
+            if (captionTextarea) {
+              captionTextarea.focus();
+            }
+          });
+        });
+      }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [uploadedFile, element.id]);
 
@@ -198,29 +191,15 @@ export const PlaceholderElement = withHOC(
 
     /** Paste and drop */
     React.useEffect(() => {
-      console.log('[PlaceholderElement] Paste/Drop effect 触发:', {
-        isReplaced: isReplaced.current,
-        elementId: element.id,
-      });
-
-      if (isReplaced.current) {
-        console.log('[PlaceholderElement] 已经处理过，跳过');
-        return;
-      }
+      if (isReplaced.current) return;
 
       isReplaced.current = true;
       const currentFiles = api.placeholder.getUploadingFile(
         element.id as string
       );
 
-      console.log('[PlaceholderElement] 获取待上传文件:', currentFiles);
+      if (!currentFiles) return;
 
-      if (!currentFiles) {
-        console.log('[PlaceholderElement] 没有待上传文件');
-        return;
-      }
-
-      console.log('[PlaceholderElement] 开始处理粘贴/拖放的文件');
       replaceCurrentPlaceholder(currentFiles);
 
       // eslint-disable-next-line react-hooks/exhaustive-deps

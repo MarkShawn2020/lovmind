@@ -8,7 +8,6 @@ import {
   Caption as CaptionPrimitive,
   CaptionPlugin,
   CaptionTextarea as CaptionTextareaPrimitive,
-  showCaption,
   useCaptionButton,
   useCaptionButtonState,
 } from '@platejs/caption/react';
@@ -60,7 +59,6 @@ export function CaptionTextarea(
         e.preventDefault();
         e.stopPropagation();
 
-        // Find the path of the parent element (the media element containing this caption)
         const path = editor.api.findPath(element);
         if (!path) return;
 
@@ -79,18 +77,15 @@ export function CaptionTextarea(
           }
         );
 
-        // Use queueMicrotask to ensure focus happens after editor operations complete
-        // This is more reliable and deterministic than setTimeout
-        queueMicrotask(() => {
-          // Get the actual inserted path (might be different after normalization)
+        // Force focus to the editor after the DOM updates
+        setTimeout(() => {
           const insertedPath = editor.api.after(path);
           if (insertedPath) {
             editor.tf.focus({ at: insertedPath });
           } else {
-            // Fallback to the calculated path
             editor.tf.focus({ at: nextPath });
           }
-        });
+        }, 10);
 
         return;
       }
@@ -119,6 +114,3 @@ export const CaptionButton = createPrimitiveComponent(Button)({
   propsHook: useCaptionButton,
   stateHook: useCaptionButtonState,
 });
-
-// Re-export showCaption for convenience
-export { showCaption };
