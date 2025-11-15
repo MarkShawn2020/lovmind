@@ -35,9 +35,9 @@ export const ImageElement = withHOC(
     });
 
     // Auto-focus caption when image is newly inserted
-    React.useLayoutEffect(() => {
+    React.useEffect(() => {
       const element = props.element as any;
-      console.log('[ImageElement] useLayoutEffect triggered:', {
+      console.log('[ImageElement] useEffect triggered:', {
         autoFocusCaption: element.autoFocusCaption,
         readOnly,
         captionRefCurrent: captionRef.current,
@@ -48,22 +48,26 @@ export const ImageElement = withHOC(
         // Show the caption
         editor.setOption(CaptionPlugin, 'visibleId', element.id as string);
 
-        console.log('[ImageElement] Attempting to focus, captionRef:', captionRef.current);
-        // Focus immediately - useLayoutEffect runs synchronously after DOM mutations
-        captionRef.current?.focus();
-        console.log('[ImageElement] After focus, activeElement:', document.activeElement);
+        // Wait for caption to render, then focus
+        if (captionRef.current) {
+          console.log('[ImageElement] Caption ref exists, focusing immediately');
+          captionRef.current.focus();
+          console.log('[ImageElement] After focus, activeElement:', document.activeElement);
 
-        // Clear the flag to prevent re-triggering
-        const path = editor.api.findPath(element);
-        if (path) {
-          editor.tf.setNodes(
-            { autoFocusCaption: undefined },
-            { at: path }
-          );
-          console.log('[ImageElement] Cleared autoFocusCaption flag');
+          // Clear the flag to prevent re-triggering
+          const path = editor.api.findPath(element);
+          if (path) {
+            editor.tf.setNodes(
+              { autoFocusCaption: undefined },
+              { at: path }
+            );
+            console.log('[ImageElement] Cleared autoFocusCaption flag');
+          }
+        } else {
+          console.log('[ImageElement] Caption ref is null, will wait for next render');
         }
       }
-    }, [(props.element as any).autoFocusCaption, readOnly]);
+    }, [(props.element as any).autoFocusCaption, readOnly, captionRef.current]);
 
     return (
       <MediaToolbar plugin={ImagePlugin}>
