@@ -37,42 +37,23 @@ export const ImageElement = withHOC(
     // Auto-focus caption when image is newly inserted
     React.useEffect(() => {
       const element = props.element as any;
-
       if (element.autoFocusCaption && !readOnly) {
         // Show the caption
         editor.setOption(CaptionPlugin, 'visibleId', element.id as string);
 
-        // Clear the flag immediately to prevent re-triggering
-        const path = editor.api.findPath(element);
-        if (path) {
-          editor.tf.setNodes(
-            { autoFocusCaption: undefined },
-            { at: path }
-          );
-        }
-
-        // Focus the caption textarea after DOM update
+        // Focus the caption textarea after a small delay for DOM update
         setTimeout(() => {
-          if (captionRef.current) {
-            // Use multiple focus strategies to ensure it works
-            captionRef.current.focus();
-            captionRef.current.select();
+          captionRef.current?.focus();
 
-            // Prevent any blur events from stealing focus
-            const preventBlur = (e: FocusEvent) => {
-              if (e.target === captionRef.current) {
-                e.preventDefault();
-                captionRef.current?.focus();
-              }
-            };
-
-            // Remove the listener after a short time
-            window.addEventListener('blur', preventBlur, true);
-            setTimeout(() => {
-              window.removeEventListener('blur', preventBlur, true);
-            }, 200);
+          // Clear the flag to prevent re-triggering
+          const path = editor.api.findPath(element);
+          if (path) {
+            editor.tf.setNodes(
+              { autoFocusCaption: undefined },
+              { at: path }
+            );
           }
-        }, 100);
+        }, 50);
       }
     }, [(props.element as any).autoFocusCaption, readOnly]);
 

@@ -104,7 +104,7 @@ export const CaptionTextarea = React.forwardRef<
       onKeyDown={handleKeyDown}
       className={cn(
         'mt-2 w-full resize-none border-none bg-inherit p-0 font-[inherit] text-inherit',
-        'focus:outline-none focus:[&::placeholder]:opacity-0',
+        'focus:outline-none',
         'text-center print:placeholder:text-transparent',
         props.className
       )}
