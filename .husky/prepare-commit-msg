@@ -1,7 +1,9 @@
 #!/bin/sh
 
-# Auto-bump version based on commit message
-node scripts/bump-version.js $1
+# Auto-bump version based on commit message (only during normal commits, not amend/merge)
+if [ -z "$2" ] || [ "$2" = "message" ]; then
+  node scripts/bump-version.js $1
 
-# Stage version files
-git add package.json src-tauri/tauri.conf.json
+  # Stage version files so they're included in the commit
+  git add package.json src-tauri/tauri.conf.json
+fi
