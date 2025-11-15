@@ -142,7 +142,7 @@ const NotesSidebarComponent = ({
       <ContextMenu key={note.id}>
         <ContextMenuTrigger asChild>
           <div
-            className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary hover:z-10 active:scale-[0.98] touch-manipulation group ${
+            className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary active:scale-[0.98] touch-manipulation group ${
               currentNoteId === note.id ? 'active' : ''
             } ${note.pinned ? 'pinned' : ''}`}
             onClick={() => onOpenNote(note)}
@@ -274,9 +274,9 @@ const NotesSidebarComponent = ({
 
           {/* Pinned Notes List with Smooth Collapse Animation */}
           <div
-            className="flex flex-col gap-2 transition-all duration-300 ease-in-out overflow-hidden"
+            className="flex flex-col gap-2 transition-all duration-300 ease-in-out overflow-hidden py-1"
             style={{
-              maxHeight: isPinnedCollapsed ? '0' : `${pinnedNotes.length * 98}px`,
+              maxHeight: isPinnedCollapsed ? '0' : `${pinnedNotes.length * 98 + 8}px`,
               opacity: isPinnedCollapsed ? 0 : 1,
             }}
           >
