@@ -182,12 +182,12 @@ const EditorToolbar = memo(({
     <div
       className={`
         flex-shrink-0
-        bg-card/80 backdrop-blur-sm
-        border-t border-border/50
+        bg-background/95
+        border-t border-border/40
         flex justify-between items-center
         px-4 sm:px-6
         z-10
-        ${mode === 'float' ? 'h-14 bg-muted/50' : 'h-16'}
+        ${mode === 'float' ? 'h-14' : 'h-16'}
       `}
     >
       <div className="flex gap-3 sm:gap-4 items-center">
