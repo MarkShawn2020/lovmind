@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
-import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 
 interface EditorLayoutProps {
   header: ReactNode;
@@ -40,6 +41,12 @@ export const EditorLayout = ({
         {/* Mobile Sidebar Drawer */}
         <Drawer open={isMobileSidebarOpen} onOpenChange={onMobileSidebarChange} direction="left">
           <DrawerContent className="h-full max-h-screen">
+            <VisuallyHidden>
+              <DrawerTitle>Navigation Menu</DrawerTitle>
+              <DrawerDescription>
+                Browse and manage your notes from the sidebar
+              </DrawerDescription>
+            </VisuallyHidden>
             <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-4 pb-safe">
               {sidebar}
             </div>
