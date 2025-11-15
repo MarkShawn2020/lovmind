@@ -144,61 +144,65 @@ export const PlaceholderElement = withHOC(
           path,
         });
 
-        // Use requestAnimationFrame for better timing with React rendering
-        requestAnimationFrame(() => {
-          console.log('[AutoFocus] RAF #1 执行，设置 visibleId');
-          // Set the caption as visible
-          editor.setOption(CaptionPlugin, 'visibleId', insertedNodeId!);
-          console.log('[AutoFocus] visibleId 已设置为:', insertedNodeId);
+        // Set the caption as visible immediately
+        console.log('[AutoFocus] 设置 visibleId');
+        editor.setOption(CaptionPlugin, 'visibleId', insertedNodeId!);
+        console.log('[AutoFocus] visibleId 已设置为:', insertedNodeId);
 
-          // Wait for the caption to render and become visible
-          requestAnimationFrame(() => {
-            console.log('[AutoFocus] RAF #2 执行，开始查找 textarea');
+        // Retry mechanism to wait for caption to be rendered in DOM
+        const tryFocusCaption = (attempt = 1, maxAttempts = 10) => {
+          console.log(`[AutoFocus] 尝试 #${attempt}/${maxAttempts}`);
 
-            // Find all figcaption textareas in the document
-            const allTextareas = document.querySelectorAll<HTMLTextAreaElement>(
-              'figcaption textarea'
-            );
-            console.log('[AutoFocus] 找到的所有 figcaption textarea:', allTextareas.length);
+          // Find all figcaption textareas in the document
+          const allTextareas = document.querySelectorAll<HTMLTextAreaElement>(
+            'figcaption textarea'
+          );
+          console.log('[AutoFocus] 找到的所有 figcaption textarea:', allTextareas.length);
 
-            // Find the one that's visible (caption plugin sets visibility via CSS)
-            let captionTextarea: HTMLTextAreaElement | null = null;
-            for (const textarea of allTextareas) {
-              const figcaption = textarea.closest('figcaption');
-              const computedStyle = figcaption ? getComputedStyle(figcaption) : null;
+          // Find the one that's visible (caption plugin sets visibility via CSS)
+          let captionTextarea: HTMLTextAreaElement | null = null;
+          for (const textarea of allTextareas) {
+            const figcaption = textarea.closest('figcaption');
+            const computedStyle = figcaption ? getComputedStyle(figcaption) : null;
 
-              console.log('[AutoFocus] 检查 textarea:', {
-                textarea,
-                figcaption,
-                hasHiddenAttr: figcaption?.hasAttribute('hidden'),
-                display: computedStyle?.display,
-                visibility: computedStyle?.visibility,
-                opacity: computedStyle?.opacity,
-              });
+            console.log('[AutoFocus] 检查 textarea:', {
+              textarea,
+              figcaption,
+              hasHiddenAttr: figcaption?.hasAttribute('hidden'),
+              display: computedStyle?.display,
+              visibility: computedStyle?.visibility,
+              opacity: computedStyle?.opacity,
+            });
 
-              if (
-                figcaption &&
-                !figcaption.hasAttribute('hidden') &&
-                computedStyle &&
-                computedStyle.display !== 'none' &&
-                computedStyle.visibility !== 'hidden' &&
-                computedStyle.opacity !== '0'
-              ) {
-                captionTextarea = textarea;
-                console.log('[AutoFocus] 找到可见的 textarea');
-                break;
-              }
+            if (
+              figcaption &&
+              !figcaption.hasAttribute('hidden') &&
+              computedStyle &&
+              computedStyle.display !== 'none' &&
+              computedStyle.visibility !== 'hidden' &&
+              computedStyle.opacity !== '0'
+            ) {
+              captionTextarea = textarea;
+              console.log('[AutoFocus] 找到可见的 textarea');
+              break;
             }
+          }
 
-            if (captionTextarea) {
-              console.log('[AutoFocus] 执行 focus()');
-              captionTextarea.focus();
-              console.log('[AutoFocus] focus() 完成，activeElement:', document.activeElement);
-            } else {
-              console.error('[AutoFocus] 未找到可见的 caption textarea');
-            }
-          });
-        });
+          if (captionTextarea) {
+            console.log('[AutoFocus] 执行 focus()');
+            captionTextarea.focus();
+            console.log('[AutoFocus] focus() 完成，activeElement:', document.activeElement);
+          } else if (attempt < maxAttempts) {
+            // Retry after a short delay
+            console.log(`[AutoFocus] 未找到 textarea，${50}ms 后重试`);
+            setTimeout(() => tryFocusCaption(attempt + 1, maxAttempts), 50);
+          } else {
+            console.error('[AutoFocus] 达到最大重试次数，仍未找到 caption textarea');
+          }
+        };
+
+        // Start trying to focus after a small initial delay
+        setTimeout(() => tryFocusCaption(), 100);
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [uploadedFile, element.id]);
