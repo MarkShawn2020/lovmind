@@ -1,4 +1,8 @@
 #!/bin/sh
 
-# Post-commit hook: nothing to do, version already updated in pre-commit
-exit 0
+# Check if version files were modified during prepare-commit-msg
+if ! git diff --cached --quiet package.json src-tauri/tauri.conf.json 2>/dev/null; then
+  # Version files were modified, amend the commit to include them
+  git add package.json src-tauri/tauri.conf.json
+  git commit --amend --no-edit --no-verify
+fi
