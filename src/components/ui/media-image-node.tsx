@@ -21,6 +21,9 @@ import {
 } from './resize-handle';
 import { CaptionPlugin } from '@platejs/caption/react';
 import { useEditorRef } from 'platejs/react';
+import { useAtomValue } from 'jotai';
+import { imageMaxHeightAtom } from '@/store';
+import { Maximize2 } from 'lucide-react';
 
 export const ImageElement = withHOC(
   ResizableProvider,
@@ -28,10 +31,31 @@ export const ImageElement = withHOC(
     const { align = 'center', focused, readOnly, selected } = useMediaState();
     const width = useResizableValue('width');
     const editor = useEditorRef();
+    const imageMaxHeight = useAtomValue(imageMaxHeightAtom);
+    const [isExpanded, setIsExpanded] = React.useState(false);
+    const [isImageTall, setIsImageTall] = React.useState(false);
+    const imageRef = React.useRef<HTMLImageElement>(null);
 
     const { isDragging, handleRef } = useDraggable({
       element: props.element,
     });
+
+    // Check if image is taller than max-height
+    React.useEffect(() => {
+      const img = imageRef.current;
+      if (img && imageMaxHeight > 0) {
+        const checkHeight = () => {
+          setIsImageTall(img.naturalHeight > imageMaxHeight);
+        };
+
+        if (img.complete) {
+          checkHeight();
+        } else {
+          img.addEventListener('load', checkHeight);
+          return () => img.removeEventListener('load', checkHeight);
+        }
+      }
+    }, [imageMaxHeight]);
 
     // Show caption when image is newly inserted (CaptionTextarea handles focus)
     React.useEffect(() => {
@@ -40,6 +64,9 @@ export const ImageElement = withHOC(
         editor.setOption(CaptionPlugin, 'visibleId', element.id as string);
       }
     }, [(props.element as any).autoFocusCaption, readOnly, editor]);
+
+    // Calculate effective max-height (0 means unlimited)
+    const effectiveMaxHeight = imageMaxHeight === 0 || isExpanded ? undefined : imageMaxHeight;
 
     return (
       <MediaToolbar plugin={ImagePlugin}>
@@ -56,16 +83,41 @@ export const ImageElement = withHOC(
                 className={mediaResizeHandleVariants({ direction: 'left' })}
                 options={{ direction: 'left' }}
               />
-              <Image
-                ref={handleRef}
-                className={cn(
-                  'block w-full max-w-full cursor-pointer object-cover px-0',
-                  'rounded-sm',
-                  focused && selected && 'ring-2 ring-ring ring-offset-2',
-                  isDragging && 'opacity-50'
+              <div className="relative">
+                <Image
+                  ref={(node) => {
+                    // Combine refs: handleRef for dragging, imageRef for height checking
+                    if (typeof handleRef === 'function') {
+                      handleRef(node);
+                    } else if (handleRef) {
+                      (handleRef as React.MutableRefObject<HTMLImageElement | null>).current = node;
+                    }
+                    (imageRef as React.MutableRefObject<HTMLImageElement | null>).current = node;
+                  }}
+                  className={cn(
+                    'block w-full max-w-full cursor-pointer object-cover px-0',
+                    'rounded-sm transition-all duration-300',
+                    focused && selected && 'ring-2 ring-ring ring-offset-2',
+                    isDragging && 'opacity-50'
+                  )}
+                  style={{
+                    maxHeight: effectiveMaxHeight ? `${effectiveMaxHeight}px` : undefined,
+                    objectFit: 'contain',
+                  }}
+                  alt={props.attributes.alt as string | undefined}
+                />
+                {/* Expand/Collapse button - only show when image is tall and max-height is set */}
+                {isImageTall && imageMaxHeight > 0 && (
+                  <button
+                    contentEditable={false}
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="absolute bottom-2 right-2 p-2 bg-black/60 hover:bg-black/80 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-none"
+                    title={isExpanded ? 'Show less' : 'Show full image'}
+                  >
+                    <Maximize2 size={16} className={cn('transition-transform', isExpanded && 'rotate-180')} />
+                  </button>
                 )}
-                alt={props.attributes.alt as string | undefined}
-              />
+              </div>
               <ResizeHandle
                 className={mediaResizeHandleVariants({
                   direction: 'right',

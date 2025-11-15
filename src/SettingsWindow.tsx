@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Keyboard, RotateCcw } from 'lucide-react';
+import { X, Keyboard, RotateCcw, Image as ImageIcon } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { isTauri } from './utils/tauri';
+import { useAtom } from 'jotai';
+import { imageMaxHeightAtom } from './store';
 
 interface ShortcutConfig {
   key: string;
@@ -44,6 +46,7 @@ export default function SettingsWindow() {
   const [settings, setSettings] = useState<ShortcutSettings>({ shortcuts: {} });
   const [editingAction, setEditingAction] = useState<string | null>(null);
   const [recordingKeys, setRecordingKeys] = useState<{ key: string; modifiers: string[] } | null>(null);
+  const [imageMaxHeight, setImageMaxHeight] = useAtom(imageMaxHeightAtom);
 
   useEffect(() => {
     loadSettings();
@@ -248,7 +251,7 @@ export default function SettingsWindow() {
             <div className="p-3 bg-[#C2C07D]/10 rounded-xl">
               <Keyboard size={28} className="text-[#C2C07D]" />
             </div>
-            <h2 className="text-2xl font-semibold text-[#181818]">Keyboard Shortcuts</h2>
+            <h2 className="text-2xl font-semibold text-[#181818]">Settings</h2>
           </div>
           <button
             onClick={handleClose}
@@ -262,9 +265,63 @@ export default function SettingsWindow() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-8 py-6">
-        {/* General Shortcuts */}
-        <div className="space-y-3">
-          {sortedBasicShortcuts.map(renderShortcutItem)}
+        {/* Display Settings Section */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-[#C2C07D]/10 rounded-lg">
+              <ImageIcon size={20} className="text-[#C2C07D]" />
+            </div>
+            <h3 className="text-lg font-semibold text-[#181818]">Display Settings</h3>
+          </div>
+
+          <div className="p-5 bg-white/60 rounded-2xl border border-transparent hover:border-[#E8E6DC] transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex-1">
+                <div className="font-medium text-[#181818] text-base mb-1">Image Max Height</div>
+                <div className="text-sm text-[#87867F]">Limit tall images to improve editing experience</div>
+              </div>
+              <div className="text-sm font-mono text-[#181818] bg-white border border-[#E8E6DC] px-3 py-1.5 rounded-lg min-w-[80px] text-center">
+                {imageMaxHeight === 0 ? 'Unlimited' : `${imageMaxHeight}px`}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min="0"
+                max="1200"
+                step="100"
+                value={imageMaxHeight}
+                onChange={(e) => setImageMaxHeight(Number(e.target.value))}
+                className="flex-1 h-2 bg-[#E8E6DC] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D97757] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#D97757] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+              />
+              <div className="flex gap-2">
+                {[0, 300, 600, 900].map(height => (
+                  <button
+                    key={height}
+                    onClick={() => setImageMaxHeight(height)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      imageMaxHeight === height
+                        ? 'bg-[#D97757] text-white'
+                        : 'bg-white border border-[#E8E6DC] text-[#181818] hover:bg-[#E8E6DC]'
+                    }`}
+                  >
+                    {height === 0 ? 'None' : `${height}px`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Keyboard Shortcuts Section */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <h3 className="text-lg font-semibold text-[#181818]">Keyboard Shortcuts</h3>
+          </div>
+          <div className="space-y-3">
+            {sortedBasicShortcuts.map(renderShortcutItem)}
+          </div>
         </div>
 
         {/* Advanced Section */}
