@@ -37,39 +37,42 @@ export const ImageElement = withHOC(
     // Auto-focus caption when image is newly inserted
     React.useEffect(() => {
       const element = props.element as any;
-      console.log('[ImageElement] useEffect triggered:', {
-        hasAutoFocus: !!element.autoFocusCaption,
-        readOnly,
-        elementId: element.id,
-      });
 
       if (element.autoFocusCaption && !readOnly) {
-        console.log('[ImageElement] Setting visibleId to:', element.id);
         // Show the caption
         editor.setOption(CaptionPlugin, 'visibleId', element.id as string);
 
-        // Focus the caption textarea after a small delay for DOM update
+        // Clear the flag immediately to prevent re-triggering
+        const path = editor.api.findPath(element);
+        if (path) {
+          editor.tf.setNodes(
+            { autoFocusCaption: undefined },
+            { at: path }
+          );
+        }
+
+        // Focus the caption textarea after DOM update
         setTimeout(() => {
-          console.log('[ImageElement] Attempting to focus caption');
-          captionRef.current?.focus();
-          console.log('[ImageElement] Focus called, activeElement:', document.activeElement);
+          if (captionRef.current) {
+            // Use multiple focus strategies to ensure it works
+            captionRef.current.focus();
+            captionRef.current.select();
 
-          // Clear the flag to prevent re-triggering
-          const path = editor.api.findPath(element);
-          if (path) {
-            console.log('[ImageElement] Clearing autoFocusCaption flag');
-            editor.tf.setNodes(
-              { autoFocusCaption: undefined },
-              { at: path }
-            );
+            // Prevent any blur events from stealing focus
+            const preventBlur = (e: FocusEvent) => {
+              if (e.target === captionRef.current) {
+                e.preventDefault();
+                captionRef.current?.focus();
+              }
+            };
+
+            // Remove the listener after a short time
+            window.addEventListener('blur', preventBlur, true);
+            setTimeout(() => {
+              window.removeEventListener('blur', preventBlur, true);
+            }, 200);
           }
-
-          // Check visibleId after a moment
-          setTimeout(() => {
-            const currentVisibleId = editor.getOption(CaptionPlugin, 'visibleId');
-            console.log('[ImageElement] Current visibleId after 100ms:', currentVisibleId);
-          }, 100);
-        }, 50);
+        }, 100);
       }
     }, [(props.element as any).autoFocusCaption, readOnly]);
 
