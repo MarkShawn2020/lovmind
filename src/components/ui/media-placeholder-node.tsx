@@ -17,6 +17,7 @@ import { useFilePicker } from 'use-file-picker';
 
 import { cn } from '@/lib/utils';
 import { useUploadFile } from '@/hooks/use-upload-file';
+import { showCaption } from './caption';
 
 const CONTENT: Record<
   string,
@@ -130,21 +131,35 @@ export const PlaceholderElement = withHOC(
 
         updateUploadHistory(editor, node);
 
-        // ✅ Restore selection after inserting node to maintain focus
-        // Use Slate's `after` API to find the next valid selection point
-        try {
-          const after = editor.api.after(path);
-          if (after) {
-            editor.tf.select(after);
-            console.log('[PlaceholderElement] 已恢复编辑器选区:', after);
-          } else {
-            // Fallback: select end of document
-            const endPoint = editor.api.end([]);
-            editor.tf.select(endPoint);
-            console.log('[PlaceholderElement] 已恢复编辑器选区（文档末尾）:', endPoint);
+        // Auto-focus caption for media elements after upload completes
+        if (
+          element.mediaType === KEYS.img ||
+          element.mediaType === KEYS.video ||
+          element.mediaType === KEYS.audio
+        ) {
+          // Use queueMicrotask to execute after the current editor operation completes
+          // This is more reliable than setTimeout and executes in the same frame
+          queueMicrotask(() => {
+            const insertedElement = editor.api.node({ at: path });
+            if (insertedElement && 'type' in insertedElement[0]) {
+              showCaption(editor, insertedElement[0] as any);
+            }
+          });
+        } else {
+          // For non-media elements, restore selection to maintain focus
+          try {
+            const after = editor.api.after(path);
+            if (after) {
+              editor.tf.select(after);
+              console.log('[PlaceholderElement] 已恢复编辑器选区:', after);
+            } else {
+              const endPoint = editor.api.end([]);
+              editor.tf.select(endPoint);
+              console.log('[PlaceholderElement] 已恢复编辑器选区（文档末尾）:', endPoint);
+            }
+          } catch (error) {
+            console.warn('[PlaceholderElement] 恢复选区失败:', error);
           }
-        } catch (error) {
-          console.warn('[PlaceholderElement] 恢复选区失败:', error);
         }
       });
 

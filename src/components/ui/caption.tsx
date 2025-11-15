@@ -6,12 +6,16 @@ import type { VariantProps } from 'class-variance-authority';
 
 import {
   Caption as CaptionPrimitive,
+  CaptionPlugin,
   CaptionTextarea as CaptionTextareaPrimitive,
+  showCaption,
   useCaptionButton,
   useCaptionButtonState,
 } from '@platejs/caption/react';
 import { createPrimitiveComponent } from '@udecode/cn';
 import { cva } from 'class-variance-authority';
+import { useEditorRef, useElement } from 'platejs/react';
+import { KEYS, PathApi } from 'platejs';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -46,9 +50,61 @@ export function Caption({
 export function CaptionTextarea(
   props: React.ComponentProps<typeof CaptionTextareaPrimitive>
 ) {
+  const editor = useEditorRef();
+  const element = useElement();
+
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Handle Enter key to create a new block below
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Find the path of the parent element (the media element containing this caption)
+        const path = editor.api.findPath(element);
+        if (!path) return;
+
+        // Hide the caption immediately
+        editor.setOption(CaptionPlugin, 'visibleId', null);
+
+        // Calculate the path for the new block (after the current element)
+        const nextPath = PathApi.next(path);
+
+        // Insert a new paragraph block after the current element
+        editor.tf.insertNodes(
+          editor.api.create.block({ type: KEYS.p }),
+          {
+            at: nextPath,
+            select: true,
+          }
+        );
+
+        // Use queueMicrotask to ensure focus happens after editor operations complete
+        // This is more reliable and deterministic than setTimeout
+        queueMicrotask(() => {
+          // Get the actual inserted path (might be different after normalization)
+          const insertedPath = editor.api.after(path);
+          if (insertedPath) {
+            editor.tf.focus({ at: insertedPath });
+          } else {
+            // Fallback to the calculated path
+            editor.tf.focus({ at: nextPath });
+          }
+        });
+
+        return;
+      }
+
+      // Call the original onKeyDown if provided (for arrow keys, etc.)
+      props.onKeyDown?.(e);
+    },
+    [editor, element, props]
+  );
+
   return (
     <CaptionTextareaPrimitive
       {...props}
+      onKeyDown={handleKeyDown}
       className={cn(
         'mt-2 w-full resize-none border-none bg-inherit p-0 font-[inherit] text-inherit',
         'focus:outline-none focus:[&::placeholder]:opacity-0',
@@ -63,3 +119,6 @@ export const CaptionButton = createPrimitiveComponent(Button)({
   propsHook: useCaptionButton,
   stateHook: useCaptionButtonState,
 });
+
+// Re-export showCaption for convenience
+export { showCaption };
