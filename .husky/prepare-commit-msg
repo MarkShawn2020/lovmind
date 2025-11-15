@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Auto-bump version based on commit message
+node scripts/bump-version.js $1
+
+# Stage version files
+git add package.json src-tauri/tauri.conf.json

@@ -18,12 +18,18 @@ function detectBumpType() {
   }
 
   try {
-    // Get commit message file path from command line argument (passed by commit-msg hook)
-    // If not provided, fall back to default location
+    // Get commit message file path from command line argument (passed by prepare-commit-msg hook)
+    // prepare-commit-msg passes: $1 = commit message file path
     const commitMsgFile = process.argv[2] || path.join(__dirname, '..', '.git', 'COMMIT_EDITMSG');
 
     if (fs.existsSync(commitMsgFile)) {
-      const commitMsg = fs.readFileSync(commitMsgFile, 'utf8');
+      const commitMsg = fs.readFileSync(commitMsgFile, 'utf8').trim();
+
+      // Skip if commit message is empty (e.g., during git commit without -m)
+      if (!commitMsg) {
+        return 'patch';
+      }
+
       const firstLine = commitMsg.split('\n')[0];
 
       // Check for breaking changes (MAJOR)
