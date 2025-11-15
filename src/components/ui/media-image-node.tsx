@@ -35,25 +35,23 @@ export const ImageElement = withHOC(
     });
 
     // Auto-focus caption when image is newly inserted
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       const element = props.element as any;
       if (element.autoFocusCaption && !readOnly) {
         // Show the caption
         editor.setOption(CaptionPlugin, 'visibleId', element.id as string);
 
-        // Focus the caption textarea after a small delay for DOM update
-        setTimeout(() => {
-          captionRef.current?.focus();
+        // Focus immediately - useLayoutEffect runs synchronously after DOM mutations
+        captionRef.current?.focus();
 
-          // Clear the flag to prevent re-triggering
-          const path = editor.api.findPath(element);
-          if (path) {
-            editor.tf.setNodes(
-              { autoFocusCaption: undefined },
-              { at: path }
-            );
-          }
-        }, 50);
+        // Clear the flag to prevent re-triggering
+        const path = editor.api.findPath(element);
+        if (path) {
+          editor.tf.setNodes(
+            { autoFocusCaption: undefined },
+            { at: path }
+          );
+        }
       }
     }, [(props.element as any).autoFocusCaption, readOnly]);
 
@@ -94,7 +92,7 @@ export const ImageElement = withHOC(
               <CaptionTextarea
                 ref={captionRef}
                 readOnly={readOnly}
-                placeholder="添加图片描述..."
+                placeholder="Write a caption..."
               />
             </Caption>
           </figure>
