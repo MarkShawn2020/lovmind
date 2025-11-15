@@ -13,12 +13,27 @@ const PinButton = memo(({
   isPinned: boolean;
 }) => (
   <button
-    className={`w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-[var(--radius)] border border-border flex items-center justify-center cursor-pointer transition-[background-color,color,border-color,transform] duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] transform-gpu will-change-auto contain-[layout_style_paint] hover:bg-secondary hover:text-foreground hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] active:scale-95 touch-manipulation pin-toggle ${isPinned ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-muted-foreground'}`}
+    className={`
+      w-10 h-10 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0
+      rounded-xl
+      border border-border/50
+      flex items-center justify-center
+      cursor-pointer
+      transition-all duration-200 ease-out
+      hover:bg-secondary/50 hover:border-border hover:shadow-sm
+      active:scale-[0.96]
+      touch-manipulation
+      pin-toggle
+      ${isPinned
+        ? 'bg-primary/10 text-primary border-primary/30 shadow-sm'
+        : 'bg-transparent text-muted-foreground hover:text-foreground'
+      }
+    `}
     onClick={onClick}
     title={isPinned ? 'Unpin note' : 'Pin note'}
     type="button"
   >
-    <Pin size={18} />
+    <Pin size={16} strokeWidth={2} />
   </button>
 ));
 
@@ -32,11 +47,13 @@ const TagsDisplay = memo(({
   if (tags.length === 0) {
     return (
       <div
-        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground cursor-pointer hover:bg-accent rounded-md transition-colors"
+        className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground/60 cursor-pointer hover:bg-accent/50 rounded-lg transition-all duration-200"
         onClick={onClick}
+        role="button"
+        tabIndex={0}
       >
-        <Tag size={14} className="opacity-50" />
-        <span className="opacity-50">No tags</span>
+        <Tag size={14} strokeWidth={2} className="opacity-40" />
+        <span className="font-medium">Add tags</span>
       </div>
     );
   }
@@ -47,22 +64,24 @@ const TagsDisplay = memo(({
 
   return (
     <div
-      className="flex items-center gap-1.5 max-w-[280px] cursor-pointer hover:bg-accent px-2 py-1 -mx-2 -my-1 rounded-md transition-colors"
+      className="flex items-center gap-2 max-w-[280px] cursor-pointer hover:bg-accent/50 px-3 py-2 -mx-3 -my-2 rounded-lg transition-all duration-200"
       onClick={onClick}
+      role="button"
+      tabIndex={0}
     >
-      <Tag size={14} className="text-muted-foreground flex-shrink-0" />
-      <div className="flex gap-1 flex-wrap items-center overflow-hidden">
+      <Tag size={14} strokeWidth={2} className="text-muted-foreground/60 flex-shrink-0" />
+      <div className="flex gap-1.5 flex-wrap items-center overflow-hidden">
         {displayTags.map((tag, i) => (
           <span
             key={i}
-            className="inline-flex items-center px-1.5 py-0.5 text-[0.625rem] bg-primary/10 text-primary rounded-md font-medium border border-primary/20 whitespace-nowrap"
+            className="inline-flex items-center px-2 py-0.5 text-[0.6875rem] bg-primary/8 text-primary/90 rounded-md font-medium border border-primary/15 whitespace-nowrap"
             title={`#${tag}`}
           >
             #{tag}
           </span>
         ))}
         {remaining > 0 && (
-          <span className="text-[0.625rem] text-muted-foreground whitespace-nowrap">
+          <span className="text-[0.6875rem] text-muted-foreground/70 font-medium whitespace-nowrap">
             +{remaining}
           </span>
         )}
@@ -83,26 +102,54 @@ const SendButton = memo(({
   if (isViewingMode) {
     return (
       <button
-        className="h-10 min-h-[44px] px-4 rounded-full border-none bg-primary text-primary-foreground flex items-center justify-center gap-2 cursor-pointer transition-[transform,box-shadow,background-color] duration-200 ease-in-out shadow-[0_2px_8px_rgba(217,119,87,0.25)] transform-gpu will-change-transform hover:-translate-y-0.5 hover:scale-105 hover:shadow-[0_4px_16px_rgba(217,119,87,0.35)] hover:bg-accent active:translate-y-0 active:scale-[0.98] touch-manipulation send-btn"
+        className="
+          h-10 min-h-[44px] px-5
+          rounded-xl
+          border-none
+          bg-primary text-primary-foreground
+          flex items-center justify-center gap-2
+          font-medium text-sm
+          cursor-pointer
+          transition-all duration-200 ease-out
+          shadow-sm
+          hover:shadow-md hover:bg-primary/90
+          active:scale-[0.97]
+          touch-manipulation
+          send-btn
+        "
         onClick={onClick}
         title="Create new note"
         type="button"
       >
-        <Plus size={18} />
-        <span className="text-sm font-medium">新建</span>
+        <Plus size={16} strokeWidth={2.5} />
+        <span>新建</span>
       </button>
     );
   }
 
   return (
     <button
-      className="w-10 h-10 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-full border-none bg-primary text-primary-foreground flex items-center justify-center cursor-pointer transition-[transform,box-shadow,background-color] duration-200 ease-in-out shadow-[0_2px_8px_rgba(217,119,87,0.25)] transform-gpu will-change-transform hover:enabled:-translate-y-0.5 hover:enabled:scale-105 hover:enabled:shadow-[0_4px_16px_rgba(217,119,87,0.35)] hover:enabled:bg-accent active:enabled:translate-y-0 active:enabled:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none touch-manipulation send-btn"
+      className="
+        w-10 h-10 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0
+        rounded-xl
+        border-none
+        bg-primary text-primary-foreground
+        flex items-center justify-center
+        cursor-pointer
+        transition-all duration-200 ease-out
+        shadow-sm
+        hover:enabled:shadow-md hover:enabled:bg-primary/90
+        active:enabled:scale-[0.97]
+        disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
+        touch-manipulation
+        send-btn
+      "
       onClick={onClick}
       disabled={disabled}
       title="Submit (⌘+Enter)"
       type="button"
     >
-      <Send size={18} />
+      <Send size={16} strokeWidth={2.5} />
     </button>
   );
 });
@@ -132,17 +179,39 @@ const EditorToolbar = memo(({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   return (
-    <div className={`flex-shrink-0 bg-card border-t border-border flex justify-between items-center px-[var(--spacing-s)] z-10 will-change-contents transform-gpu backface-hidden ${mode === 'float' ? 'h-11 bg-muted border-t-border opacity-95' : 'h-12'}`}>
-      <div className="flex gap-2 items-center">
+    <div
+      className={`
+        flex-shrink-0
+        bg-card/80 backdrop-blur-sm
+        border-t border-border/50
+        flex justify-between items-center
+        px-4 sm:px-6
+        z-10
+        ${mode === 'float' ? 'h-14 bg-muted/50' : 'h-16'}
+      `}
+    >
+      <div className="flex gap-3 sm:gap-4 items-center">
         {/* Mobile Sidebar Toggle - Only visible on small screens */}
         {onOpenMobileSidebar && (
           <button
             onClick={onOpenMobileSidebar}
-            className="sm:hidden w-9 h-9 min-w-[44px] min-h-[44px] rounded-[var(--radius)] border border-border bg-background text-muted-foreground flex items-center justify-center cursor-pointer transition-[background-color,color,border-color,transform] duration-150 ease-[cubic-bezier(0.4,0,0.2,1)] transform-gpu hover:bg-secondary hover:text-foreground hover:-translate-y-px hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] active:scale-95 touch-manipulation"
+            className="
+              sm:hidden
+              w-10 h-10 min-w-[44px] min-h-[44px]
+              rounded-xl
+              border border-border/50
+              bg-transparent text-muted-foreground
+              flex items-center justify-center
+              cursor-pointer
+              transition-all duration-200 ease-out
+              hover:bg-secondary/50 hover:border-border hover:text-foreground hover:shadow-sm
+              active:scale-[0.96]
+              touch-manipulation
+            "
             aria-label="Open navigation menu"
             type="button"
           >
-            <Menu size={18} />
+            <Menu size={16} strokeWidth={2} />
           </button>
         )}
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
@@ -151,7 +220,7 @@ const EditorToolbar = memo(({
               <TagsDisplay tags={currentTags} onClick={() => setIsPopoverOpen(true)} />
             </div>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-3" align="start" side="top" sideOffset={8}>
+          <PopoverContent className="w-auto p-4" align="start" side="top" sideOffset={12}>
             <TagManagerPopover
               currentTags={currentTags}
               allNotes={allNotes}
@@ -161,7 +230,7 @@ const EditorToolbar = memo(({
           </PopoverContent>
         </Popover>
       </div>
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-3 sm:gap-4 items-center">
         <SendButton disabled={submitDisabled} onClick={onSubmit} isViewingMode={isViewingMode} />
       </div>
     </div>
