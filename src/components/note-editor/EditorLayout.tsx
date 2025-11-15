@@ -40,15 +40,17 @@ export const EditorLayout = ({
 
         {/* Mobile Sidebar Drawer */}
         <Drawer open={isMobileSidebarOpen} onOpenChange={onMobileSidebarChange} direction="left">
-          <DrawerContent className="h-full max-h-screen">
+          <DrawerContent className="h-full max-h-screen overflow-hidden flex flex-col">
             <VisuallyHidden>
               <DrawerTitle>Navigation Menu</DrawerTitle>
               <DrawerDescription>
                 Browse and manage your notes from the sidebar
               </DrawerDescription>
             </VisuallyHidden>
-            <div className="flex flex-col gap-2 flex-1 overflow-y-auto p-4 pb-safe">
-              {sidebar}
+            <div className="flex-1 overflow-y-auto p-4 pb-safe">
+              <div className="flex flex-col gap-2">
+                {sidebar}
+              </div>
             </div>
           </DrawerContent>
         </Drawer>
