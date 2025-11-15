@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
@@ -190,13 +190,20 @@ function FloatWindow() {
     editorRef,
   });
 
+  // Wrap onOpenNote to close mobile sidebar after note selection
+  const handleOpenNote = useCallback((note: Note) => {
+    openNoteInNewWindow(note);
+    // Close mobile sidebar drawer on note selection
+    setIsMobileSidebarOpen(false);
+  }, [openNoteInNewWindow]);
+
   const sidebarNode = (
     <div ref={notesListRef}>
       <NotesSidebar
         notes={notes}
         currentNoteId={noteId ?? undefined}
         showArchived={showArchived}
-        onOpenNote={openNoteInNewWindow}
+        onOpenNote={handleOpenNote}
         onTogglePin={togglePin}
         onToggleArchive={toggleArchive}
         onDeleteNote={deleteNote}

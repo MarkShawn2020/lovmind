@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAtom, useSetAtom } from "jotai";
 import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
@@ -193,21 +193,34 @@ function App() {
     onViewingModeChange: handleViewingModeChange,
   });
 
-  const sidebarNode = (
+  // Wrap callbacks to close mobile sidebar after note operations
+  const handleOpenNoteInCurrentWindow = useCallback((note: Note) => {
+    openNoteInCurrentWindow(note);
+    // Close mobile sidebar drawer on note selection
+    setIsMobileSidebarOpen(false);
+  }, [openNoteInCurrentWindow]);
+
+  const handleOpenNoteInNewWindow = useCallback((note: Note) => {
+    openNoteInNewWindow(note);
+    // Close mobile sidebar drawer on note selection
+    setIsMobileSidebarOpen(false);
+  }, [openNoteInNewWindow]);
+
+  const sidebarNode = useMemo(() => (
     <div ref={notesListRef}>
       <NotesSidebar
         notes={notes}
         currentNoteId={viewingNoteId ?? undefined}
         showArchived={showArchived}
-        onOpenNote={openNoteInCurrentWindow}
-        onOpenNoteInNewWindow={openNoteInNewWindow}
+        onOpenNote={handleOpenNoteInCurrentWindow}
+        onOpenNoteInNewWindow={handleOpenNoteInNewWindow}
         onTogglePin={togglePin}
         onToggleArchive={toggleArchive}
         onDeleteNote={deleteNote}
         onDuplicateNote={handleDuplicateNote}
       />
     </div>
-  );
+  ), [notes, viewingNoteId, showArchived, handleOpenNoteInCurrentWindow, handleOpenNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote]);
 
   const editorNode = (
     <div ref={editorContainerRef}>
