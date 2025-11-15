@@ -37,12 +37,21 @@ export const ImageElement = withHOC(
     // Auto-focus caption when image is newly inserted
     React.useLayoutEffect(() => {
       const element = props.element as any;
+      console.log('[ImageElement] useLayoutEffect triggered:', {
+        autoFocusCaption: element.autoFocusCaption,
+        readOnly,
+        captionRefCurrent: captionRef.current,
+      });
+
       if (element.autoFocusCaption && !readOnly) {
+        console.log('[ImageElement] Setting visibleId:', element.id);
         // Show the caption
         editor.setOption(CaptionPlugin, 'visibleId', element.id as string);
 
+        console.log('[ImageElement] Attempting to focus, captionRef:', captionRef.current);
         // Focus immediately - useLayoutEffect runs synchronously after DOM mutations
         captionRef.current?.focus();
+        console.log('[ImageElement] After focus, activeElement:', document.activeElement);
 
         // Clear the flag to prevent re-triggering
         const path = editor.api.findPath(element);
@@ -51,6 +60,7 @@ export const ImageElement = withHOC(
             { autoFocusCaption: undefined },
             { at: path }
           );
+          console.log('[ImageElement] Cleared autoFocusCaption flag');
         }
       }
     }, [(props.element as any).autoFocusCaption, readOnly]);
