@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Keyboard, RotateCcw, Image as ImageIcon } from 'lucide-react';
+import { X, Keyboard, RotateCcw, Image as ImageIcon, Tag, Info } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { isTauri } from './utils/tauri';
 import { useAtom } from 'jotai';
 import { imageMaxHeightAtom } from './store';
+import { useTagMergeStrategy, type TagMergeStrategy } from '@/hooks/useTagMergeStrategy';
 
 interface ShortcutConfig {
   key: string;
@@ -42,11 +43,68 @@ const KEY_LABELS: Record<string, string> = {
   'Escape': 'Esc',
 };
 
+const TAG_STRATEGY_OPTIONS: Array<{
+  value: TagMergeStrategy;
+  label: string;
+  description: string;
+  example: { user: string[]; ai: string[]; result: string[] };
+}> = [
+  {
+    value: 'union',
+    label: 'Merge Tags (Union)',
+    description: 'Keep user tags and add AI-generated tags as supplements',
+    example: {
+      user: ['test', 'demo'],
+      ai: ['markdown', 'note'],
+      result: ['test', 'demo', 'markdown', 'note'],
+    },
+  },
+  {
+    value: 'user-only',
+    label: 'User Tags Only',
+    description: 'Prioritize user tags, use AI tags only if user provides none',
+    example: {
+      user: ['test', 'demo'],
+      ai: ['markdown', 'note'],
+      result: ['test', 'demo'],
+    },
+  },
+  {
+    value: 'ai-only',
+    label: 'AI Tags Only',
+    description: 'Prioritize AI tags, use user tags only if AI provides none',
+    example: {
+      user: ['test', 'demo'],
+      ai: ['markdown', 'note'],
+      result: ['markdown', 'note'],
+    },
+  },
+  {
+    value: 'disabled',
+    label: 'Disable AI',
+    description: 'Completely disable AI tag generation, keep only manual tags',
+    example: {
+      user: ['test', 'demo'],
+      ai: ['markdown', 'note'],
+      result: ['test', 'demo'],
+    },
+  },
+];
+
+type SettingsTab = 'display' | 'shortcuts' | 'tags';
+
 export default function SettingsWindow() {
+  const [activeTab, setActiveTab] = useState<SettingsTab>('display');
   const [settings, setSettings] = useState<ShortcutSettings>({ shortcuts: {} });
   const [editingAction, setEditingAction] = useState<string | null>(null);
   const [recordingKeys, setRecordingKeys] = useState<{ key: string; modifiers: string[] } | null>(null);
   const [imageMaxHeight, setImageMaxHeight] = useAtom(imageMaxHeightAtom);
+  const { strategy: tagStrategy, saveStrategy: saveTagStrategy, isLoading: isTagLoading } = useTagMergeStrategy();
+  const [selectedTagStrategy, setSelectedTagStrategy] = useState<TagMergeStrategy>(tagStrategy);
+
+  useEffect(() => {
+    setSelectedTagStrategy(tagStrategy);
+  }, [tagStrategy]);
 
   useEffect(() => {
     loadSettings();
@@ -243,124 +301,274 @@ export default function SettingsWindow() {
   );
 
   return (
-    <div className="w-full h-full bg-[#F9F9F7] flex flex-col">
-      {/* Header */}
-      <div className="px-8 py-6 border-b border-[#E8E6DC] flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-[#C2C07D]/10 rounded-xl">
-              <Keyboard size={28} className="text-[#C2C07D]" />
-            </div>
-            <h2 className="text-2xl font-semibold text-[#181818]">Settings</h2>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-2.5 hover:bg-[#E8E6DC] rounded-xl transition-all border-none bg-transparent cursor-pointer"
-            aria-label="Close"
-          >
-            <X size={22} className="text-[#87867F]" />
-          </button>
+    <div className="w-full h-full bg-[#F9F9F7] flex">
+      {/* Sidebar */}
+      <div className="w-56 bg-white/50 border-r border-[#E8E6DC] flex-shrink-0 flex flex-col">
+        <div className="px-4 py-6">
+          <h2 className="text-lg font-semibold text-[#181818] px-3">Settings</h2>
         </div>
+
+        <nav className="flex-1 px-3 space-y-1">
+          <button
+            onClick={() => setActiveTab('display')}
+            className={`w-full px-3 py-2.5 text-left text-sm rounded-lg transition-all border-none cursor-pointer flex items-center gap-3 ${
+              activeTab === 'display'
+                ? 'bg-[#D97757]/10 text-[#D97757] font-medium'
+                : 'bg-transparent text-[#181818] hover:bg-[#E8E6DC]'
+            }`}
+          >
+            <ImageIcon size={18} />
+            Display
+          </button>
+
+          <button
+            onClick={() => setActiveTab('shortcuts')}
+            className={`w-full px-3 py-2.5 text-left text-sm rounded-lg transition-all border-none cursor-pointer flex items-center gap-3 ${
+              activeTab === 'shortcuts'
+                ? 'bg-[#D97757]/10 text-[#D97757] font-medium'
+                : 'bg-transparent text-[#181818] hover:bg-[#E8E6DC]'
+            }`}
+          >
+            <Keyboard size={18} />
+            Shortcuts
+          </button>
+
+          <button
+            onClick={() => setActiveTab('tags')}
+            className={`w-full px-3 py-2.5 text-left text-sm rounded-lg transition-all border-none cursor-pointer flex items-center gap-3 ${
+              activeTab === 'tags'
+                ? 'bg-[#D97757]/10 text-[#D97757] font-medium'
+                : 'bg-transparent text-[#181818] hover:bg-[#E8E6DC]'
+            }`}
+          >
+            <Tag size={18} />
+            Tags
+          </button>
+        </nav>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
-        {/* Display Settings Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-[#C2C07D]/10 rounded-lg">
-              <ImageIcon size={20} className="text-[#C2C07D]" />
-            </div>
-            <h3 className="text-lg font-semibold text-[#181818]">Display Settings</h3>
-          </div>
-
-          <div className="p-5 bg-white/60 rounded-2xl border border-transparent hover:border-[#E8E6DC] transition-all">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex-1">
-                <div className="font-medium text-[#181818] text-base mb-1">Image Max Height</div>
-                <div className="text-sm text-[#87867F]">Limit tall images to improve editing experience</div>
-              </div>
-              <div className="text-sm font-mono text-[#181818] bg-white border border-[#E8E6DC] px-3 py-1.5 rounded-lg min-w-[80px] text-center">
-                {imageMaxHeight === 0 ? 'Unlimited' : `${imageMaxHeight}px`}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="0"
-                max="1200"
-                step="100"
-                value={imageMaxHeight}
-                onChange={(e) => setImageMaxHeight(Number(e.target.value))}
-                className="flex-1 h-2 bg-[#E8E6DC] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D97757] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#D97757] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
-              />
-              <div className="flex gap-2">
-                {[0, 300, 600, 900].map(height => (
-                  <button
-                    key={height}
-                    onClick={() => setImageMaxHeight(height)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      imageMaxHeight === height
-                        ? 'bg-[#D97757] text-white'
-                        : 'bg-white border border-[#E8E6DC] text-[#181818] hover:bg-[#E8E6DC]'
-                    }`}
-                  >
-                    {height === 0 ? 'None' : `${height}px`}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Keyboard Shortcuts Section */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <h3 className="text-lg font-semibold text-[#181818]">Keyboard Shortcuts</h3>
-          </div>
-          <div className="space-y-3">
-            {sortedBasicShortcuts.map(renderShortcutItem)}
-          </div>
-        </div>
-
-        {/* Advanced Section */}
-        {sortedAdvancedShortcuts.length > 0 && (
-          <>
-            <div className="mt-8 mb-4 flex items-center gap-3">
-              <h3 className="text-lg font-semibold text-[#181818]">Advanced</h3>
-              <div className="flex-1 h-px bg-[#E8E6DC]"></div>
-            </div>
-            <div className="space-y-3">
-              {sortedAdvancedShortcuts.map(renderShortcutItem)}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="px-8 py-6 border-t border-[#E8E6DC] bg-[#F0EEE6] flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-2 px-5 py-2.5 text-[#181818] hover:bg-[#E8E6DC] rounded-xl transition-all border-none bg-transparent cursor-pointer font-medium"
-          >
-            <RotateCcw size={18} />
-            Reset to Defaults
-          </button>
-          <div className="flex gap-3">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="px-8 py-6 border-b border-[#E8E6DC] flex-shrink-0 bg-white/30">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-semibold text-[#181818]">
+              {activeTab === 'display' && 'Display Settings'}
+              {activeTab === 'shortcuts' && 'Keyboard Shortcuts'}
+              {activeTab === 'tags' && 'Tag Settings'}
+            </h3>
             <button
               onClick={handleClose}
-              className="px-6 py-3 text-[#181818] hover:bg-[#E8E6DC] rounded-xl transition-all border-none bg-transparent cursor-pointer font-medium"
+              className="p-2.5 hover:bg-[#E8E6DC] rounded-xl transition-all border-none bg-transparent cursor-pointer"
+              aria-label="Close"
             >
-              Cancel
+              <X size={22} className="text-[#87867F]" />
             </button>
-            <button
-              onClick={handleSave}
-              className="px-8 py-3 bg-[#D97757] text-white rounded-xl hover:opacity-90 transition-all border-none cursor-pointer font-medium shadow-sm"
-            >
-              Save
-            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          {/* Display Tab */}
+          {activeTab === 'display' && (
+            <div className="space-y-6">
+              <div className="p-5 bg-white/60 rounded-2xl border border-transparent hover:border-[#E8E6DC] transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="font-medium text-[#181818] text-base mb-1">Image Max Height</div>
+                    <div className="text-sm text-[#87867F]">Limit tall images to improve editing experience</div>
+                  </div>
+                  <div className="text-sm font-mono text-[#181818] bg-white border border-[#E8E6DC] px-3 py-1.5 rounded-lg min-w-[80px] text-center">
+                    {imageMaxHeight === 0 ? 'Unlimited' : `${imageMaxHeight}px`}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min="0"
+                    max="1200"
+                    step="100"
+                    value={imageMaxHeight}
+                    onChange={(e) => setImageMaxHeight(Number(e.target.value))}
+                    className="flex-1 h-2 bg-[#E8E6DC] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D97757] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#D97757] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
+                  />
+                  <div className="flex gap-2">
+                    {[0, 300, 600, 900].map(height => (
+                      <button
+                        key={height}
+                        onClick={() => setImageMaxHeight(height)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          imageMaxHeight === height
+                            ? 'bg-[#D97757] text-white'
+                            : 'bg-white border border-[#E8E6DC] text-[#181818] hover:bg-[#E8E6DC]'
+                        }`}
+                      >
+                        {height === 0 ? 'None' : `${height}px`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Shortcuts Tab */}
+          {activeTab === 'shortcuts' && (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                {sortedBasicShortcuts.map(renderShortcutItem)}
+              </div>
+
+              {sortedAdvancedShortcuts.length > 0 && (
+                <>
+                  <div className="mt-8 mb-4 flex items-center gap-3">
+                    <h4 className="text-base font-semibold text-[#181818]">Advanced</h4>
+                    <div className="flex-1 h-px bg-[#E8E6DC]"></div>
+                  </div>
+                  <div className="space-y-3">
+                    {sortedAdvancedShortcuts.map(renderShortcutItem)}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Tags Tab */}
+          {activeTab === 'tags' && (
+            <div className="space-y-4">
+              {/* Info Banner */}
+              <div className="p-4 bg-[#C2C07D]/10 border border-[#C2C07D]/30 rounded-xl flex items-start gap-3">
+                <Info size={18} className="text-[#C2C07D] mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-[#181818]">
+                  When you add tags (like #test) to notes, AI may also suggest tags. Choose a strategy to decide how to handle both types of tags.
+                </p>
+              </div>
+
+              {/* Strategy Options */}
+              <div className="space-y-3">
+                {TAG_STRATEGY_OPTIONS.map((option) => {
+                  const isSelected = selectedTagStrategy === option.value;
+                  return (
+                    <label
+                      key={option.value}
+                      className={`block p-5 border-2 rounded-xl cursor-pointer transition-all ${
+                        isSelected
+                          ? 'border-[#D97757] bg-[#D97757]/5'
+                          : 'border-[#E8E6DC] hover:border-[#D97757]/50 hover:bg-white/80'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="strategy"
+                          value={option.value}
+                          checked={isSelected}
+                          onChange={() => setSelectedTagStrategy(option.value)}
+                          className="mt-1 w-4 h-4 text-[#D97757] border-[#E8E6DC] focus:ring-[#D97757] cursor-pointer"
+                        />
+                        <div className="flex-1">
+                          <div className="font-semibold text-[#181818] mb-1">
+                            {option.label}
+                          </div>
+                          <div className="text-sm text-[#87867F] mb-3">
+                            {option.description}
+                          </div>
+                          {/* Example Preview */}
+                          <div className="text-xs space-y-1.5 bg-[#F9F9F7] p-3 rounded-lg">
+                            <div className="flex gap-2 items-center">
+                              <span className="text-[#87867F] w-12 flex-shrink-0">User:</span>
+                              <div className="flex gap-1.5 flex-wrap">
+                                {option.example.user.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="px-2 py-0.5 bg-[#D97757]/15 text-[#D97757] rounded-md font-medium"
+                                  >
+                                    #{tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <span className="text-[#87867F] w-12 flex-shrink-0">AI:</span>
+                              <div className="flex gap-1.5 flex-wrap">
+                                {option.example.ai.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="px-2 py-0.5 bg-[#C2C07D]/15 text-[#C2C07D] rounded-md font-medium"
+                                  >
+                                    #{tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <span className="text-[#87867F] w-12 flex-shrink-0">Result:</span>
+                              <div className="flex gap-1.5 flex-wrap">
+                                {option.example.result.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="px-2 py-0.5 bg-[#181818] text-white rounded-md font-medium"
+                                  >
+                                    #{tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-4 border-t border-[#E8E6DC] bg-white/30 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            {activeTab === 'shortcuts' && (
+              <button
+                onClick={handleReset}
+                className="flex items-center gap-2 px-4 py-2 text-[#181818] hover:bg-[#E8E6DC] rounded-xl transition-all border-none bg-transparent cursor-pointer font-medium"
+              >
+                <RotateCcw size={18} />
+                Reset to Defaults
+              </button>
+            )}
+            {activeTab !== 'shortcuts' && <div />}
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleClose}
+                className="px-5 py-2 text-[#181818] hover:bg-[#E8E6DC] rounded-xl transition-all border-none bg-transparent cursor-pointer font-medium"
+              >
+                Close
+              </button>
+              {(activeTab === 'shortcuts' || activeTab === 'tags') && (
+                <button
+                  onClick={async () => {
+                    if (activeTab === 'shortcuts') {
+                      await handleSave();
+                    } else if (activeTab === 'tags') {
+                      try {
+                        await saveTagStrategy(selectedTagStrategy);
+                        handleClose();
+                      } catch (error) {
+                        console.error('Failed to save tag strategy:', error);
+                        alert('Failed to save tag settings. Please try again.');
+                      }
+                    }
+                  }}
+                  disabled={activeTab === 'tags' && isTagLoading}
+                  className="px-6 py-2 bg-[#D97757] text-white rounded-xl hover:opacity-90 transition-all border-none cursor-pointer font-medium shadow-sm disabled:opacity-50"
+                >
+                  {activeTab === 'tags' && isTagLoading ? 'Saving...' : 'Save'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

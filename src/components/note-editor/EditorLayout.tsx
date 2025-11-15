@@ -7,7 +7,6 @@ interface EditorLayoutProps {
   toolbar: ReactNode;
   userMenu: ReactNode;
   profileModal: ReactNode;
-  tagSettingsModal?: ReactNode;
   aboutModal: ReactNode;
 }
 
@@ -18,7 +17,6 @@ export const EditorLayout = ({
   toolbar,
   userMenu,
   profileModal,
-  tagSettingsModal,
   aboutModal,
 }: EditorLayoutProps) => (
   <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">
@@ -41,7 +39,6 @@ export const EditorLayout = ({
 
     {userMenu}
     {profileModal}
-    {tagSettingsModal}
     {aboutModal}
   </div>
 );
