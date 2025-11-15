@@ -56,7 +56,6 @@ export const CaptionTextarea = React.forwardRef<
 
   // Callback ref to capture the actual DOM element
   const callbackRef = React.useCallback((node: HTMLTextAreaElement | null) => {
-    console.log('[CaptionTextarea] callbackRef called with node:', node);
     setTextareaElement(node);
   }, []);
 
@@ -66,15 +65,9 @@ export const CaptionTextarea = React.forwardRef<
   // Auto-focus when parent image has autoFocusCaption flag
   React.useEffect(() => {
     const parentElement = element as any;
-    console.log('[CaptionTextarea] useEffect:', {
-      autoFocusCaption: parentElement.autoFocusCaption,
-      textareaElement,
-    });
 
     if (parentElement.autoFocusCaption && textareaElement) {
-      console.log('[CaptionTextarea] Auto-focusing textarea');
       textareaElement.focus();
-      console.log('[CaptionTextarea] After focus, activeElement:', document.activeElement);
 
       // Clear the flag
       const path = editor.api.findPath(element);
@@ -83,7 +76,6 @@ export const CaptionTextarea = React.forwardRef<
           { autoFocusCaption: undefined },
           { at: path }
         );
-        console.log('[CaptionTextarea] Cleared autoFocusCaption flag');
       }
     }
   }, [(element as any).autoFocusCaption, textareaElement, editor, element]);

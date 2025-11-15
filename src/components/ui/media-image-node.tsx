@@ -37,7 +37,6 @@ export const ImageElement = withHOC(
     React.useEffect(() => {
       const element = props.element as any;
       if (element.autoFocusCaption && !readOnly) {
-        console.log('[ImageElement] Showing caption for new image:', element.id);
         editor.setOption(CaptionPlugin, 'visibleId', element.id as string);
       }
     }, [(props.element as any).autoFocusCaption, readOnly, editor]);
