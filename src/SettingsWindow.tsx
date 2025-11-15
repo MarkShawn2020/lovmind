@@ -394,9 +394,21 @@ export default function SettingsWindow() {
                     <div className="font-medium text-[#181818] text-base mb-1">Image Max Height</div>
                     <div className="text-sm text-[#87867F]">Limit tall images to improve editing experience</div>
                   </div>
-                  <div className="text-sm font-mono text-[#181818] bg-white border border-[#E8E6DC] px-3 py-1.5 rounded-lg min-w-[80px] text-center">
-                    {imageMaxHeight === 0 ? 'Unlimited' : `${imageMaxHeight}px`}
-                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="1200"
+                    step="10"
+                    value={imageMaxHeight}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (value >= 0 && value <= 1200) {
+                        updateImageMaxHeight(value);
+                      }
+                    }}
+                    className="text-sm font-mono text-[#181818] bg-white border border-[#E8E6DC] px-3 py-1.5 rounded-lg w-[100px] text-center focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757]"
+                    placeholder="0"
+                  />
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -404,13 +416,13 @@ export default function SettingsWindow() {
                     type="range"
                     min="0"
                     max="1200"
-                    step="100"
+                    step="10"
                     value={imageMaxHeight}
                     onChange={(e) => updateImageMaxHeight(Number(e.target.value))}
                     className="flex-1 h-2 bg-[#E8E6DC] rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#D97757] [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#D97757] [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                   />
                   <div className="flex gap-2">
-                    {[0, 300, 600, 900].map(height => (
+                    {[120, 240, 360, 0].map(height => (
                       <button
                         key={height}
                         onClick={() => updateImageMaxHeight(height)}
