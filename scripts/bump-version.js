@@ -18,9 +18,9 @@ function detectBumpType() {
   }
 
   try {
-    // Get the commit message being prepared
-    const gitRootPath = path.join(__dirname, '..');
-    const commitMsgFile = path.join(gitRootPath, '.git', 'COMMIT_EDITMSG');
+    // Get commit message file path from command line argument (passed by commit-msg hook)
+    // If not provided, fall back to default location
+    const commitMsgFile = process.argv[2] || path.join(__dirname, '..', '.git', 'COMMIT_EDITMSG');
 
     if (fs.existsSync(commitMsgFile)) {
       const commitMsg = fs.readFileSync(commitMsgFile, 'utf8');
