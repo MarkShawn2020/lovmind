@@ -10,6 +10,7 @@ import {
   PlaceholderProvider,
   updateUploadHistory,
 } from '@platejs/media/react';
+import { CaptionPlugin } from '@platejs/caption/react';
 import { AudioLines, FileUp, Film, ImageIcon, Loader2Icon } from 'lucide-react';
 import { KEYS } from 'platejs';
 import { PlateElement, useEditorPlugin, withHOC } from 'platejs/react';
@@ -17,7 +18,6 @@ import { useFilePicker } from 'use-file-picker';
 
 import { cn } from '@/lib/utils';
 import { useUploadFile } from '@/hooks/use-upload-file';
-import { showCaption } from './caption';
 
 const CONTENT: Record<
   string,
@@ -142,7 +142,26 @@ export const PlaceholderElement = withHOC(
           queueMicrotask(() => {
             const insertedElement = editor.api.node({ at: path });
             if (insertedElement && 'type' in insertedElement[0]) {
-              showCaption(editor, insertedElement[0] as any);
+              const insertedNodeId = insertedElement[0].id as string;
+              console.log('[PlaceholderElement] 准备自动聚焦 caption:', insertedNodeId);
+
+              // Set the caption as visible using CaptionPlugin
+              editor.setOption(CaptionPlugin, 'visibleId', insertedNodeId);
+              console.log('[PlaceholderElement] 已设置 visibleId:', insertedNodeId);
+
+              // Focus the caption textarea after a tick to ensure DOM is ready
+              setTimeout(() => {
+                const captionTextarea = document.querySelector(
+                  `[data-plate-editor-id="${editor.id}"] textarea[placeholder*="caption"]`
+                ) as HTMLTextAreaElement;
+
+                if (captionTextarea) {
+                  captionTextarea.focus();
+                  console.log('[PlaceholderElement] Caption textarea 已聚焦');
+                } else {
+                  console.warn('[PlaceholderElement] 未找到 caption textarea');
+                }
+              }, 50);
             }
           });
         } else {
