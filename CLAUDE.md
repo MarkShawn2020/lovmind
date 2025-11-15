@@ -18,10 +18,18 @@ Lovmind is a floating notes app with global hotkey access, built as a Tauri v2 +
 ```bash
 pnpm tauri dev        # Start Tauri app (runs frontend + backend)
 pnpm dev             # Start only frontend dev server (Vite on :1420)
-pnpm typecheck       # Type check TypeScript without building
+pnpm check:type      # Type check TypeScript without building
 pnpm build           # Type check + build frontend for production
 pnpm tauri build     # Build complete application binary
 pnpm build:dmg       # Build macOS .dmg installer only
+```
+
+### Testing
+```bash
+pnpm test            # Run tests in watch mode
+pnpm test:run        # Run tests once
+pnpm test:ui         # Open Vitest UI
+pnpm test:coverage   # Run tests with coverage report
 ```
 
 ### Version Management
@@ -30,6 +38,15 @@ pnpm version:patch   # Bump version and sync to Cargo.toml
 pnpm version:minor   # Bump minor version
 pnpm version:major   # Bump major version
 pnpm release         # Run semantic-release
+```
+
+### Platform-Specific Builds
+```bash
+pnpm build:mac-universal  # Build macOS universal binary (Intel + Apple Silicon)
+pnpm build:mac-intel      # Build macOS Intel binary (x86_64-apple-darwin)
+pnpm build:mac-arm        # Build macOS Apple Silicon binary (aarch64-apple-darwin)
+pnpm build:win-x64        # Build Windows x64 binary
+pnpm build:win-arm        # Build Windows ARM64 binary
 ```
 
 ### Rust Backend
@@ -42,22 +59,28 @@ cd src-tauri && cargo fmt     # Format Rust code
 ## Architecture
 
 ### Multi-Window System
-The app uses **two window types**:
+The app uses **single-page routing** with different window types:
 1. **Main Window** (`index.html` → `App.tsx`): Floating quick-capture UI
    - Always-on-top, frameless, transparent
    - Shows input area + recent notes list
-   - Toggled via `⌘N` global shortcut
-2. **Float Windows** (`editor.html` → `editor.tsx`): Full note editing
-   - Dynamically created via `new WebviewWindow()`
+   - Toggled via global shortcut
+2. **Float Windows** (`index.html?window=editor` → `FloatWindow.tsx`): Full note editing
+   - Dynamically created via `new WebviewWindow()` with `?window=editor&noteId=...` URL params
    - Each note opens in its own window
    - Uses Plate.js rich text editor
+3. **Settings Window** (`index.html?window=settings` → `SettingsWindow.tsx`): App settings
+   - Accessed via main window settings button
 
 ### Frontend Structure
-- **src/App.tsx**: Main floating window component (quick capture + notes list)
-- **src/editor.tsx**: Standalone float window component
+- **src/main.tsx**: Entry point with window-type routing logic (`?window=editor|settings|main`)
+- **src/App.tsx**: Main window component (quick capture + notes list)
+- **src/FloatWindow.tsx**: Float editor window component
+- **src/SettingsWindow.tsx**: Settings window component
 - **src/components/RenderingWysiwygEditor.tsx**: Plate.js editor integration
 - **src/components/editor/plugins/**: Plate.js plugin configurations (markdown, lists, code blocks, etc.)
 - **src/components/ui/**: Plate.js node renderers and Radix UI components
+- **src/hooks/useNoteEditorController.ts**: Shared editing state and logic
+- **src/store.ts**: Jotai global state management
 
 ### Backend Structure (Rust)
 - **src-tauri/src/lib.rs**: Tauri setup, global shortcut registration, and command handlers
@@ -74,39 +97,48 @@ Notes are synchronized between windows using:
 
 ### Frontend-Backend Communication
 - Frontend calls Rust via `invoke("command_name", { args })` from `@tauri-apps/api/core`
-- All Tauri commands are marked with `#[tauri::command]` and registered in `lib.rs:128-143`
-- Available commands: `toggle_window`, `create_note`, `store_temp_note`, `get_all_temp_notes`, `broadcast_note_update`, etc.
+- All Tauri commands are marked with `#[tauri::command]` and registered in `lib.rs`
+- Key commands:
+  - **Window**: `toggle_window`, `open_devtools`
+  - **Notes**: `create_note`, `get_recent_notes`, `store_temp_note`, `get_temp_note`, `get_all_temp_notes`, `remove_temp_note`, `clear_temp_notes`, `broadcast_note_update`
+  - **Settings**: `get_tag_merge_strategy`, `save_tag_merge_strategy`, `is_ai_enabled`, `set_ai_enabled`
+  - **Files**: `save_uploaded_file` (stores files in `$APPDATA/uploads`)
 
 ## Key Configuration
 
 ### Window Behavior (tauri.conf.json)
-- Main window: 420×640, always-on-top, frameless, transparent
+- Main window: 420×640, resizable (min 320×300), frameless, transparent
 - `macOSPrivateApi: true` enables advanced window features on macOS
-- Global shortcut registered in `lib.rs:149` using `tauri-plugin-global-shortcut`
+- Global shortcut registered in `lib.rs` using `tauri-plugin-global-shortcut`
 
-### Multi-Page Build (vite.config.ts)
-```typescript
-rollupOptions: {
-  input: {
-    main: 'index.html',    // Main window
-    editor: 'editor.html'  // Float windows
-  }
-}
-```
+### Window Routing (main.tsx)
+- Single `index.html` entry point
+- URL parameters control which component renders:
+  - `?window=main` or no params → `App.tsx`
+  - `?window=editor&noteId=...` → `FloatWindow.tsx`
+  - `?window=settings` → `SettingsWindow.tsx`
+- StrictMode disabled for editor windows to improve perceived performance
 
 ### Code Inspector (Development Tool)
-- **Plugin**: `@neurora/code-inspector-plugin` in `vite.config.ts`
-- **Usage**: Press `Option + Shift` (Mac) or `Alt + Shift` (Windows), then click any element to open its source in the IDE
-- **Enabled**: Development mode only
+- **Plugin**: `code-inspector-plugin` in `vite.config.ts`
+- **Behavior**: Copy mode for AI workflow (defaultAction: 'copy')
+- **Enabled**: Development mode only (`NODE_ENV !== 'production'`)
 
 ## Semantic Versioning & Git
 - Uses **semantic-release** with conventional commits
-- **Commitizen** configured for standardized commit messages
-- Version syncing: `scripts/sync-version.js` keeps package.json and Cargo.toml versions in sync
-- **Husky** hooks enforce commit message format
+- **Commitizen** configured for standardized commit messages (`pnpm cz` or `git cz`)
+- **Automated version bumping** via git hooks:
+  1. `prepare-commit-msg` hook runs `scripts/bump-version.js` to analyze commit message
+  2. Version bumped automatically: `feat:` → minor, `BREAKING CHANGE` or `!:` → major, others → patch
+  3. Updates both `package.json` and `src-tauri/tauri.conf.json` versions
+  4. `post-commit` hook auto-amends commit if version files changed
+- **Husky** hooks: `prepare-commit-msg`, `post-commit`, `commit-msg` (commitlint)
 
 ## Important Technical Details
-- App identifier: `dev.neurora.lovpen-notes`
-- Frontend dev server: `http://localhost:1420`
-- Tauri plugins: `global-shortcut`, `opener`, `store`
-- Rust dependencies: `serde`, `chrono`, `uuid`, `once_cell` for global state
+- **App identifier**: `app.lovpen.mind` (configured in `src-tauri/tauri.conf.json`)
+- **Frontend dev server**: `http://localhost:1420` (fixed port, fails if unavailable)
+- **Tauri plugins**: `global-shortcut`, `opener`, `store`, `dialog`
+- **Rust dependencies**: `serde`, `serde_json`, `chrono`, `uuid`, `once_cell` (for global state)
+- **Testing framework**: Vitest with jsdom, React Testing Library
+- **File uploads**: Stored in `$APPDATA/uploads/` with UUID-prefixed filenames
+- **Asset protocol**: Enabled for `$APPDATA/uploads/**` scope
