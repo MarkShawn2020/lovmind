@@ -154,46 +154,39 @@ export const PlaceholderElement = withHOC(
           // Wait for the caption to render and become visible
           requestAnimationFrame(() => {
             console.log('[AutoFocus] RAF #2 执行，开始查找 textarea');
-            // Try multiple selectors to find the caption textarea
+
+            // Find all figcaption textareas in the document
+            const allTextareas = document.querySelectorAll<HTMLTextAreaElement>(
+              'figcaption textarea'
+            );
+            console.log('[AutoFocus] 找到的所有 figcaption textarea:', allTextareas.length);
+
+            // Find the one that's visible (caption plugin sets visibility via CSS)
             let captionTextarea: HTMLTextAreaElement | null = null;
+            for (const textarea of allTextareas) {
+              const figcaption = textarea.closest('figcaption');
+              const computedStyle = figcaption ? getComputedStyle(figcaption) : null;
 
-            // Method 1: Find by data-key attribute (Plate.js uses this for nodes)
-            const selector1 = `[data-key="${path?.[0] ?? 0}"][data-type="${element.mediaType}"]`;
-            console.log('[AutoFocus] 尝试选择器 #1:', selector1);
-            const imageNode = document.querySelector(selector1);
-            console.log('[AutoFocus] 选择器 #1 结果:', imageNode);
+              console.log('[AutoFocus] 检查 textarea:', {
+                textarea,
+                figcaption,
+                hasHiddenAttr: figcaption?.hasAttribute('hidden'),
+                display: computedStyle?.display,
+                visibility: computedStyle?.visibility,
+                opacity: computedStyle?.opacity,
+              });
 
-            if (imageNode) {
-              captionTextarea = imageNode.querySelector(
-                'figcaption textarea'
-              ) as HTMLTextAreaElement;
-              console.log('[AutoFocus] 在 imageNode 中找到 textarea:', captionTextarea);
-            }
-
-            // Method 2: Fallback to finding any visible caption textarea in the editor
-            if (!captionTextarea) {
-              const selector2 = `[data-plate-editor-id="${editor.id}"] figcaption textarea`;
-              console.log('[AutoFocus] 尝试选择器 #2:', selector2);
-              const allTextareas = document.querySelectorAll<HTMLTextAreaElement>(selector2);
-              console.log('[AutoFocus] 找到的所有 textarea:', allTextareas.length);
-
-              // Find the one that's not hidden
-              for (const textarea of allTextareas) {
-                const figcaption = textarea.closest('figcaption');
-                console.log('[AutoFocus] 检查 textarea 的 figcaption:', {
-                  figcaption,
-                  hasHiddenAttr: figcaption?.hasAttribute('hidden'),
-                  display: figcaption ? getComputedStyle(figcaption).display : null,
-                });
-                if (
-                  figcaption &&
-                  !figcaption.hasAttribute('hidden') &&
-                  getComputedStyle(figcaption).display !== 'none'
-                ) {
-                  captionTextarea = textarea;
-                  console.log('[AutoFocus] 找到可见的 textarea');
-                  break;
-                }
+              if (
+                figcaption &&
+                !figcaption.hasAttribute('hidden') &&
+                computedStyle &&
+                computedStyle.display !== 'none' &&
+                computedStyle.visibility !== 'hidden' &&
+                computedStyle.opacity !== '0'
+              ) {
+                captionTextarea = textarea;
+                console.log('[AutoFocus] 找到可见的 textarea');
+                break;
               }
             }
 
@@ -202,7 +195,7 @@ export const PlaceholderElement = withHOC(
               captionTextarea.focus();
               console.log('[AutoFocus] focus() 完成，activeElement:', document.activeElement);
             } else {
-              console.error('[AutoFocus] 未找到 caption textarea');
+              console.error('[AutoFocus] 未找到可见的 caption textarea');
             }
           });
         });
