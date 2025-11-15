@@ -37,22 +37,38 @@ export const ImageElement = withHOC(
     // Auto-focus caption when image is newly inserted
     React.useEffect(() => {
       const element = props.element as any;
+      console.log('[ImageElement] useEffect triggered:', {
+        hasAutoFocus: !!element.autoFocusCaption,
+        readOnly,
+        elementId: element.id,
+      });
+
       if (element.autoFocusCaption && !readOnly) {
+        console.log('[ImageElement] Setting visibleId to:', element.id);
         // Show the caption
         editor.setOption(CaptionPlugin, 'visibleId', element.id as string);
 
         // Focus the caption textarea after a small delay for DOM update
         setTimeout(() => {
+          console.log('[ImageElement] Attempting to focus caption');
           captionRef.current?.focus();
+          console.log('[ImageElement] Focus called, activeElement:', document.activeElement);
 
           // Clear the flag to prevent re-triggering
           const path = editor.api.findPath(element);
           if (path) {
+            console.log('[ImageElement] Clearing autoFocusCaption flag');
             editor.tf.setNodes(
               { autoFocusCaption: undefined },
               { at: path }
             );
           }
+
+          // Check visibleId after a moment
+          setTimeout(() => {
+            const currentVisibleId = editor.getOption(CaptionPlugin, 'visibleId');
+            console.log('[ImageElement] Current visibleId after 100ms:', currentVisibleId);
+          }, 100);
         }, 50);
       }
     }, [(props.element as any).autoFocusCaption, readOnly]);
