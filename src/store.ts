@@ -168,7 +168,7 @@ export const contentAtom = atomWithStorage<string>(
 // Image display settings
 export const imageMaxHeightAtom = atomWithStorage<number>(
   'lovpen-image-max-height',
-  600, // Default: 600px
+  240, // Default: 240px
   createTauriStorage<number>(),
   { getOnInit: true }
 );
