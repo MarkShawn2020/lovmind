@@ -94,7 +94,7 @@ export const ImageElement = withHOC(
               <CaptionTextarea
                 ref={captionRef}
                 readOnly={readOnly}
-                placeholder="Write a caption..."
+                placeholder="添加图片描述..."
               />
             </Caption>
           </figure>
