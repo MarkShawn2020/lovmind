@@ -13,6 +13,7 @@ import { MainHeader } from "@/components/lovmind-editor/MainHeader";
 import { NotesSidebarContainer } from "./components/shared/NotesSidebarContainer";
 import { useNoteEventSync } from "./hooks/useNoteEventSync";
 import { useImageHeightSync } from "./hooks/useImageHeightSync";
+import { useNoteLoader } from "./hooks/useNoteLoader";
 import { useTauriWindowEvents } from "./hooks/useTauriWindowEvents";
 import { useMobileSidebarState } from "./hooks/useMobileSidebarState";
 import { useNoteOperations } from "./hooks/useNoteOperations";
@@ -46,6 +47,9 @@ function MainWindow() {
   const editorRef = useRef<LovmindEditorRef | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  // Load note when viewing a specific note
+  useNoteLoader(viewingNoteId);
 
   // Event sync hooks
   useNoteEventSync({ enableBroadcastChannel: true });

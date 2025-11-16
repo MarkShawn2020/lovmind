@@ -13,7 +13,6 @@ import {EditorContextMenu} from '@/components/editor/EditorContextMenu.tsx';
 import {isEditorContentEmpty} from "@/utils/is-editor-content-empty.ts";
 import {createInitialValue} from "@/utils/create-initial-value.ts";
 import {useEditorEventBridge} from "@/hooks/useEditorEventBridge.ts";
-import {useNoteLoader} from "@/hooks/useNoteLoader.ts";
 import {useEditorSync} from "@/hooks/useEditorSync.ts";
 import {useAutoSave} from "@/hooks/useAutoSave.ts";
 import {editorContentAtom} from "@/atoms/noteAtoms.ts";
@@ -56,11 +55,8 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
     onSubmit,
     placeholder = "Type your amazing content here..."
   }, ref) {
-    // Load note into atoms (handles both create mode and view mode)
-    // This updates editorContentAtom with the loaded note's content
-    useNoteLoader(noteId);
-
-    // Read editor content from atom (updated by useNoteLoader)
+    // Note: useNoteLoader is called by the parent component (FloatWindow/MainWindow)
+    // We just read the editor content from the atom
     const editorContent = useAtomValue(editorContentAtom);
 
     // Compute initial value from loaded note content
@@ -77,29 +73,45 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       value: initialValue,
     });
 
-    // Track loaded note ID to detect note changes (only update on external note changes)
+    // Track loaded note ID AND content to detect note changes
     const loadedNoteIdRef = useRef<string | null | undefined>(undefined);
+    const loadedContentRef = useRef<Value | null>(null);
 
     // Update editor value ONLY when switching to a different note
     // Do NOT update on every editorContentAtom change (which happens during typing)
     useEffect(() => {
+      const richContent = editorContent.richContent;
+
       // Check if noteId has actually changed
-      if (loadedNoteIdRef.current === noteId) {
-        return;
+      const noteIdChanged = loadedNoteIdRef.current !== noteId;
+
+      // Check if content has changed (for the same noteId)
+      // This handles the case where noteId is the same but content loaded async
+      const contentChanged = loadedContentRef.current !== richContent;
+
+      if (!noteIdChanged && !contentChanged) {
+        return; // Nothing changed, skip update
       }
 
-      loadedNoteIdRef.current = noteId;
+      // If noteId changed, always update
+      // If only content changed (for same noteId), only update if we haven't loaded this noteId yet
+      if (noteIdChanged || (contentChanged && loadedNoteIdRef.current === undefined)) {
+        loadedNoteIdRef.current = noteId;
+        loadedContentRef.current = richContent;
 
-      // Get the content to load
-      const richContent = editorContent.richContent;
-      const newValue = richContent && !isEditorContentEmpty(richContent)
-        ? richContent
-        : createInitialValue('');
+        // Get the content to load
+        const newValue = richContent && !isEditorContentEmpty(richContent)
+          ? richContent
+          : createInitialValue('');
 
-      // Update editor value using Plate's API
-      editor.tf.setValue(newValue);
+        // Update editor value using Plate's API
+        editor.tf.setValue(newValue);
 
-      console.log('[LovmindEditor] Loaded note:', noteId);
+        console.log('[LovmindEditor] Loaded note:', noteId, 'with content:', richContent ? 'present' : 'empty');
+      } else {
+        // Content changed but noteId is already loaded - this is user typing, ignore
+        console.log('[LovmindEditor] Skipping setValue - content change is from user input');
+      }
     }, [noteId, editorContent.richContent, editor]);
 
     // Sync editor content to atoms
