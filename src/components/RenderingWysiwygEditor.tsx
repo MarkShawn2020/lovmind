@@ -1,6 +1,6 @@
 'use client';
 
-import React, {forwardRef, useEffect, useImperativeHandle, useMemo, useRef} from 'react';
+import React, {forwardRef, useImperativeHandle, useMemo} from 'react';
 import type {Value} from 'platejs';
 import {Plate, usePlateEditor} from 'platejs/react';
 
@@ -9,9 +9,9 @@ import {Editor, EditorContainer} from '@/components/ui/editor';
 import {FixedToolbar} from '@/components/ui/fixed-toolbar';
 import {FixedToolbarButtons} from '@/components/ui/fixed-toolbar-buttons';
 import {EditorContextMenu} from '@/components/editor/EditorContextMenu';
-import {extractTextContent} from "@/utils/extract-text-content.ts";
 import {isEditorContentEmpty} from "@/utils/is-editor-content-empty.ts";
 import {createInitialValue} from "@/utils/create-initial-value.ts";
+import {useEditorEventBridge} from "@/hooks/useEditorEventBridge.ts";
 
 interface RenderingWysiwygEditorProps {
   initialContent?: string;
@@ -56,6 +56,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     placeholder = "Type your amazing content here..."
   }, ref) {
     // Compute initial value only once on mount
+    // Note: Empty deps array is intentional - parent should use key prop to create new instances
     const initialValue = useMemo<Value>(() => {
       if (initialRichContent && !isEditorContentEmpty(initialRichContent)) {
         return initialRichContent;
@@ -69,78 +70,15 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       value: initialValue,
     });
 
-    const hasLoadedContentRef = useRef(false);
-
-    // Update editor content when initialContent/initialRichContent changes (async loading)
-    useEffect(() => {
-      if (hasLoadedContentRef.current) return;
-
-      const hasRichContent = initialRichContent && !isEditorContentEmpty(initialRichContent);
-      const hasTextContent = initialContent && typeof initialContent === 'string' && initialContent.trim();
-
-      if (hasRichContent || hasTextContent) {
-        const newValue = hasRichContent ? initialRichContent! : createInitialValue(initialContent);
-
-        if (JSON.stringify(editor.children) !== JSON.stringify(newValue)) {
-          editor.tf.setValue(newValue);
-          hasLoadedContentRef.current = true;
-        }
-      }
-    }, [initialContent, initialRichContent, editor]);
-
-    const editorContainerRef = useRef<HTMLDivElement>(null);
+    useEditorEventBridge(editor, onChange, onSubmit);
 
     useImperativeHandle(ref, () => ({
-      resetAndFocus: () => {
-        editor.tf.setValue([{ type: 'p', children: [{ text: '' }] }]);
-        requestAnimationFrame(() => {
-          try {
-            editor.tf.select({ path: [0, 0], offset: 0 });
-            editor.tf.focus();
-          } catch (error) {
-            console.error('[RenderingWysiwygEditor] Failed to set selection:', error);
-            editor.tf.focus();
-          }
-        });
-      },
+      resetAndFocus: () => (editor.api as any).commands.resetAndFocus(),
       focus: () => editor.tf.focus(),
       insertTag: (tag: string) => (editor.api as any).hashtag.insert(tag),
       removeTag: (tag: string) => (editor.api as any).hashtag.remove(tag),
       renameTag: (oldTag: string, newTag: string) => (editor.api as any).hashtag.rename(oldTag, newTag),
     }), [editor]);
-
-    useEffect(() => {
-      const handleInputStateChange = (state: any) => {
-        if (onChange) {
-          const { text, tags } = extractTextContent(editor.children as Value);
-          onChange({
-            text,
-            tags,
-            richContent: editor.children as Value,
-            isEmpty: isEditorContentEmpty(editor.children as Value),
-            isFocused: state.isFocused,
-            isInputting: state.isInputting,
-            inputStateReason: state.reason,
-          });
-        }
-      };
-
-      const handleSubmitShortcut = () => {
-        onSubmit?.();
-      };
-
-      if (typeof editor.on === 'function') {
-        editor.on('input-state-changed', handleInputStateChange);
-        editor.on('submit-shortcut', handleSubmitShortcut);
-      }
-
-      return () => {
-        if (typeof editor.off === 'function') {
-          editor.off('input-state-changed', handleInputStateChange);
-          editor.off('submit-shortcut', handleSubmitShortcut);
-        }
-      };
-    }, [editor, onChange, onSubmit]);
 
     return (
       <Plate editor={editor}>
@@ -150,7 +88,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
           </FixedToolbar>
 
           <EditorContextMenu editor={editor}>
-            <EditorContainer ref={editorContainerRef} className="relative overflow-auto">
+            <EditorContainer className="relative overflow-auto">
               <Editor
                 placeholder={placeholder}
                 variant="none"

@@ -42,6 +42,7 @@ import { HashtagTransformsPlugin } from '@/utils/hashtag-transforms';
 import { InputStatePlugin } from '@/components/editor/plugins/input-state-kit';
 import { TauriClipboardPlugin } from '@/components/editor/plugins/tauri-clipboard-kit';
 import { KeyboardShortcutsPlugin } from '@/components/editor/plugins/keyboard-shortcuts-kit';
+import { EditorCommandsPlugin } from '@/components/editor/plugins/editor-commands-kit';
 
 export const EditorKit = [
   // AI features temporarily disabled (no backend API implemented)
@@ -101,6 +102,7 @@ export const EditorKit = [
   InputStatePlugin,
   TauriClipboardPlugin,
   KeyboardShortcutsPlugin,
+  EditorCommandsPlugin,
 ];
 
 // EditorKit without FixedToolbar for manual layout control
