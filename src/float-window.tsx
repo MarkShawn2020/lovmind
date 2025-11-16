@@ -135,18 +135,26 @@ function FloatWindowInner() {
   // Show loading if currentNote not yet loaded
   if (!currentNote) {
     return (
-      <div className="app-container">
-        <div style={{ padding: '20px', textAlign: 'center' }}>
-          <div>Loading note data...</div>
-          <div style={{ fontSize: '12px', marginTop: '10px', color: '#666' }}>
-            Note ID: {noteId}
+      <div className="app-container flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          {/* Animated spinner */}
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
-          <div style={{ fontSize: '12px', marginTop: '5px', color: '#666' }}>
-            Notes count: {notes.length}
+
+          {/* Loading text with pulse animation */}
+          <div className="animate-pulse text-lg font-medium">
+            Loading note data...
           </div>
-          <div style={{ fontSize: '12px', marginTop: '5px', color: '#666' }}>
-            Current note ID in atom: {currentNoteId || 'null'}
-          </div>
+
+          {/* Debug info (only in development) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-6 text-xs text-muted-foreground space-y-1 opacity-50">
+              <div>Note ID: {noteId}</div>
+              <div>Notes count: {notes.length}</div>
+              <div>Current note ID: {currentNoteId || 'null'}</div>
+            </div>
+          )}
         </div>
       </div>
     );
