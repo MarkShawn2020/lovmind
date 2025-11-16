@@ -1,5 +1,4 @@
-import { useState, useCallback, useRef } from "react";
-import { useAtomValue } from 'jotai';
+import { useState, useCallback } from "react";
 import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -11,141 +10,71 @@ import ProfileModal from "./components/ProfileModal";
 import { EditorLayout } from "./components/note-editor/EditorLayout";
 import { MainHeader } from "./components/note-editor/MainHeader";
 import { NotesSidebarContainer } from "./components/shared/NotesSidebarContainer";
+import { useNoteEditorController } from "./hooks/useNoteEditorController";
 import { useNoteEventSync } from "./hooks/useNoteEventSync";
 import { useImageHeightSync } from "./hooks/useImageHeightSync";
 import { useTauriWindowEvents } from "./hooks/useTauriWindowEvents";
 import { useMobileSidebarState } from "./hooks/useMobileSidebarState";
-import { useNoteLoader } from "./hooks/useNoteLoader";
-import { useEditorSync } from "./hooks/useEditorSync";
-import { useAutoSave } from "./hooks/useAutoSave";
-import { useNoteOperations } from "./hooks/useNoteOperations";
-import { useWindowOperations } from "./hooks/useWindowOperations";
-import { useUserProfile } from "./hooks/useUserProfile";
-import { currentNoteAtom, editorContentAtom, notesAtom } from "./atoms/noteAtoms";
-import { noteStatsAtom } from "./store";
-import type { RenderingWysiwygEditorRef } from "./components/RenderingWysiwygEditor";
 import lovpenLogo from "./assets/lovpen-logo.svg";
 import packageJson from "../package.json";
 
-/**
- * App Component (Refactored)
- *
- * Main window component for creating and viewing notes.
- * Uses Jotai atoms for state management instead of useNoteEditorController.
- *
- * Architecture:
- * - Local state for viewingNoteId (which note to view)
- * - Uses useNoteLoader to load viewing note into atoms
- * - Reads currentNote/editorContent from atoms
- * - Business logic in focused hooks
- * - UI state (modals, menus) in local component state
- */
 function App() {
-  // Local state: which note we're viewing (null = create mode)
   const [viewingNoteId, setViewingNoteId] = useState<string | null>(null);
 
-  // Local UI state (moved from useNoteEditorController)
-  const [showArchived, setShowArchived] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
-
-  // Refs
-  const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
-  const userMenuRef = useRef<HTMLDivElement | null>(null);
-  const userButtonRef = useRef<HTMLButtonElement | null>(null);
-
-  // Modular event hooks
+  // Use modular hooks for event management
   useNoteEventSync({ enableBroadcastChannel: true });
   useImageHeightSync();
   useTauriWindowEvents();
   const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
 
-  // Load viewing note into atoms
-  useNoteLoader(viewingNoteId);
-
-  // Read from atoms
-  const currentNote = useAtomValue(currentNoteAtom);
-  const editorContent = useAtomValue(editorContentAtom);
-  const notes = useAtomValue(notesAtom);
-  const noteStats = useAtomValue(noteStatsAtom);
-
-  // Business logic hooks
-  const { handleContentChange } = useEditorSync();
-  useAutoSave();
-  const { updateNote, deleteNote, togglePin, toggleArchive } = useNoteOperations();
-  const { openNoteInNewWindow, createNewNoteWindow } = useWindowOperations(notes, () => {});
-  const { userProfile } = useUserProfile();
-
-  // Handlers
   const handleViewingModeChange = useCallback((noteId: string | null) => {
     setViewingNoteId(noteId);
   }, []);
 
-  const handleUserMenuToggle = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    if (userButtonRef.current) {
-      const rect = userButtonRef.current.getBoundingClientRect();
-      setMenuPosition({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
-      });
-    }
-    setIsUserMenuOpen((prev) => !prev);
-  }, []);
+  const {
+    notes,
+    noteStats,
+    userProfile,
+    showArchived,
+    setShowArchived,
+    isUserMenuOpen,
+    setIsUserMenuOpen,
+    isProfileModalOpen,
+    setIsProfileModalOpen,
+    isAboutModalOpen,
+    setIsAboutModalOpen,
+    menuPosition,
+    handleUserMenuToggle,
+    handleHeaderMouseDown,
+    handleContentChange,
+    handleSubmit,
+    handleDuplicateNote,
+    editorRef,
+    notesListRef,
+    editorContainerRef,
+    userMenuRef,
+    userButtonRef,
+    openNoteInNewWindow,
+    toggleArchive,
+    deleteNote,
+    togglePin,
+    placeholder,
+    content,
+    richContent,
+    currentTags,
+    submitDisabled,
+    handleBackToCreate,
+    createNewNoteWindow,
+    viewingNoteId: controllerViewingNoteId,
+    isEditorEmpty,
+  } = useNoteEditorController({
+    mode: "main",
+    placeholder: "此时此刻，你在想什么呢？",
+    viewingNoteId,
+    onViewingModeChange: handleViewingModeChange,
+  });
 
-  const handleHeaderMouseDown = useCallback(async () => {
-    if (!isTauri()) return;
-    try {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window');
-      const appWindow = getCurrentWindow();
-      await appWindow.startDragging();
-    } catch (error) {
-      console.error("Failed to start dragging:", error);
-    }
-  }, []);
-
-  const handleSubmit = useCallback(async () => {
-    const hasTypedContent = typeof editorContent.text === 'string' && Boolean(editorContent.text.trim());
-    if (!hasTypedContent && editorContent.isEmpty) {
-      return;
-    }
-
-    // TODO: Implement submit logic using editorContent from atom
-    // This should create a new note or update existing note
-    console.log('[App] Submit:', editorContent);
-  }, [editorContent]);
-
-  const handleBackToCreate = useCallback(async () => {
-    // Auto-save current note if in viewing mode
-    if (viewingNoteId && currentNote) {
-      const hasChanges = editorContent.text !== currentNote.text ||
-                        JSON.stringify(editorContent.richContent) !== JSON.stringify(currentNote.richContent);
-
-      if (hasChanges) {
-        const updatedNote = {
-          ...currentNote,
-          text: editorContent.text,
-          tags: editorContent.tags,
-          richContent: editorContent.richContent,
-          time: new Date().toLocaleString(),
-        };
-
-        try {
-          await updateNote(updatedNote);
-        } catch (error) {
-          console.error('Failed to auto-save before returning to create mode:', error);
-        }
-      }
-    }
-
-    // Return to create mode
-    setViewingNoteId(null);
-    editorRef.current?.resetAndFocus();
-  }, [viewingNoteId, currentNote, editorContent, updateNote]);
-
-  // Use withSidebarClose to auto-close mobile sidebar
+  // Use withSidebarClose to auto-close mobile sidebar after operations
   const handleOpenNoteInCurrentWindow = useCallback(
     withSidebarClose((note: Note) => {
       setViewingNoteId(note.id);
@@ -163,24 +92,6 @@ function App() {
     [withSidebarClose, handleBackToCreate]
   );
 
-  // Click outside to close user menu
-  useCallback(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(event.target as Node) &&
-        userButtonRef.current &&
-        !userButtonRef.current.contains(event.target as Node)
-      ) {
-        setIsUserMenuOpen(false);
-      }
-    };
-
-    if (isUserMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isUserMenuOpen]);
 
   const userMenuNode = !isUserMenuOpen ? null : (
     <div
@@ -277,7 +188,7 @@ function App() {
 
       <div className="border-t border-gray-200 my-1" />
       <button
-        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
+        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items中心 gap-2 border-none bg-transparent cursor-pointer transition-colors"
         onClick={async () => {
           setIsUserMenuOpen(false);
           if (isTauri()) {
@@ -389,6 +300,7 @@ function App() {
       }
       sidebar={
         <NotesSidebarContainer
+          ref={notesListRef}
           notes={notes}
           currentNoteId={viewingNoteId ?? undefined}
           showArchived={showArchived}
@@ -397,31 +309,30 @@ function App() {
           onTogglePin={togglePin}
           onToggleArchive={toggleArchive}
           onDeleteNote={deleteNote}
-          onDuplicateNote={async (note) => {
-            // TODO: Implement duplicate
-            console.log('Duplicate:', note);
-          }}
+          onDuplicateNote={handleDuplicateNote}
           onCreateNewNote={handleCreateNewNote}
           isCreateMode={!viewingNoteId}
-          isEditorEmpty={editorContent.isEmpty}
+          isEditorEmpty={isEditorEmpty}
         />
       }
       editor={
-        <RenderingWysiwygEditor
-          key={viewingNoteId || 'create-mode'}
-          initialRichContent={currentNote?.richContent}
-          onChange={handleContentChange}
-          onSubmit={handleSubmit}
-          placeholder="此时此刻，你在想什么呢？"
-          ref={editorRef}
-        />
+        <div ref={editorContainerRef}>
+          <RenderingWysiwygEditor
+            key={viewingNoteId || 'create-mode'}
+            initialContent={content}
+            initialRichContent={richContent}
+            onChange={handleContentChange}
+            onSubmit={handleSubmit}
+            placeholder={placeholder}
+          />
+        </div>
       }
       toolbar={
         <EditorToolbar
           mode="main"
           onSubmit={handleSubmit}
-          submitDisabled={editorContent.isEmpty}
-          currentTags={editorContent.tags}
+          submitDisabled={submitDisabled}
+          currentTags={currentTags}
           allNotes={notes}
           editorRef={editorRef}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}

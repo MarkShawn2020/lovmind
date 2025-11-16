@@ -1,6 +1,6 @@
 import { atom } from 'jotai';
-import type { Note } from '@/store';
 import type { Value } from 'platejs';
+import { notesAtom } from '@/store'; // Re-export from store.ts
 
 /**
  * Note Management Atoms
@@ -9,9 +9,10 @@ import type { Value } from 'platejs';
  * This eliminates state duplication and enables cross-component communication.
  */
 
-// Base atoms: Source of truth
-export const notesAtom = atom<Note[]>([]);
+// Re-export notesAtom from store.ts (already persisted with atomWithStorage)
+export { notesAtom };
 
+// Base atoms: Source of truth
 export const currentNoteIdAtom = atom<string | null>(null);
 
 // Derived atoms: Computed from base atoms
