@@ -892,7 +892,17 @@ pub fn run() {
 
             #[cfg(target_os = "ios")]
             {
-                let _ = app; // Suppress unused variable warning
+                use tauri::Manager;
+
+                // iOS requires different window configuration
+                // Transparency doesn't work on iOS and causes black screen
+                let window = app.get_webview_window("main").unwrap();
+                println!("[iOS Setup] Configuring main window for iOS");
+                println!("[iOS Setup] Window label: {:?}", window.label());
+
+                // Ensure window is visible (should be by default on iOS)
+                // Note: Tauri v2 on iOS automatically manages window lifecycle
+                println!("[iOS Setup] Window initialized successfully");
             }
 
             Ok(())

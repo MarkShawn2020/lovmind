@@ -7,6 +7,11 @@ import './index.css';
 
 console.time('[Perf] Window load to React render');
 
+// iOS debugging: log platform and user agent
+console.log('[Platform] User Agent:', navigator.userAgent);
+console.log('[Platform] Platform:', navigator.platform);
+console.log('[Platform] Is iOS:', /iPad|iPhone|iPod/.test(navigator.userAgent));
+
 // 根据 URL 参数决定渲染哪个组件
 const params = new URLSearchParams(window.location.search);
 const windowType = params.get('window') || 'main';
@@ -20,8 +25,10 @@ if (rootElement) {
     console.log('[Perf] Creating FloatWindow component');
     component = <FloatWindow />;
   } else if (windowType === 'settings') {
+    console.log('[Perf] Creating SettingsWindow component');
     component = <SettingsWindow />;
   } else {
+    console.log('[Perf] Creating App component (main window)');
     component = <App />;
   }
 
@@ -45,4 +52,7 @@ if (rootElement) {
   );
   console.timeEnd('[Perf] Initial render');
   console.timeEnd('[Perf] Window load to React render');
+  console.log('[Init] React app rendered successfully');
+} else {
+  console.error('[Init] ERROR: Root element not found!');
 }
