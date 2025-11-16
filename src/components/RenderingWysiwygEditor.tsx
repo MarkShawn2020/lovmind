@@ -380,17 +380,26 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       };
 
       const handleKeyDown = (e: KeyboardEvent) => {
-        // Check if the event target is within the editor
+        const isMod = e.metaKey || e.ctrlKey;
         const target = e.target as HTMLElement;
+
+        // Log ALL Cmd+A events globally for debugging
+        if (isMod && e.key === 'a') {
+          console.log('[KeyDown] ===== Cmd+A intercepted GLOBALLY =====');
+          console.log('[KeyDown] Event target:', target.tagName, target.className);
+          console.log('[KeyDown] Event phase:', e.eventPhase, '(1=capture, 2=target, 3=bubble)');
+          console.log('[KeyDown] Editor contains target?', editorContainerRef.current?.contains(target));
+        }
+
+        // Check if the event target is within the editor
         if (!editorContainerRef.current?.contains(target)) {
+          console.log('[KeyDown] Event target NOT in editor, ignoring');
           return; // Not our editor, ignore
         }
 
-        const isMod = e.metaKey || e.ctrlKey;
-
         // Handle Cmd+A (Select All) - prevent shadow input from capturing selection
         if (isMod && e.key === 'a') {
-          console.log('[SelectAll] ===== Cmd+A detected =====');
+          console.log('[SelectAll] ===== Cmd+A detected in editor =====');
           console.log('[SelectAll] Event target:', target.tagName, target.className);
           console.log('[SelectAll] Preventing default to stop shadow input capture');
           e.preventDefault();
@@ -547,7 +556,8 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         }
       };
 
-      document.addEventListener('keydown', handleKeyDown);
+      // Use capture phase (true) to intercept Cmd+A BEFORE it reaches other handlers
+      document.addEventListener('keydown', handleKeyDown, true);
       document.addEventListener('copy', handleCopy);
       document.addEventListener('cut', handleCut);
       document.addEventListener('paste', handlePaste);
@@ -560,7 +570,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       console.log('[Clipboard] - Clipboard API:', typeof navigator.clipboard);
 
       return () => {
-        document.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('keydown', handleKeyDown, true);
         document.removeEventListener('copy', handleCopy);
         document.removeEventListener('cut', handleCut);
         document.removeEventListener('paste', handlePaste);
