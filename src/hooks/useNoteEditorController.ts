@@ -8,7 +8,6 @@ import { useAtomValue } from 'jotai';
 import type { Note } from '@/store';
 import { noteStatsAtom } from '@/store';
 import type { RenderingWysiwygEditorRef, EditorContentChange } from '@/components/RenderingWysiwygEditor';
-import { isEditorContentEmpty } from '@/components/RenderingWysiwygEditor';
 import { isTauri } from '@/utils/tauri';
 import { useNoteOperations } from '@/hooks/useNoteOperations';
 import { useWindowOperations } from '@/hooks/useWindowOperations';
@@ -16,6 +15,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useTagMergeStrategy } from '@/hooks/useTagMergeStrategy';
 import type { NoteStatsSummary } from '@/features/note/types';
 import { extractNoteTitle } from '@/utils/titleExtractor';
+import {isEditorContentEmpty} from "@/utils/is-editor-content-empty.ts";
 
 interface UseNoteEditorControllerOptions {
   mode: 'main' | 'float';

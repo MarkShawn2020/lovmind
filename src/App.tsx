@@ -1,153 +1,34 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { useAtom, useSetAtom } from "jotai";
+import { useState, useCallback } from "react";
 import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 
 import { isTauri } from "./utils/tauri";
-import { notesAtom, Note, imageMaxHeightAtom } from "./store";
-import { NotesSidebar } from "./components/NotesSidebar";
+import { Note } from "./store";
 import RenderingWysiwygEditor from "./components/RenderingWysiwygEditor";
 import EditorToolbar from "./components/EditorToolbar";
 import ProfileModal from "./components/ProfileModal";
 import { EditorLayout } from "./components/note-editor/EditorLayout";
 import { MainHeader } from "./components/note-editor/MainHeader";
+import { NotesSidebarContainer } from "./components/shared/NotesSidebarContainer";
 import { useNoteEditorController } from "./hooks/useNoteEditorController";
+import { useNoteEventSync } from "./hooks/useNoteEventSync";
+import { useImageHeightSync } from "./hooks/useImageHeightSync";
+import { useTauriWindowEvents } from "./hooks/useTauriWindowEvents";
+import { useMobileSidebarState } from "./hooks/useMobileSidebarState";
 import lovpenLogo from "./assets/lovpen-logo.svg";
 import packageJson from "../package.json";
 
 function App() {
-  const [, setNotes] = useAtom(notesAtom);
   const [viewingNoteId, setViewingNoteId] = useState<string | null>(null);
-  const setImageMaxHeight = useSetAtom(imageMaxHeightAtom);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    if (!isTauri()) {
-      console.log("Not running in Tauri environment, skipping event listeners");
-      return;
-    }
-
-    // 监听窗口切换事件
-    const unlisten = listen("toggle-window", () => {
-      console.log("Window toggled");
-    });
-
-    // 监听所有note更新事件（全局监听器）
-    console.log("Setting up global note update listener...");
-    const unlistenNoteUpdate = listen<Note>(
-      "global-note-updated",
-      async (event) => {
-        const updatedNote = event.payload;
-        console.log("Main window received global note update:", updatedNote);
-
-        setNotes((prevNotes) => {
-          const existingNoteIndex = prevNotes.findIndex(
-            (n) => n.id === updatedNote.id
-          );
-
-          if (existingNoteIndex !== -1) {
-            const newNotes = [...prevNotes];
-            newNotes[existingNoteIndex] = updatedNote;
-            return newNotes;
-          } else {
-            return [...prevNotes, updatedNote];
-          }
-        });
-      }
-    );
-
-    // 监听图片最大高度变化事件
-    console.log("Setting up image max height listener...");
-    const unlistenImageHeight = listen<{ value: number }>(
-      "image-max-height-changed",
-      (event) => {
-        const newHeight = event.payload.value;
-        console.log("[App] Received image-max-height-changed:", newHeight);
-        setImageMaxHeight(newHeight);
-      }
-    );
-
-    // 添加键盘快捷键监听（开发者工具）
-    const handleKeyDown = async (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "I") {
-        e.preventDefault();
-        try {
-          const { getCurrentWebviewWindow } = await import(
-            "@tauri-apps/api/webviewWindow"
-          );
-          const currentWindow = getCurrentWebviewWindow();
-          await invoke("open_devtools", { window: currentWindow });
-        } catch (error) {
-          console.error("Failed to open devtools:", error);
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      unlisten.then((fn) => fn());
-      unlistenNoteUpdate.then((fn) => fn());
-      unlistenImageHeight.then((fn) => fn());
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [setNotes, setImageMaxHeight]);
-
-  // 在浏览器环境下，监听 BroadcastChannel 的笔记更新
-  useEffect(() => {
-    if (isTauri()) return;
-
-    const channel = new BroadcastChannel('lovpen-notes-channel');
-    channel.onmessage = (event) => {
-      if (event.data.type === 'note-updated') {
-        const updatedNote = event.data.note as Note;
-        setNotes((prevNotes) => {
-          const existingNoteIndex = prevNotes.findIndex((n) => n.id === updatedNote.id);
-          if (existingNoteIndex !== -1) {
-            const newNotes = [...prevNotes];
-            newNotes[existingNoteIndex] = updatedNote;
-            return newNotes;
-          } else {
-            return [...prevNotes, updatedNote];
-          }
-        });
-      }
-    };
-
-    return () => channel.close();
-  }, [setNotes]);
-
-  // 启动时同步 Tauri 后端存储的notes
-  useEffect(() => {
-    if (!isTauri()) return;
-
-    const syncWithBackend = async () => {
-      try {
-        const backendNotes = await invoke<Note[]>("get_all_temp_notes");
-        if (backendNotes.length > 0) {
-          setNotes((prevNotes) => {
-            const noteMap = new Map(prevNotes.map((n) => [n.id, n]));
-            backendNotes.forEach((backendNote) => {
-              noteMap.set(backendNote.id, backendNote);
-            });
-            return Array.from(noteMap.values());
-          });
-        }
-      } catch (error) {
-        console.error("Failed to sync with backend:", error);
-      }
-    };
-
-    syncWithBackend();
-  }, [setNotes]);
+  // Use modular hooks for event management
+  useNoteEventSync({ enableBroadcastChannel: true });
+  useImageHeightSync();
+  useTauriWindowEvents();
+  const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
 
   const handleViewingModeChange = useCallback((noteId: string | null) => {
     setViewingNoteId(noteId);
-  }, []);
-
-  const openNoteInCurrentWindow = useCallback((note: Note) => {
-    setViewingNoteId(note.id);
   }, []);
 
   const {
@@ -193,57 +74,24 @@ function App() {
     onViewingModeChange: handleViewingModeChange,
   });
 
-  // Wrap callbacks to close mobile sidebar after note operations
-  const handleOpenNoteInCurrentWindow = useCallback((note: Note) => {
-    openNoteInCurrentWindow(note);
-    // Close mobile sidebar drawer on note selection
-    setIsMobileSidebarOpen(false);
-  }, [openNoteInCurrentWindow]);
-
-  const handleOpenNoteInNewWindow = useCallback((note: Note) => {
-    openNoteInNewWindow(note);
-    // Close mobile sidebar drawer on note selection
-    setIsMobileSidebarOpen(false);
-  }, [openNoteInNewWindow]);
-
-  const handleCreateNewNote = useCallback(() => {
-    handleBackToCreate();
-    // Close mobile sidebar drawer when creating new note
-    setIsMobileSidebarOpen(false);
-  }, [handleBackToCreate]);
-
-  const sidebarNode = useMemo(() => (
-    <div ref={notesListRef} className="h-full">
-      <NotesSidebar
-        notes={notes}
-        currentNoteId={viewingNoteId ?? undefined}
-        showArchived={showArchived}
-        onOpenNote={handleOpenNoteInCurrentWindow}
-        onOpenNoteInNewWindow={handleOpenNoteInNewWindow}
-        onTogglePin={togglePin}
-        onToggleArchive={toggleArchive}
-        onDeleteNote={deleteNote}
-        onDuplicateNote={handleDuplicateNote}
-        onCreateNewNote={handleCreateNewNote}
-        isCreateMode={!viewingNoteId}
-        isEditorEmpty={isEditorEmpty}
-      />
-    </div>
-  ), [notes, viewingNoteId, showArchived, handleOpenNoteInCurrentWindow, handleOpenNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote, handleCreateNewNote, isEditorEmpty]);
-
-  const editorNode = (
-    <div ref={editorContainerRef}>
-      <RenderingWysiwygEditor
-        key={viewingNoteId || 'create-mode'}
-        ref={editorRef}
-        initialContent={content}
-        initialRichContent={richContent}
-        onChange={handleContentChange}
-        onSubmit={handleSubmit}
-        placeholder={placeholder}
-      />
-    </div>
+  // Use withSidebarClose to auto-close mobile sidebar after operations
+  const handleOpenNoteInCurrentWindow = useCallback(
+    withSidebarClose((note: Note) => {
+      setViewingNoteId(note.id);
+    }),
+    [withSidebarClose]
   );
+
+  const handleOpenNoteInNewWindow = useCallback(
+    withSidebarClose(openNoteInNewWindow),
+    [withSidebarClose, openNoteInNewWindow]
+  );
+
+  const handleCreateNewNote = useCallback(
+    withSidebarClose(handleBackToCreate),
+    [withSidebarClose, handleBackToCreate]
+  );
+
 
   const userMenuNode = !isUserMenuOpen ? null : (
     <div
@@ -450,8 +298,36 @@ function App() {
           userButtonRef={userButtonRef}
         />
       }
-      sidebar={sidebarNode}
-      editor={editorNode}
+      sidebar={
+        <NotesSidebarContainer
+          ref={notesListRef}
+          notes={notes}
+          currentNoteId={viewingNoteId ?? undefined}
+          showArchived={showArchived}
+          onOpenNote={handleOpenNoteInCurrentWindow}
+          onOpenNoteInNewWindow={handleOpenNoteInNewWindow}
+          onTogglePin={togglePin}
+          onToggleArchive={toggleArchive}
+          onDeleteNote={deleteNote}
+          onDuplicateNote={handleDuplicateNote}
+          onCreateNewNote={handleCreateNewNote}
+          isCreateMode={!viewingNoteId}
+          isEditorEmpty={isEditorEmpty}
+        />
+      }
+      editor={
+        <div ref={editorContainerRef}>
+          <RenderingWysiwygEditor
+            key={viewingNoteId || 'create-mode'}
+            ref={editorRef}
+            initialContent={content}
+            initialRichContent={richContent}
+            onChange={handleContentChange}
+            onSubmit={handleSubmit}
+            placeholder={placeholder}
+          />
+        </div>
+      }
       toolbar={
         <EditorToolbar
           mode="main"

@@ -1,16 +1,19 @@
 'use client';
 
-import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect } from 'react';
-import type { Value } from 'platejs';
-import { Plate, usePlateEditor } from 'platejs/react';
+import React, {forwardRef, useEffect, useImperativeHandle, useMemo, useRef} from 'react';
+import type {Value} from 'platejs';
+import {Plate, usePlateEditor} from 'platejs/react';
 
-import { EditorKitWithoutFixedToolbar } from '@/components/editor/editor-kit';
-import { Editor, EditorContainer } from '@/components/ui/editor';
-import { FixedToolbar } from '@/components/ui/fixed-toolbar';
-import { FixedToolbarButtons } from '@/components/ui/fixed-toolbar-buttons';
-import { HASHTAG_KEY } from '@/components/editor/plugins/hashtag-kit';
-import type { THashtagElement } from '@/components/editor/plugins/hashtag-base-kit';
-import { EditorContextMenu } from '@/components/editor/EditorContextMenu';
+import {EditorKitWithoutFixedToolbar} from '@/components/editor/editor-kit';
+import {Editor, EditorContainer} from '@/components/ui/editor';
+import {FixedToolbar} from '@/components/ui/fixed-toolbar';
+import {FixedToolbarButtons} from '@/components/ui/fixed-toolbar-buttons';
+import {HASHTAG_KEY} from '@/components/editor/plugins/hashtag-kit';
+import type {THashtagElement} from '@/components/editor/plugins/hashtag-base-kit';
+import {EditorContextMenu} from '@/components/editor/EditorContextMenu';
+import {extractTextContent} from "@/utils/extract-text-content.ts";
+import {isEditorContentEmpty} from "@/utils/is-editor-content-empty.ts";
+import {createInitialValue} from "@/utils/create-initial-value.ts";
 
 interface RenderingWysiwygEditorProps {
   initialContent?: string;
@@ -45,134 +48,6 @@ export interface RenderingWysiwygEditorRef {
   removeTag: (tag: string) => void;
   renameTag: (oldTag: string, newTag: string) => void;
 }
-
-const createInitialValue = (text: string = ''): Value => {
-  if (!text || typeof text !== 'string') {
-    return [{ type: 'p', children: [{ text: '' }] }];
-  }
-
-  const lines = text.split('\n');
-  return lines.map(line => ({
-    type: 'p',
-    children: [{ text: line }],
-  }));
-};
-
-const extractTextContent = (value: Value): { text: string; tags: string[] } => {
-  const listCounters = new Map<string, number>();
-  const tags = new Set<string>();
-
-  const extractNodeText = (node: any, context?: { prevListType?: string; prevIndent?: number }): string => {
-    if (typeof node.text === 'string') {
-      let text = node.text;
-      if (node.bold) text = `**${text}**`;
-      if (node.italic) text = `*${text}*`;
-      if (node.code) text = `\`${text}\``;
-      if (node.strikethrough) text = `~~${text}~~`;
-      return text;
-    }
-
-    if (node.children && Array.isArray(node.children)) {
-      if (node.type === HASHTAG_KEY) {
-        const hashtagElement = node as THashtagElement;
-        tags.add(hashtagElement.value);
-        return `#${hashtagElement.value}`;
-      }
-
-      const childText = node.children.map((child: any) => extractNodeText(child, context)).join('');
-
-      if (node.listStyleType) {
-        const indent = node.indent || 0;
-        const indentStr = '  '.repeat(indent);
-
-        if (node.listStyleType === 'decimal') {
-          const counterKey = `${indent}-decimal`;
-
-          if (context?.prevListType !== 'decimal' || context?.prevIndent !== indent) {
-            listCounters.set(counterKey, 1);
-          } else {
-            const current = listCounters.get(counterKey) || 1;
-            listCounters.set(counterKey, current + 1);
-          }
-
-          const number = listCounters.get(counterKey) || 1;
-          return `${indentStr}${number}. ${childText}`;
-        } else {
-          return `${indentStr}- ${childText}`;
-        }
-      }
-
-      if (node.type === 'h1') return `# ${childText}`;
-      if (node.type === 'h2') return `## ${childText}`;
-      if (node.type === 'h3') return `### ${childText}`;
-      if (node.type === 'h4') return `#### ${childText}`;
-      if (node.type === 'h5') return `##### ${childText}`;
-      if (node.type === 'h6') return `###### ${childText}`;
-
-      if (node.type === 'blockquote') return `> ${childText}`;
-      if (node.type === 'code_block') return `\`\`\`\n${childText}\n\`\`\``;
-
-      if (node.type === 'img') {
-        const url = node.url || '';
-        const name = node.name || 'image';
-        return `![${name}](${url})`;
-      }
-
-      return childText;
-    }
-
-    return '';
-  };
-
-  const results: string[] = [];
-  let prevNode: any = null;
-
-  for (const node of value) {
-    const context = prevNode?.listStyleType ? {
-      prevListType: prevNode.listStyleType,
-      prevIndent: prevNode.indent || 0
-    } : undefined;
-
-    const text = extractNodeText(node, context);
-    if (text.length > 0) {
-      results.push(text);
-    }
-
-    prevNode = node;
-  }
-
-  return {
-    text: results.join('\n'),
-    tags: Array.from(tags),
-  };
-};
-
-export const isEditorContentEmpty = (richContent: Value | null | undefined): boolean => {
-  if (!richContent) return true;
-  if (!Array.isArray(richContent)) return false;
-
-  // Empty editor = only one block + that block contains only empty text nodes + no other node types
-  if (richContent.length === 0) return true;
-  if (richContent.length > 1) return false;  // Multiple blocks = has content
-
-  const singleNode = richContent[0];
-
-  // Check node type: non-paragraph types = has content (e.g., image, heading, etc.)
-  if (singleNode.type && singleNode.type !== 'p') return false;
-
-  // Check children
-  if (!singleNode.children || !Array.isArray(singleNode.children)) return true;
-
-  // All children must be empty text nodes (no element nodes)
-  return singleNode.children.every((child: any) => {
-    // Element node (has type property) = has content
-    if (child.type) return false;
-    // Text node: check if empty
-    if (typeof child.text === 'string') return !child.text.trim();
-    // Other cases: treat as having content
-    return false;
-  });
-};
 
 const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWysiwygEditorProps>(
   function RenderingWysiwygEditor({
