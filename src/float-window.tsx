@@ -26,9 +26,7 @@ import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-edito
  */
 function FloatWindowInner() {
   const editorRef = useRef<LovmindEditorRef | null>(null);
-
-  // Local state for always-on-top
-  const [isWindowAlwaysOnTop, setIsWindowAlwaysOnTop] = useState(false);
+  const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
 
   // Event sync hooks
   useNoteEventSync();
@@ -83,32 +81,20 @@ function FloatWindowInner() {
     [withSidebarClose, openNoteInNewWindow]
   );
 
-  // Toggle always-on-top functionality
-  const handleToggleAlwaysOnTop = useCallback(async (e?: React.MouseEvent) => {
-    console.log('[FloatWindow] handleToggleAlwaysOnTop called', {
-      event: e?.type,
-      currentState: isWindowAlwaysOnTop,
-      isTauri: isTauri()
-    });
-
-    if (!isTauri()) {
-      console.warn('[FloatWindow] Not in Tauri environment, cannot toggle always on top');
-      return;
-    }
+  // Toggle always-on-top state
+  const handleToggleAlwaysOnTop = useCallback(async () => {
+    if (!isTauri()) return;
 
     try {
       const window = getCurrentWindow();
-      const newState = !isWindowAlwaysOnTop;
-
-      console.log('[FloatWindow] Calling window.setAlwaysOnTop with:', newState);
+      const newState = !isAlwaysOnTop;
       await window.setAlwaysOnTop(newState);
-
-      setIsWindowAlwaysOnTop(newState);
-      console.log('[FloatWindow] ✅ Always on top toggled successfully:', newState);
+      setIsAlwaysOnTop(newState);
+      console.log('[FloatWindow] ✅ Toggled always on top:', newState);
     } catch (error) {
       console.error('[FloatWindow] ❌ Failed to toggle always on top:', error);
     }
-  }, [isWindowAlwaysOnTop]);
+  }, [isAlwaysOnTop]);
 
   // Auto-focus window and editor after mount
   useEffect(() => {
@@ -214,7 +200,7 @@ function FloatWindowInner() {
               console.error('Failed to start dragging:', error);
             }
           }}
-          isWindowAlwaysOnTop={isWindowAlwaysOnTop}
+          isWindowAlwaysOnTop={isAlwaysOnTop}
           onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
           onCloseWindow={async () => {
             if (isTauri()) {
