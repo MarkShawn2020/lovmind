@@ -32,8 +32,11 @@ export function useNoteLoader(noteId: string | null | undefined) {
   const { notes } = useNoteOperations();
 
   useEffect(() => {
+    console.log('[useNoteLoader] Effect triggered with noteId:', noteId);
+
     // Reset when no noteId
     if (!noteId) {
+      console.log('[useNoteLoader] No noteId, resetting content');
       setCurrentNoteId(null);
       setEditorContent({
         text: '',
@@ -45,21 +48,31 @@ export function useNoteLoader(noteId: string | null | undefined) {
     }
 
     const loadNote = async () => {
+      console.log('[useNoteLoader] Starting to load noteId:', noteId);
       let noteData: Note | null = null;
 
       if (isTauri()) {
         try {
           noteData = await invoke<Note | null>('get_temp_note', { id: noteId });
-          console.log('[useNoteLoader] Retrieved note from Tauri backend:', noteData);
+          console.log('[useNoteLoader] ✅ Retrieved from Tauri:', {
+            id: noteData?.id,
+            title: noteData?.title,
+            hasRichContent: !!noteData?.richContent
+          });
         } catch (error) {
-          console.error('[useNoteLoader] Failed to load note from Tauri:', error);
+          console.error('[useNoteLoader] ❌ Failed to load from Tauri:', error);
         }
       } else {
         noteData = notes.find(n => n.id === noteId) || null;
-        console.log('[useNoteLoader] Retrieved note from Jotai atom:', noteData);
+        console.log('[useNoteLoader] ✅ Retrieved from notes array:', {
+          id: noteData?.id,
+          title: noteData?.title,
+          hasRichContent: !!noteData?.richContent
+        });
       }
 
       if (noteData) {
+        console.log('[useNoteLoader] 📝 Setting editorContent for noteId:', noteId);
         setCurrentNoteId(noteId);
         // Initialize editor content with note data
         setEditorContent({
@@ -68,8 +81,9 @@ export function useNoteLoader(noteId: string | null | undefined) {
           richContent: noteData.richContent || null,
           isEmpty: !noteData.text && !noteData.richContent,
         });
+        console.log('[useNoteLoader] ✅ editorContent set successfully');
       } else {
-        console.warn('[useNoteLoader] Note not found:', noteId);
+        console.warn('[useNoteLoader] ⚠️  Note not found:', noteId);
         setCurrentNoteId(null);
       }
     };
