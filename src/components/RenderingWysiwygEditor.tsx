@@ -360,204 +360,33 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       };
     }, []);
 
-    // Handle Cmd+A in Tauri to prevent shadow input from capturing selection
-    // PredefinedMenuItem handles Cmd+C/X/V through native menu, but Cmd+A needs manual handling
+    // Minimal clipboard handling - let Plate.js do everything naturally
+    // Only log for debugging, don't interfere
     useEffect(() => {
-      const selectDomRange = () => {
-        if (typeof window === 'undefined') return;
-        const container = editorContainerRef.current;
-        if (!container) return;
-        const editorRoot = container.querySelector('[data-slate-editor="true"]') as HTMLElement | null;
-        if (!editorRoot) return;
-
-        const selection = window.getSelection?.();
-        if (!selection) return;
-
-        const range = document.createRange();
-        range.selectNodeContents(editorRoot);
-        selection.removeAllRanges();
-        selection.addRange(range);
-      };
-
-      const handleKeyDown = (e: KeyboardEvent) => {
-        const isMod = e.metaKey || e.ctrlKey;
-        const target = e.target as HTMLElement;
-
-        // Log ALL Cmd+A events globally for debugging
-        if (isMod && e.key === 'a') {
-          console.log('[KeyDown] ===== Cmd+A intercepted GLOBALLY =====');
-          console.log('[KeyDown] Event target:', target.tagName, target.className);
-          console.log('[KeyDown] Event phase:', e.eventPhase, '(1=capture, 2=target, 3=bubble)');
-          console.log('[KeyDown] Editor contains target?', editorContainerRef.current?.contains(target));
-        }
-
-        // Check if the event target is within the editor
-        if (!editorContainerRef.current?.contains(target)) {
-          console.log('[KeyDown] Event target NOT in editor, ignoring');
-          return; // Not our editor, ignore
-        }
-
-        // Handle Cmd+A (Select All) - prevent shadow input from capturing selection
-        if (isMod && e.key === 'a') {
-          console.log('[SelectAll] ===== Cmd+A detected in editor =====');
-          console.log('[SelectAll] Event target:', target.tagName, target.className);
-          console.log('[SelectAll] Preventing default to stop shadow input capture');
-          e.preventDefault();
-          e.stopPropagation();
-
-          try {
-            const startPoint = editor.api.start([]);
-            const endPoint = editor.api.end([]);
-            console.log('[SelectAll] Start point:', startPoint);
-            console.log('[SelectAll] End point:', endPoint);
-
-            if (startPoint && endPoint) {
-              const range = editor.api.range(startPoint, endPoint);
-              editor.tf.select(range);
-              editor.tf.focus();
-              console.log('[SelectAll] ✓ Plate.js selection set:', range);
-            }
-          } catch (error) {
-            console.error('[SelectAll] ✗ Failed to set Plate.js selection:', error);
-          }
-
-          // Also set DOM selection to match
-          selectDomRange();
-
-          // Verify final selection state
-          setTimeout(() => {
-            console.log('[SelectAll] Final editor selection:', editor.selection);
-            console.log('[SelectAll] Final DOM selection:', window.getSelection()?.toString().substring(0, 50));
-          }, 100);
-
-          return;
-        }
-      };
-
-      // Clipboard event listeners - manual handling for Tauri
-      const handleCopy = async (e: ClipboardEvent) => {
+      const handleCopy = (e: ClipboardEvent) => {
         console.log('[Clipboard] ===== Copy event fired =====');
         console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
         console.log('[Clipboard] - Selection:', editor.selection);
-
-        // Check if we're in Tauri (v2 uses __TAURI_INTERNALS__ or isTauri property)
-        const isTauri = '__TAURI_INTERNALS__' in window || 'isTauri' in window;
-        console.log('[Clipboard] - Is Tauri?', isTauri);
-        console.log('[Clipboard] - Has selection?', editor.selection !== null);
-
-        if (!isTauri) {
-          console.log('[Clipboard] ⚠️  Not in Tauri, using default browser behavior');
-          return;
-        }
-
-        if (!editor.selection) {
-          console.log('[Clipboard] ⚠️  No editor selection, using default behavior');
-          return;
-        }
-
-        // Check if selection is collapsed (nothing selected)
-        const { anchor, focus } = editor.selection;
-        const isCollapsed =
-          anchor.path.toString() === focus.path.toString() &&
-          anchor.offset === focus.offset;
-
-        if (isCollapsed) {
-          console.log('[Clipboard] - Selection collapsed, nothing to copy');
-          return;
-        }
-
-        console.log('[Clipboard] - Tauri detected, manually handling copy');
-        e.preventDefault();
-
-        try {
-          // Get selected fragment from Plate.js
-          const fragment = editor.api.fragment();
-          console.log('[Clipboard] - Fragment:', fragment);
-
-          // Extract text from fragment
-          const { text } = extractTextContent(fragment as Value);
-          console.log('[Clipboard] - Extracted text:', text);
-
-          // Write to clipboard using Tauri API
-          const { writeText } = await import('@tauri-apps/plugin-clipboard-manager');
-          await writeText(text);
-          console.log('[Clipboard] ✓ Successfully copied to clipboard via Tauri API');
-        } catch (error) {
-          console.error('[Clipboard] ✗ Failed to copy:', error);
-        }
+        console.log('[Clipboard] - Letting Plate.js handle naturally');
       };
 
-      const handleCut = async (e: ClipboardEvent) => {
+      const handleCut = (e: ClipboardEvent) => {
         console.log('[Clipboard] ===== Cut event fired =====');
         console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
         console.log('[Clipboard] - Selection:', editor.selection);
-
-        const isTauri = '__TAURI_INTERNALS__' in window || 'isTauri' in window;
-        if (!isTauri || !editor.selection) {
-          return;
-        }
-
-        const { anchor, focus } = editor.selection;
-        const isCollapsed =
-          anchor.path.toString() === focus.path.toString() &&
-          anchor.offset === focus.offset;
-
-        if (isCollapsed) {
-          return;
-        }
-
-        console.log('[Clipboard] - Tauri detected, manually handling cut');
-        e.preventDefault();
-
-        try {
-          const fragment = editor.api.fragment();
-          const { text } = extractTextContent(fragment as Value);
-
-          const { writeText } = await import('@tauri-apps/plugin-clipboard-manager');
-          await writeText(text);
-
-          // Delete selected content after copying
-          editor.tf.deleteFragment();
-
-          console.log('[Clipboard] ✓ Successfully cut to clipboard via Tauri API');
-        } catch (error) {
-          console.error('[Clipboard] ✗ Failed to cut:', error);
-        }
+        console.log('[Clipboard] - Letting Plate.js handle naturally');
       };
 
-      const handlePaste = async (e: ClipboardEvent) => {
+      const handlePaste = (e: ClipboardEvent) => {
         console.log('[Clipboard] ===== Paste event fired =====');
         console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
-
-        const isTauri = '__TAURI_INTERNALS__' in window || 'isTauri' in window;
-        if (!isTauri) {
-          if (e.clipboardData) {
-            console.log('[Clipboard] - Types:', e.clipboardData.types);
-            console.log('[Clipboard] - Text:', e.clipboardData.getData('text/plain').substring(0, 100));
-          }
-          return;
+        if (e.clipboardData) {
+          console.log('[Clipboard] - Types:', e.clipboardData.types);
+          console.log('[Clipboard] - Text:', e.clipboardData.getData('text/plain').substring(0, 100));
         }
-
-        console.log('[Clipboard] - Tauri detected, manually handling paste');
-        e.preventDefault();
-
-        try {
-          const { readText } = await import('@tauri-apps/plugin-clipboard-manager');
-          const text = await readText();
-          console.log('[Clipboard] - Read from clipboard:', text?.substring(0, 100));
-
-          if (text) {
-            // Insert as plain text
-            editor.tf.insertText(text);
-            console.log('[Clipboard] ✓ Successfully pasted from clipboard via Tauri API');
-          }
-        } catch (error) {
-          console.error('[Clipboard] ✗ Failed to paste:', error);
-        }
+        console.log('[Clipboard] - Letting Plate.js handle naturally');
       };
 
-      // Use capture phase (true) to intercept Cmd+A BEFORE it reaches other handlers
-      document.addEventListener('keydown', handleKeyDown, true);
       document.addEventListener('copy', handleCopy);
       document.addEventListener('cut', handleCut);
       document.addEventListener('paste', handlePaste);
@@ -567,10 +396,9 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       console.log('[Clipboard] - Tauri (v2):', '__TAURI_INTERNALS__' in window || 'isTauri' in window);
       console.log('[Clipboard] - __TAURI_INTERNALS__:', '__TAURI_INTERNALS__' in window);
       console.log('[Clipboard] - window.isTauri:', 'isTauri' in window);
-      console.log('[Clipboard] - Clipboard API:', typeof navigator.clipboard);
+      console.log('[Clipboard] - Using Plate.js native clipboard handlers');
 
       return () => {
-        document.removeEventListener('keydown', handleKeyDown, true);
         document.removeEventListener('copy', handleCopy);
         document.removeEventListener('cut', handleCut);
         document.removeEventListener('paste', handlePaste);
