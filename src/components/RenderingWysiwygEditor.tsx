@@ -542,6 +542,19 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
           {/* Row 2: Content Area with Toast */}
           <EditorContainer ref={editorContainerRef} className="relative overflow-auto">
+            {/* Sticky wrapper keeps toast at content viewport top-right */}
+            {showAutoSaveToast && (
+              <div className="sticky top-0 left-0 z-50 h-0 w-full pointer-events-none">
+                <div
+                  className="absolute top-2 right-2 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
+                  role="status"
+                  aria-live="polite"
+                >
+                  已自动保存
+                </div>
+              </div>
+            )}
+
             <Editor
               placeholder={placeholder}
               variant="none"
@@ -549,18 +562,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
               onKeyDown={handleKeyDown}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
-            >
-              {/* Auto-save toast - fixed positioning below header to stay visible when scrolled */}
-              {showAutoSaveToast && (
-                <div
-                  className="fixed top-[68px] right-2 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
-                  role="status"
-                  aria-live="polite"
-                >
-                  已自动保存
-                </div>
-              )}
-            </Editor>
+            />
           </EditorContainer>
         </div>
       </Plate>
