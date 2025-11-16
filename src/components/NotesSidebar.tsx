@@ -294,22 +294,9 @@ const NotesSidebarComponent = ({
                 </button>
 
                 {/* Pinned Notes List with Smooth Collapse Animation */}
-                <div
-                  className="flex flex-col gap-2 transition-all duration-300 ease-in-out overflow-hidden py-1"
-                  style={{
-                    maxHeight: isPinnedCollapsed ? '0' : `${pinnedNotes.length * 98 + 8}px`,
-                    opacity: isPinnedCollapsed ? 0 : 1,
-                  }}
-                >
-                  {pinnedNotes.map(renderNoteItem)}
-                </div>
-
-                {/* Divider between pinned and unpinned sections */}
-                {unpinnedNotes.length > 0 && (
-                  <div className="my-3 flex items-center gap-2">
-                    <div className="flex-1 h-px bg-[var(--border)]" />
-                    <span className="text-[0.625rem] text-[var(--muted-foreground)] px-1">其他笔记</span>
-                    <div className="flex-1 h-px bg-[var(--border)]" />
+                {!isPinnedCollapsed && (
+                  <div className="flex flex-col gap-2 py-1">
+                    {pinnedNotes.map(renderNoteItem)}
                   </div>
                 )}
               </>
