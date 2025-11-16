@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect } from 'react';
+import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect, useState } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
-import { toast } from 'sonner';
 
 import { EditorKit } from '@/components/editor/editor-kit';
 import { Editor, EditorContainer } from '@/components/ui/editor';
@@ -233,6 +232,10 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       reason: 'focus-lost',
     });
 
+    // Save toast state
+    const [showSaveToast, setShowSaveToast] = useState(false);
+    const saveToastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => {
         const emptyValue = [{ type: 'p', children: [{ text: '' }] }];
@@ -348,6 +351,9 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
+        if (saveToastTimeoutRef.current) {
+          clearTimeout(saveToastTimeoutRef.current);
+        }
       };
     }, []);
 
@@ -452,18 +458,18 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
 
-        // Show subtle toast notification
-        toast('内容已自动保存', {
-          duration: 1500,
-          position: 'top-right',
-          style: {
-            background: 'var(--popover)',
-            color: 'var(--popover-foreground)',
-            border: '1px solid var(--border)',
-            fontSize: '0.875rem',
-            padding: '0.5rem 1rem',
-          },
-        });
+        // Show custom toast inside editor container
+        setShowSaveToast(true);
+
+        // Clear existing timeout
+        if (saveToastTimeoutRef.current) {
+          clearTimeout(saveToastTimeoutRef.current);
+        }
+
+        // Auto-hide after 1.5 seconds
+        saveToastTimeoutRef.current = setTimeout(() => {
+          setShowSaveToast(false);
+        }, 1500);
 
         return;
       }
@@ -529,7 +535,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     return (
       <div className="h-full w-full flex flex-col">
         <Plate editor={editor} onChange={handleChange}>
-          <EditorContainer ref={editorContainerRef} className="h-full w-full flex flex-col flex-1">
+          <EditorContainer ref={editorContainerRef} className="h-full w-full flex flex-col flex-1 relative">
             <Editor
               placeholder={placeholder}
               variant="none"
@@ -538,8 +544,40 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
             />
+            {/* Custom save toast - positioned inside editor container */}
+            {showSaveToast && (
+              <div
+                className="absolute top-4 right-4 z-50 pointer-events-none"
+                style={{
+                  animation: 'fadeIn 0.15s ease-out',
+                }}
+              >
+                <div
+                  className="px-4 py-2 rounded-lg shadow-lg text-sm"
+                  style={{
+                    background: 'var(--popover)',
+                    color: 'var(--popover-foreground)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  内容已自动保存
+                </div>
+              </div>
+            )}
           </EditorContainer>
         </Plate>
+        <style>{`
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(-8px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
       </div>
     );
   }
