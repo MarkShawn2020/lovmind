@@ -13,6 +13,7 @@ import { useImageHeightSync } from './hooks/useImageHeightSync';
 import { useMobileSidebarState } from './hooks/useMobileSidebarState';
 import { useNoteOperations } from './hooks/useNoteOperations';
 import { useWindowOperations } from './hooks/useWindowOperations';
+import { useNoteLoader } from './hooks/useNoteLoader';
 import { currentNoteAtom, editorContentAtom, notesAtom } from './atoms/noteAtoms';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
 
@@ -41,6 +42,12 @@ function FloatWindow() {
     console.log('[FloatWindow] Loading note with ID:', id);
     return id;
   }, []);
+
+  // Load note into atoms (CRITICAL: Must be called before checking currentNote)
+  // Note: LovmindEditor also calls useNoteLoader internally, but this is fine
+  // because the hook is idempotent. We need to call it here to ensure currentNoteAtom
+  // is populated before rendering the UI that depends on it.
+  useNoteLoader(noteId);
 
   // Read from atoms (for UI display only)
   const currentNote = useAtomValue(currentNoteAtom);
