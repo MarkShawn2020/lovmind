@@ -141,6 +141,8 @@ function FloatWindowInner() {
         console.log('[FloatWindow] ✅ Note updated:', updatedNote.id);
       } else {
         // Create new note (for blank notes from Cmd+N)
+        // Note: No confetti here by design - float windows are for focused editing.
+        // Confetti is reserved for main window's quick-capture flow.
         const { extractNoteTitle } = await import('./utils/titleExtractor');
         const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
         const newRank = Math.max(maxRank + 1, notes.length + 1);
