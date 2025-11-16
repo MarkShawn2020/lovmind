@@ -3,18 +3,18 @@ import { useAtomValue } from 'jotai';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
 import { isTauri } from './utils/tauri';
-import RenderingWysiwygEditor from './components/RenderingWysiwygEditor';
+import LovmindEditor from '@/components/lovmind-editor/lovmind-editor.tsx';
 import EditorToolbar from './components/EditorToolbar';
 import { NotesSidebarContainer } from './components/shared/NotesSidebarContainer';
-import { EditorLayout } from './components/note-editor/EditorLayout';
-import { FloatHeader } from './components/note-editor/FloatHeader';
+import { EditorLayout } from '@/components/lovmind-editor/EditorLayout';
+import { FloatHeader } from '@/components/lovmind-editor/FloatHeader';
 import { useNoteEventSync } from './hooks/useNoteEventSync';
 import { useImageHeightSync } from './hooks/useImageHeightSync';
 import { useMobileSidebarState } from './hooks/useMobileSidebarState';
 import { useNoteOperations } from './hooks/useNoteOperations';
 import { useWindowOperations } from './hooks/useWindowOperations';
 import { currentNoteAtom, editorContentAtom, notesAtom } from './atoms/noteAtoms';
-import type { RenderingWysiwygEditorRef } from './components/RenderingWysiwygEditor';
+import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
 
 /**
  * FloatWindow Component (Refactored)
@@ -23,7 +23,7 @@ import type { RenderingWysiwygEditorRef } from './components/RenderingWysiwygEdi
  * All editor logic is handled by RenderingWysiwygEditor internally.
  */
 function FloatWindow() {
-  const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
+  const editorRef = useRef<LovmindEditorRef | null>(null);
 
   // Event sync hooks
   useNoteEventSync();
@@ -166,7 +166,7 @@ function FloatWindow() {
         />
       }
       editor={
-        <RenderingWysiwygEditor
+        <LovmindEditor
           key={currentNote?.id || 'loading'}
           noteId={noteId}
           onSubmit={async () => {

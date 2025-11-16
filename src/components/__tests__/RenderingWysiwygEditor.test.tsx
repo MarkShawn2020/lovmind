@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import RenderingWysiwygEditor, { type EditorContentChange, type RenderingWysiwygEditorRef } from '../RenderingWysiwygEditor';
+import LovmindEditor, { type EditorContentChange, type LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
 import { createRef } from 'react';
 
 // Mock Jotai atoms and hooks
@@ -25,17 +25,17 @@ vi.mock('jotai', () => ({
 
 describe('RenderingWysiwygEditor', () => {
   let onSubmitMock: ReturnType<typeof vi.fn>;
-  let editorRef: React.RefObject<RenderingWysiwygEditorRef | null>;
+  let editorRef: React.RefObject<LovmindEditorRef | null>;
 
   beforeEach(() => {
     onSubmitMock = vi.fn();
-    editorRef = createRef<RenderingWysiwygEditorRef | null>();
+    editorRef = createRef<LovmindEditorRef | null>();
   });
 
   describe('Basic Rendering', () => {
     it('should render with placeholder text', () => {
       const { container } = render(
-        <RenderingWysiwygEditor
+        <LovmindEditor
           placeholder="Test placeholder"
         />
       );
@@ -47,7 +47,7 @@ describe('RenderingWysiwygEditor', () => {
 
     it('should render in create mode (noteId is null)', () => {
       const { container } = render(
-        <RenderingWysiwygEditor
+        <LovmindEditor
           noteId={null}
         />
       );
@@ -60,7 +60,7 @@ describe('RenderingWysiwygEditor', () => {
   describe('Content Changes', () => {
     it('should render editor for content editing', () => {
       const { container } = render(
-        <RenderingWysiwygEditor
+        <LovmindEditor
           placeholder="Type here"
         />
       );
@@ -73,7 +73,7 @@ describe('RenderingWysiwygEditor', () => {
 
     it('should render empty editor in create mode', () => {
       const { container } = render(
-        <RenderingWysiwygEditor
+        <LovmindEditor
           noteId={null}
         />
       );
@@ -86,7 +86,7 @@ describe('RenderingWysiwygEditor', () => {
   describe('Image Paste Scenario', () => {
     it('should render editor for image paste testing', () => {
       const { container } = render(
-        <RenderingWysiwygEditor
+        <LovmindEditor
           placeholder="Paste image here"
         />
       );
@@ -102,7 +102,7 @@ describe('RenderingWysiwygEditor', () => {
   describe('Focus Management', () => {
     it('should focus editor when focus() is called', async () => {
       render(
-        <RenderingWysiwygEditor
+        <LovmindEditor
           ref={editorRef}
           placeholder="Test editor"
         />
@@ -123,7 +123,7 @@ describe('RenderingWysiwygEditor', () => {
 
     it('should reset content and focus when resetAndFocus() is called', async () => {
       render(
-        <RenderingWysiwygEditor
+        <LovmindEditor
           ref={editorRef}
           placeholder="Test editor"
         />
@@ -144,7 +144,7 @@ describe('RenderingWysiwygEditor', () => {
   describe('Keyboard Shortcuts', () => {
     it('should accept onSubmit callback', () => {
       const { container } = render(
-        <RenderingWysiwygEditor
+        <LovmindEditor
           onSubmit={onSubmitMock as any}
           placeholder="Type here"
         />
@@ -162,7 +162,7 @@ describe('RenderingWysiwygEditor', () => {
   describe('Hashtag Extraction', () => {
     it('should render editor with hashtag support', () => {
       const { container } = render(
-        <RenderingWysiwygEditor
+        <LovmindEditor
           placeholder="Type here"
         />
       );

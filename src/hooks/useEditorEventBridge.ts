@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { Value } from 'platejs';
 import type { MyEditor } from '@/components/editor/editor-kit';
-import type { EditorContentChange } from '@/components/RenderingWysiwygEditor';
+import type { EditorContentChange } from '@/components/lovmind-editor/lovmind-editor.tsx';
 import { extractTextContent } from '@/utils/extract-text-content';
 import { isEditorContentEmpty } from '@/utils/is-editor-content-empty';
 

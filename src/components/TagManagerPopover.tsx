@@ -1,12 +1,12 @@
 import { memo, useState, useMemo, useCallback } from 'react';
 import { Plus, Search, X, Check, Sparkles } from 'lucide-react';
 import type { Note } from '@/store';
-import type { RenderingWysiwygEditorRef } from '@/components/RenderingWysiwygEditor';
+import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
 
 interface TagManagerPopoverProps {
   currentTags: string[];
   allNotes: Note[];
-  editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
+  editorRef?: React.RefObject<LovmindEditorRef | null>;
   onClose?: () => void;
 }
 

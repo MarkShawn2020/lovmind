@@ -5,11 +5,11 @@ import { invoke } from "@tauri-apps/api/core";
 
 import { isTauri } from "./utils/tauri";
 import { Note } from "./store";
-import RenderingWysiwygEditor from "./components/RenderingWysiwygEditor";
+import LovmindEditor from "@/components/lovmind-editor/lovmind-editor.tsx";
 import EditorToolbar from "./components/EditorToolbar";
 import ProfileModal from "./components/ProfileModal";
-import { EditorLayout } from "./components/note-editor/EditorLayout";
-import { MainHeader } from "./components/note-editor/MainHeader";
+import { EditorLayout } from "@/components/lovmind-editor/EditorLayout";
+import { MainHeader } from "@/components/lovmind-editor/MainHeader";
 import { NotesSidebarContainer } from "./components/shared/NotesSidebarContainer";
 import { useNoteEventSync } from "./hooks/useNoteEventSync";
 import { useImageHeightSync } from "./hooks/useImageHeightSync";
@@ -20,7 +20,7 @@ import { useWindowOperations } from "./hooks/useWindowOperations";
 import { useUserProfile } from "./hooks/useUserProfile";
 import { editorContentAtom, notesAtom } from "./atoms/noteAtoms";
 import { noteStatsAtom } from "./store";
-import type { RenderingWysiwygEditorRef } from "./components/RenderingWysiwygEditor";
+import type { LovmindEditorRef } from "@/components/lovmind-editor/lovmind-editor.tsx";
 import lovpenLogo from "./assets/lovpen-logo.svg";
 import packageJson from "../package.json";
 
@@ -42,7 +42,7 @@ function MainWindow() {
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
 
   // Refs
-  const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
+  const editorRef = useRef<LovmindEditorRef | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -370,7 +370,7 @@ function MainWindow() {
         />
       }
       editor={
-        <RenderingWysiwygEditor
+        <LovmindEditor
           key={viewingNoteId || 'create-mode'}
           noteId={viewingNoteId}
           onSubmit={handleSubmit}

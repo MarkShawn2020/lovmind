@@ -4,7 +4,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { TagManagerPopover } from '@/components/TagManagerPopover';
 import { EditableTag } from '@/components/ui/editable-tag';
 import type { Note } from '@/store';
-import type { RenderingWysiwygEditorRef } from '@/components/RenderingWysiwygEditor';
+import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
 
 const PinButton = memo(({
   onClick,
@@ -45,7 +45,7 @@ const TagsDisplay = memo(({
 }: {
   tags: string[];
   onClick?: () => void;
-  editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
+  editorRef?: React.RefObject<LovmindEditorRef | null>;
 }) => {
   const handleRenameTag = (oldTag: string, newTag: string) => {
     if (!editorRef?.current) {
@@ -153,7 +153,7 @@ interface EditorToolbarProps {
   submitDisabled?: boolean;
   currentTags?: string[];
   allNotes?: Note[];
-  editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
+  editorRef?: React.RefObject<LovmindEditorRef | null>;
   onOpenMobileSidebar?: () => void;
   hideSubmitButton?: boolean;
 }

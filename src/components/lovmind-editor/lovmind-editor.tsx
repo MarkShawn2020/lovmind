@@ -5,20 +5,20 @@ import {useAtomValue} from 'jotai';
 import type {Value} from 'platejs';
 import {Plate, usePlateEditor} from 'platejs/react';
 
-import {EditorKitWithoutFixedToolbar} from '@/components/editor/editor-kit';
-import {Editor, EditorContainer} from '@/components/ui/editor';
-import {FixedToolbar} from '@/components/ui/fixed-toolbar';
-import {FixedToolbarButtons} from '@/components/ui/fixed-toolbar-buttons';
-import {EditorContextMenu} from '@/components/editor/EditorContextMenu';
+import {EditorKitWithoutFixedToolbar} from '@/components/editor/editor-kit.tsx';
+import {Editor, EditorContainer} from '@/components/ui/editor.tsx';
+import {FixedToolbar} from '@/components/ui/fixed-toolbar.tsx';
+import {FixedToolbarButtons} from '@/components/ui/fixed-toolbar-buttons.tsx';
+import {EditorContextMenu} from '@/components/editor/EditorContextMenu.tsx';
 import {isEditorContentEmpty} from "@/utils/is-editor-content-empty.ts";
 import {createInitialValue} from "@/utils/create-initial-value.ts";
 import {useEditorEventBridge} from "@/hooks/useEditorEventBridge.ts";
-import {useNoteLoader} from "@/hooks/useNoteLoader";
-import {useEditorSync} from "@/hooks/useEditorSync";
-import {useAutoSave} from "@/hooks/useAutoSave";
-import {currentNoteAtom} from "@/atoms/noteAtoms";
+import {useNoteLoader} from "@/hooks/useNoteLoader.ts";
+import {useEditorSync} from "@/hooks/useEditorSync.ts";
+import {useAutoSave} from "@/hooks/useAutoSave.ts";
+import {currentNoteAtom} from "@/atoms/noteAtoms.ts";
 
-interface RenderingWysiwygEditorProps {
+interface LovmindEditorProps {
   noteId?: string | null;
   onSubmit?: () => void;
   placeholder?: string;
@@ -42,7 +42,7 @@ export interface EditorContentChange {
   inputStateReason: InputStateReason;
 }
 
-export interface RenderingWysiwygEditorRef {
+export interface LovmindEditorRef {
   resetAndFocus: () => void;
   focus: () => void;
   insertTag: (tag: string) => void;
@@ -50,7 +50,7 @@ export interface RenderingWysiwygEditorRef {
   renameTag: (oldTag: string, newTag: string) => void;
 }
 
-const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWysiwygEditorProps>(
+const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
   function RenderingWysiwygEditor({
     noteId,
     onSubmit,
@@ -115,4 +115,4 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
   }
 );
 
-export default RenderingWysiwygEditor;
+export default LovmindEditor;

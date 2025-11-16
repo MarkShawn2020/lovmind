@@ -1,7 +1,7 @@
 import { useSetAtom } from 'jotai';
 import { useCallback } from 'react';
 import { editorContentAtom } from '@/atoms/noteAtoms';
-import type { EditorContentChange } from '@/components/RenderingWysiwygEditor';
+import type { EditorContentChange } from '@/components/lovmind-editor/lovmind-editor.tsx';
 
 /**
  * Editor Sync Hook
