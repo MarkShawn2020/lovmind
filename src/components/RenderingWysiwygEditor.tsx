@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
 
@@ -225,12 +225,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     }, [initialContent, initialRichContent, editor]);
 
     // ✅ Track the editor container ref to check DOM focus
-    const editorContainerRef = useRef<HTMLDivElement | null>(null);
-    const [contextMenuTarget, setContextMenuTarget] = React.useState<HTMLDivElement | null>(null);
-    const setEditorContainerNode = useCallback((node: HTMLDivElement | null) => {
-      editorContainerRef.current = node;
-      setContextMenuTarget(node);
-    }, []);
+    const editorContainerRef = useRef<HTMLDivElement>(null);
 
     // Input state tracking
     const isComposingRef = useRef(false);
@@ -365,70 +360,43 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       };
     }, []);
 
-    // Handle keyboard shortcuts in Tauri (PredefinedMenuItem removed to let frontend handle)
+    // Clipboard debug logging - tracks clipboard operations in Tauri
     useEffect(() => {
-      const selectDomRange = () => {
-        if (typeof window === 'undefined') return;
-        const container = editorContainerRef.current;
-        if (!container) return;
-        const editorRoot = container.querySelector('[data-slate-editor="true"]') as HTMLElement | null;
-        if (!editorRoot) return;
-
-        const selection = window.getSelection?.();
-        if (!selection) return;
-
-        const range = document.createRange();
-        range.selectNodeContents(editorRoot);
-        selection.removeAllRanges();
-        selection.addRange(range);
+      // Add clipboard event listeners to verify Plate.js handlers work correctly
+      const handleCopy = (e: ClipboardEvent) => {
+        console.log('[Clipboard] Copy event fired');
+        console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
+        console.log('[Clipboard] - Selection:', editor.selection);
       };
 
-      const handleKeyDown = (e: KeyboardEvent) => {
-        // Check if the event target is within the editor
-        const target = e.target as HTMLElement;
-        if (!editorContainerRef.current?.contains(target)) {
-          return; // Not our editor, ignore
-        }
+      const handleCut = (e: ClipboardEvent) => {
+        console.log('[Clipboard] Cut event fired');
+        console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
+        console.log('[Clipboard] - Selection:', editor.selection);
+      };
 
-        const isMod = e.metaKey || e.ctrlKey;
-
-        // Handle Cmd+A (Select All) - prevent shadow input issue
-        if (isMod && e.key === 'a') {
-          e.preventDefault();
-          try {
-            const startPoint = editor.api.start([]);
-            const endPoint = editor.api.end([]);
-            if (startPoint && endPoint) {
-              editor.tf.select(editor.api.range(startPoint, endPoint));
-              editor.tf.focus();
-            }
-          } catch (error) {
-            console.error('[SelectAll] Failed:', error);
-          }
-          selectDomRange();
-          return;
-        }
-
-        // Handle Cmd+C/X/V - trigger browser commands, let Plate.js handle serialization
-        if (isMod && (e.key === 'c' || e.key === 'x' || e.key === 'v')) {
-          // Don't prevent default - let Plate.js handle it through copy/cut/paste events
-          // But Tauri WebView doesn't fire these events, so we manually trigger them
-          e.preventDefault();
-
-          if (e.key === 'c') {
-            document.execCommand('copy');
-          } else if (e.key === 'x') {
-            document.execCommand('cut');
-          } else if (e.key === 'v') {
-            document.execCommand('paste');
-          }
+      const handlePaste = (e: ClipboardEvent) => {
+        console.log('[Clipboard] Paste event fired');
+        console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
+        if (e.clipboardData) {
+          console.log('[Clipboard] - Types:', e.clipboardData.types);
+          console.log('[Clipboard] - Text:', e.clipboardData.getData('text/plain').substring(0, 100));
         }
       };
 
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener('copy', handleCopy);
+      document.addEventListener('cut', handleCut);
+      document.addEventListener('paste', handlePaste);
+
+      // Log environment info once
+      console.log('[Clipboard] Environment:');
+      console.log('[Clipboard] - Tauri:', typeof window.__TAURI__ !== 'undefined');
+      console.log('[Clipboard] - Clipboard API:', typeof navigator.clipboard);
 
       return () => {
-        document.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('copy', handleCopy);
+        document.removeEventListener('cut', handleCut);
+        document.removeEventListener('paste', handlePaste);
       };
     }, [editor]);
 
@@ -615,31 +583,29 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
           </FixedToolbar>
 
           {/* Row 2: Content Area with Toast */}
-          <div ref={setEditorContainerNode} className="relative h-full w-full">
-            <EditorContextMenu editor={editor} targetElement={contextMenuTarget}>
-              <EditorContainer className="relative overflow-auto">
-                <Editor
-                  placeholder={placeholder}
-                  variant="none"
-                  className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
-                  onKeyDown={handleKeyDown}
-                  onCompositionStart={handleCompositionStart}
-                  onCompositionEnd={handleCompositionEnd}
-                >
-                  {/* Auto-save toast - fixed positioning below header to stay visible when scrolled */}
-                  {showAutoSaveToast && (
-                    <div
-                      className="fixed top-[68px] right-2 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
-                      role="status"
-                      aria-live="polite"
-                    >
-                      已自动保存
-                    </div>
-                  )}
-                </Editor>
-              </EditorContainer>
-            </EditorContextMenu>
-          </div>
+          <EditorContextMenu editor={editor}>
+            <EditorContainer ref={editorContainerRef} className="relative overflow-auto">
+              <Editor
+                placeholder={placeholder}
+                variant="none"
+                className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
+                onKeyDown={handleKeyDown}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
+              >
+                {/* Auto-save toast - fixed positioning below header to stay visible when scrolled */}
+                {showAutoSaveToast && (
+                  <div
+                    className="fixed top-[68px] right-2 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    已自动保存
+                  </div>
+                )}
+              </Editor>
+            </EditorContainer>
+          </EditorContextMenu>
         </div>
       </Plate>
     );
