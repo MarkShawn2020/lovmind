@@ -277,7 +277,8 @@ const NotesSidebarComponent = ({
           <>
             {/* Pinned Notes Section with Collapsible Header */}
             {hasPinnedNotes && (
-              <>
+              <div className="pinned-notes-area pb-3 mb-3 border-b border-border/50">
+                {/* Interactive Buttons Block */}
                 <button
                   onClick={() => setIsPinnedCollapsed(!isPinnedCollapsed)}
                   className="flex items-center justify-between w-full px-2.5 py-2 min-h-[44px] mb-1 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] rounded-[var(--radius)] transition-colors cursor-pointer border-none bg-transparent active:scale-[0.98] touch-manipulation"
@@ -293,18 +294,13 @@ const NotesSidebarComponent = ({
                   {isPinnedCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
                 </button>
 
-                {/* Pinned Notes List with Smooth Collapse Animation */}
+                {/* Notes List Block */}
                 {!isPinnedCollapsed && (
                   <div className="flex flex-col gap-2 py-1">
                     {pinnedNotes.map(renderNoteItem)}
                   </div>
                 )}
-
-                {/* Subtle divider between pinned and unpinned sections */}
-                {!isPinnedCollapsed && unpinnedNotes.length > 0 && (
-                  <div className="my-3 h-px bg-border/40" />
-                )}
-              </>
+              </div>
             )}
 
             {/* Unpinned Notes Section */}
