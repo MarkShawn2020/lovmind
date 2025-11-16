@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAtomValue } from 'jotai';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
@@ -10,7 +10,6 @@ import { EditorLayout } from '@/components/lovmind-editor/EditorLayout';
 import { FloatHeader } from '@/components/lovmind-editor/FloatHeader';
 import { useNoteEventSync } from './hooks/useNoteEventSync';
 import { useImageHeightSync } from './hooks/useImageHeightSync';
-import { useNoteLoader } from './hooks/useNoteLoader';
 import { useMobileSidebarState } from './hooks/useMobileSidebarState';
 import { useNoteOperations } from './hooks/useNoteOperations';
 import { useWindowOperations } from './hooks/useWindowOperations';
@@ -25,7 +24,11 @@ import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-edito
  */
 function FloatWindow() {
   const editorRef = useRef<LovmindEditorRef | null>(null);
-  const [isAlwaysOnTop, setIsAlwaysOnTop] = React.useState(false);
+
+  // Event sync hooks
+  useNoteEventSync();
+  useImageHeightSync();
+  const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
 
   // Extract noteId from URL
   const noteId = useMemo(() => {
@@ -39,14 +42,6 @@ function FloatWindow() {
     return id;
   }, []);
 
-  // Load note into atoms (must be called before reading currentNoteAtom)
-  useNoteLoader(noteId);
-
-  // Event sync hooks
-  useNoteEventSync();
-  useImageHeightSync();
-  const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
-
   // Read from atoms (for UI display only)
   const currentNote = useAtomValue(currentNoteAtom);
   const editorContent = useAtomValue(editorContentAtom);
@@ -55,24 +50,6 @@ function FloatWindow() {
   // Business logic hooks (for toolbar and sidebar)
   const { togglePin, toggleArchive, deleteNote } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
-
-  // Initialize always-on-top state from window
-  useEffect(() => {
-    if (!isTauri()) return;
-
-    const initAlwaysOnTop = async () => {
-      try {
-        const currentWindow = getCurrentWindow();
-        const isOnTop = await currentWindow.isAlwaysOnTop();
-        setIsAlwaysOnTop(isOnTop);
-        console.log('[FloatWindow] Initial always-on-top state:', isOnTop);
-      } catch (error) {
-        console.error('[FloatWindow] Failed to get always-on-top state:', error);
-      }
-    };
-
-    void initAlwaysOnTop();
-  }, []);
 
   // Auto-focus window and editor after mount
   useEffect(() => {
@@ -115,7 +92,7 @@ function FloatWindow() {
     };
   }, []);
 
-  // Show loading while note ID is being extracted
+  // Show loading while note is being loaded
   if (!noteId) {
     return (
       <div className="app-container">
@@ -126,24 +103,16 @@ function FloatWindow() {
     );
   }
 
-  // Note: currentNote may be null for newly created notes that haven't been saved yet
-  // In that case, LovmindEditor will handle creating the note on first input
-  // We don't block rendering - just pass noteId and let the editor handle it
-
-  // Toggle always-on-top state
-  const handleToggleAlwaysOnTop = useCallback(async () => {
-    if (!isTauri()) return;
-
-    try {
-      const currentWindow = getCurrentWindow();
-      const newState = !isAlwaysOnTop;
-      await currentWindow.setAlwaysOnTop(newState);
-      setIsAlwaysOnTop(newState);
-      console.log('[FloatWindow] Always-on-top:', newState);
-    } catch (error) {
-      console.error('[FloatWindow] Failed to toggle always-on-top:', error);
-    }
-  }, [isAlwaysOnTop]);
+  // Show loading if currentNote not yet loaded
+  if (!currentNote) {
+    return (
+      <div className="app-container">
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          Loading note data...
+        </div>
+      </div>
+    );
+  }
 
   // Use withSidebarClose to auto-close mobile sidebar after opening note
   const handleOpenNote = useCallback(
@@ -155,14 +124,7 @@ function FloatWindow() {
     <EditorLayout
       header={
         <FloatHeader
-          currentNote={currentNote || {
-            id: noteId,
-            text: '',
-            title: 'New Note',
-            time: new Date().toLocaleString(),
-            tags: [],
-            richContent: null,
-          }}
+          currentNote={currentNote}
           notes={notes}
           isEditingTitle={false}
           editingTitle={''}
@@ -179,8 +141,8 @@ function FloatWindow() {
               console.error('Failed to start dragging:', error);
             }
           }}
-          isWindowAlwaysOnTop={isAlwaysOnTop}
-          onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
+          isWindowAlwaysOnTop={false}
+          onToggleAlwaysOnTop={async () => {}}
           onCloseWindow={async () => {
             if (isTauri()) {
               const currentWindow = getCurrentWindow();
@@ -205,7 +167,7 @@ function FloatWindow() {
       }
       editor={
         <LovmindEditor
-          key={noteId}
+          key={currentNote?.id || 'loading'}
           noteId={noteId}
           onSubmit={async () => {
             console.log('[FloatWindow] Submit triggered');

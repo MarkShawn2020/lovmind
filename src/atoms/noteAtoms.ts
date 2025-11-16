@@ -29,11 +29,13 @@ export const editorContentAtom = atom<{
   tags: string[];
   richContent: Value | null;
   isEmpty: boolean;
+  sourceNoteId: string | null; // Which note this content came from (null = create mode, undefined = user editing)
 }>({
   text: '',
   tags: [],
   richContent: null,
   isEmpty: true,
+  sourceNoteId: null,
 });
 
 // UI state atom: Global UI preferences

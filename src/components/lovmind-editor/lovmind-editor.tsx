@@ -13,6 +13,7 @@ import {EditorContextMenu} from '@/components/editor/EditorContextMenu.tsx';
 import {isEditorContentEmpty} from "@/utils/is-editor-content-empty.ts";
 import {createInitialValue} from "@/utils/create-initial-value.ts";
 import {useEditorEventBridge} from "@/hooks/useEditorEventBridge.ts";
+import {useNoteLoader} from "@/hooks/useNoteLoader.ts";
 import {useEditorSync} from "@/hooks/useEditorSync.ts";
 import {useAutoSave} from "@/hooks/useAutoSave.ts";
 import {editorContentAtom} from "@/atoms/noteAtoms.ts";
@@ -55,8 +56,11 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
     onSubmit,
     placeholder = "Type your amazing content here..."
   }, ref) {
-    // Note: useNoteLoader is called by the parent component (FloatWindow/MainWindow)
-    // We just read the editor content from the atom
+    // Load note into atoms (handles both create mode and view mode)
+    // This updates editorContentAtom with the loaded note's content
+    useNoteLoader(noteId);
+
+    // Read editor content from atom (updated by useNoteLoader)
     const editorContent = useAtomValue(editorContentAtom);
 
     // Compute initial value from loaded note content
@@ -73,65 +77,37 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       value: initialValue,
     });
 
-    // Track the last noteId and richContent we successfully loaded
-    const lastLoadedStateRef = useRef<{
-      noteId: string | null | undefined;
-      richContent: Value | null;
-    }>({ noteId: undefined, richContent: null });
+    // Track which note content has been loaded into editor
+    const loadedSourceNoteIdRef = useRef<string | null | undefined>(undefined);
 
-    // Effect 1: When noteId changes, mark that we need to load new content
-    const pendingNoteIdRef = useRef<string | null | undefined>(undefined);
-
+    // Update editor value ONLY when editorContent matches the current noteId
+    // This ensures we wait for async note loading to complete before setValue
     useEffect(() => {
-      if (lastLoadedStateRef.current.noteId !== noteId) {
-        console.log('[LovmindEditor] noteId changed, marking pending:', noteId);
-        pendingNoteIdRef.current = noteId;
+      // Wait until editorContent.sourceNoteId matches the noteId we want to display
+      // This prevents setting old content when switching notes
+      if (editorContent.sourceNoteId !== noteId) {
+        console.log('[LovmindEditor] Waiting for content to load. Current sourceNoteId:', editorContent.sourceNoteId, 'Expected:', noteId);
+        return;
       }
-    }, [noteId]);
 
-    // Effect 2: When richContent changes AND we have a pending noteId, load it
-    useEffect(() => {
+      // Check if we already loaded this content
+      if (loadedSourceNoteIdRef.current === editorContent.sourceNoteId) {
+        return;
+      }
+
+      loadedSourceNoteIdRef.current = editorContent.sourceNoteId;
+
+      // Get the content to load
       const richContent = editorContent.richContent;
+      const newValue = richContent && !isEditorContentEmpty(richContent)
+        ? richContent
+        : createInitialValue('');
 
-      // Check if we have a pending note to load
-      const hasPendingNote = pendingNoteIdRef.current !== undefined;
+      // Update editor value using Plate's API
+      editor.tf.setValue(newValue);
 
-      // Check if the richContent has changed (reference equality)
-      const contentChanged = lastLoadedStateRef.current.richContent !== richContent;
-
-      console.log('[LovmindEditor] richContent effect:', {
-        hasPendingNote,
-        pendingNoteId: pendingNoteIdRef.current,
-        currentNoteId: noteId,
-        contentChanged,
-        lastNoteId: lastLoadedStateRef.current.noteId
-      });
-
-      if (hasPendingNote && contentChanged) {
-        // We have a pending note and content just changed - this is the async load completing
-        console.log('[LovmindEditor] Loading pending note:', pendingNoteIdRef.current);
-
-        const newValue = richContent && !isEditorContentEmpty(richContent)
-          ? richContent
-          : createInitialValue('');
-
-        editor.tf.setValue(newValue);
-
-        // Update refs
-        lastLoadedStateRef.current = {
-          noteId: pendingNoteIdRef.current,
-          richContent: richContent
-        };
-        pendingNoteIdRef.current = undefined;
-
-        console.log('[LovmindEditor] ✅ setValue completed for noteId:', noteId);
-      } else if (!hasPendingNote && contentChanged) {
-        // Content changed but no pending note - this is user typing
-        console.log('[LovmindEditor] Content changed (user typing), skipping setValue');
-        // Update the richContent ref to avoid re-triggering
-        lastLoadedStateRef.current.richContent = richContent;
-      }
-    }, [editorContent.richContent, editor, noteId]);
+      console.log('[LovmindEditor] Loaded note with sourceNoteId:', editorContent.sourceNoteId);
+    }, [noteId, editorContent.sourceNoteId, editorContent.richContent, editor]);
 
     // Sync editor content to atoms
     const { handleContentChange } = useEditorSync();

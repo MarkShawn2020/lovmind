@@ -23,12 +23,15 @@ export function useEditorSync() {
     console.log(`  📝 Input State: ${payload.isInputting ? '✍️  INPUTTING' : '⏸️  STOPPED'} (${payload.inputStateReason})`);
     console.log(`  🎯 Focus State: ${payload.isFocused ? '👀 FOCUSED' : '👁️  BLURRED'}`);
 
-    setEditorContent({
+    setEditorContent((prev) => ({
       text: payload.text,
       tags: payload.tags,
       richContent: payload.richContent,
       isEmpty: payload.isEmpty,
-    });
+      // Keep sourceNoteId from previous state (set by useNoteLoader)
+      // Don't override it with user edits
+      sourceNoteId: prev.sourceNoteId,
+    }));
   }, [setEditorContent]);
 
   return { handleContentChange };
