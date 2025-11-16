@@ -14,6 +14,7 @@ import ProfileModal from "./components/ProfileModal";
 import { EditorLayout } from "./components/note-editor/EditorLayout";
 import { MainHeader } from "./components/note-editor/MainHeader";
 import { useNoteEditorController } from "./hooks/useNoteEditorController";
+import { Toaster } from "./components/ui/sonner";
 import lovpenLogo from "./assets/lovpen-logo.svg";
 import packageJson from "../package.json";
 
@@ -441,36 +442,39 @@ function App() {
   );
 
   return (
-    <EditorLayout
-      header={
-        <MainHeader
-          noteStats={noteStats}
-          userProfile={userProfile}
-          onHeaderMouseDown={handleHeaderMouseDown}
-          onUserMenuToggle={handleUserMenuToggle}
-          userButtonRef={userButtonRef}
-        />
-      }
-      sidebar={sidebarNode}
-      editor={editorNode}
-      toolbar={
-        <EditorToolbar
-          mode="main"
-          onSubmit={handleSubmit}
-          submitDisabled={submitDisabled}
-          currentTags={currentTags}
-          allNotes={notes}
-          editorRef={editorRef}
-          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          hideSubmitButton={true}
-        />
-      }
-      userMenu={userMenuNode}
-      profileModal={profileModalNode}
-      aboutModal={aboutModalNode}
-      isMobileSidebarOpen={isMobileSidebarOpen}
-      onMobileSidebarChange={setIsMobileSidebarOpen}
-    />
+    <>
+      <EditorLayout
+        header={
+          <MainHeader
+            noteStats={noteStats}
+            userProfile={userProfile}
+            onHeaderMouseDown={handleHeaderMouseDown}
+            onUserMenuToggle={handleUserMenuToggle}
+            userButtonRef={userButtonRef}
+          />
+        }
+        sidebar={sidebarNode}
+        editor={editorNode}
+        toolbar={
+          <EditorToolbar
+            mode="main"
+            onSubmit={handleSubmit}
+            submitDisabled={submitDisabled}
+            currentTags={currentTags}
+            allNotes={notes}
+            editorRef={editorRef}
+            onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+            hideSubmitButton={true}
+          />
+        }
+        userMenu={userMenuNode}
+        profileModal={profileModalNode}
+        aboutModal={aboutModalNode}
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        onMobileSidebarChange={setIsMobileSidebarOpen}
+      />
+      <Toaster position="bottom-center" />
+    </>
   );
 }
 
