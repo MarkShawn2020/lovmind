@@ -568,19 +568,17 @@ pub fn run() {
                 .build()?;
 
             // Create Edit menu with standard clipboard operations for macOS
-            // NOTE: We let the webview handle ALL editing operations (copy/paste/cut/select-all)
-            // to support custom clipboard serialization (e.g., Markdown format in RenderingWysiwygEditor)
-            // PredefinedMenuItem would bypass browser's ClipboardEvent and use native clipboard directly
+            // NOTE: These menu items trigger the browser's native clipboard events,
+            // which Plate.js handles automatically for proper cross-editor copy/paste
             let edit_menu = SubmenuBuilder::new(app, "Edit")
                 .item(&PredefinedMenuItem::undo(app, None)?)
                 .item(&PredefinedMenuItem::redo(app, None)?)
-                // Separator only if we have items below (currently we don't)
-                // .separator()
-                // Removed: .item(&PredefinedMenuItem::cut(app, None)?)
-                // Removed: .item(&PredefinedMenuItem::copy(app, None)?)
-                // Removed: .item(&PredefinedMenuItem::paste(app, None)?)
-                // Removed: .item(&PredefinedMenuItem::select_all(app, None)?)
-                // ^ Also removed select_all to let WebView handle Cmd+A completely
+                .separator()
+                .item(&PredefinedMenuItem::cut(app, None)?)
+                .item(&PredefinedMenuItem::copy(app, None)?)
+                .item(&PredefinedMenuItem::paste(app, None)?)
+                .separator()
+                .item(&PredefinedMenuItem::select_all(app, None)?)
                 .build()?;
 
             // Load shortcut settings to build menu with correct accelerators
