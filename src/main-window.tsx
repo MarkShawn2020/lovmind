@@ -92,16 +92,8 @@ function MainWindow() {
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    console.log('[MainWindow] handleSubmit called!', {
-      editorContent,
-      viewingNoteId,
-      hasText: editorContent.text,
-      isEmpty: editorContent.isEmpty,
-    });
-
     const hasTypedContent = typeof editorContent.text === 'string' && Boolean(editorContent.text.trim());
     if (!hasTypedContent && editorContent.isEmpty) {
-      console.log('[MainWindow] No content to submit, returning early');
       return;
     }
 

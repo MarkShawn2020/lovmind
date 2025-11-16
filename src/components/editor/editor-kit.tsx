@@ -39,12 +39,16 @@ import { TableKit } from '@/components/editor/plugins/table-kit';
 import { TocKit } from '@/components/editor/plugins/toc-kit';
 import { ToggleKit } from '@/components/editor/plugins/toggle-kit';
 import { HashtagTransformsPlugin } from '@/utils/hashtag-transforms';
+import { EventEmitterPlugin } from '@/components/editor/plugins/event-emitter-kit';
 import { InputStatePlugin } from '@/components/editor/plugins/input-state-kit';
 import { TauriClipboardPlugin } from '@/components/editor/plugins/tauri-clipboard-kit';
 import { KeyboardShortcutsPlugin } from '@/components/editor/plugins/keyboard-shortcuts-kit';
 import { EditorCommandsPlugin } from '@/components/editor/plugins/editor-commands-kit';
 
 export const EditorKit = [
+  // Core Infrastructure (must load first)
+  EventEmitterPlugin, // Provides emit/on/off methods for other plugins
+
   // AI features temporarily disabled (no backend API implemented)
   // ...CopilotKit,
   ...AIKit,

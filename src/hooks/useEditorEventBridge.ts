@@ -38,12 +38,7 @@ export function useEditorEventBridge(
     };
 
     const handleSubmitShortcut = () => {
-      console.log('[useEditorEventBridge] submit-shortcut event received, calling onSubmit');
-      if (onSubmit) {
-        onSubmit();
-      } else {
-        console.warn('[useEditorEventBridge] onSubmit is not provided!');
-      }
+      onSubmit?.();
     };
 
     if (typeof editor.on === 'function') {
