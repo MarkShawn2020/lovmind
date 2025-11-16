@@ -69,7 +69,7 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
         return richContent;
       }
       return createInitialValue('');
-    }, []);
+    }, [currentNote]);
 
     const editor = usePlateEditor({
       plugins: EditorKitWithoutFixedToolbar,
