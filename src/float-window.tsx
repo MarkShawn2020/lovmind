@@ -10,6 +10,7 @@ import { EditorLayout } from '@/components/lovmind-editor/EditorLayout';
 import { FloatHeader } from '@/components/lovmind-editor/FloatHeader';
 import { useNoteEventSync } from './hooks/useNoteEventSync';
 import { useImageHeightSync } from './hooks/useImageHeightSync';
+import { useNoteLoader } from './hooks/useNoteLoader';
 import { useMobileSidebarState } from './hooks/useMobileSidebarState';
 import { useNoteOperations } from './hooks/useNoteOperations';
 import { useWindowOperations } from './hooks/useWindowOperations';
@@ -25,11 +26,6 @@ import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-edito
 function FloatWindow() {
   const editorRef = useRef<LovmindEditorRef | null>(null);
 
-  // Event sync hooks
-  useNoteEventSync();
-  useImageHeightSync();
-  const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
-
   // Extract noteId from URL
   const noteId = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -41,6 +37,14 @@ function FloatWindow() {
     console.log('[FloatWindow] Loading note with ID:', id);
     return id;
   }, []);
+
+  // Load note into atoms (must be called before reading currentNoteAtom)
+  useNoteLoader(noteId);
+
+  // Event sync hooks
+  useNoteEventSync();
+  useImageHeightSync();
+  const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
 
   // Read from atoms (for UI display only)
   const currentNote = useAtomValue(currentNoteAtom);
@@ -92,7 +96,7 @@ function FloatWindow() {
     };
   }, []);
 
-  // Show loading while note is being loaded
+  // Show loading while note ID is being extracted
   if (!noteId) {
     return (
       <div className="app-container">
@@ -103,16 +107,9 @@ function FloatWindow() {
     );
   }
 
-  // Show loading if currentNote not yet loaded
-  if (!currentNote) {
-    return (
-      <div className="app-container">
-        <div style={{ padding: '20px', textAlign: 'center' }}>
-          Loading note data...
-        </div>
-      </div>
-    );
-  }
+  // Note: currentNote may be null for newly created notes that haven't been saved yet
+  // In that case, LovmindEditor will handle creating the note on first input
+  // We don't block rendering - just pass noteId and let the editor handle it
 
   // Use withSidebarClose to auto-close mobile sidebar after opening note
   const handleOpenNote = useCallback(
@@ -124,7 +121,14 @@ function FloatWindow() {
     <EditorLayout
       header={
         <FloatHeader
-          currentNote={currentNote}
+          currentNote={currentNote || {
+            id: noteId,
+            text: '',
+            title: 'New Note',
+            time: new Date().toLocaleString(),
+            tags: [],
+            richContent: null,
+          }}
           notes={notes}
           isEditingTitle={false}
           editingTitle={''}
@@ -167,7 +171,7 @@ function FloatWindow() {
       }
       editor={
         <LovmindEditor
-          key={currentNote?.id || 'loading'}
+          key={noteId}
           noteId={noteId}
           onSubmit={async () => {
             console.log('[FloatWindow] Submit triggered');
