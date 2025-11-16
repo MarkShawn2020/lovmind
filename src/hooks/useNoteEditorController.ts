@@ -250,19 +250,59 @@ export const useNoteEditorController = ({
     setRichContent(payload.richContent);
     setIsEditorEmpty(payload.isEmpty);
 
-    // Input state is now available for conditional logic:
-    // - payload.isInputting: true when user is actively typing, false when stopped
-    // - payload.inputStateReason: why the input state changed
-    // - payload.isFocused: whether editor has focus
-    //
-    // Example use cases:
-    // 1. Auto-save only when typing stops:
-    //    if (!payload.isInputting && payload.inputStateReason === 'typing-stop') { autoSave() }
-    // 2. Show toolbar when focused but not typing:
-    //    if (payload.isFocused && !payload.isInputting) { showToolbar() }
-    // 3. Track active engagement:
-    //    if (payload.isInputting) { trackEngagement() }
-  }, []);
+    // Auto-save when user stops typing in float window mode
+    if (mode === 'float' && currentNote && !payload.isInputting && payload.inputStateReason === 'typing-stop') {
+      const hasTypedContent = typeof payload.text === 'string' && Boolean(payload.text.trim());
+      if (hasTypedContent || !payload.isEmpty) {
+        const updatedNote: Note = {
+          ...currentNote,
+          text: payload.text,
+          title: payload.text.split('\n')[0].substring(0, 50) || 'Untitled Note',
+          time: new Date().toLocaleString(),
+          tags: payload.tags.length > 0 ? payload.tags : currentNote.tags,
+          richContent: payload.richContent,
+        };
+
+        // Auto-save asynchronously
+        updateNote(updatedNote).then(() => {
+          console.log('🔄 Auto-saved note:', updatedNote.id);
+          setCurrentNote(updatedNote);
+
+          // Update window title if in Tauri
+          if (isTauri()) {
+            getCurrentWebviewWindow()
+              .setTitle(`Edit: ${updatedNote.title}`)
+              .catch((error) => console.error('Failed to update window title:', error));
+          }
+        }).catch((error) => {
+          console.error('Failed to auto-save note:', error);
+        });
+      }
+    }
+
+    // Auto-save in main window viewing mode
+    if (mode === 'main' && viewingNoteId && currentNote && !payload.isInputting && payload.inputStateReason === 'typing-stop') {
+      const hasTypedContent = typeof payload.text === 'string' && Boolean(payload.text.trim());
+      if (hasTypedContent || !payload.isEmpty) {
+        const updatedNote: Note = {
+          ...currentNote,
+          text: payload.text,
+          title: payload.text.split('\n')[0].substring(0, 50) || 'Untitled Note',
+          time: new Date().toLocaleString(),
+          tags: payload.tags.length > 0 ? payload.tags : currentNote.tags,
+          richContent: payload.richContent,
+        };
+
+        // Auto-save asynchronously
+        updateNote(updatedNote).then(() => {
+          console.log('🔄 Auto-saved note in viewing mode:', updatedNote.id);
+          setCurrentNote(updatedNote);
+        }).catch((error) => {
+          console.error('Failed to auto-save note in viewing mode:', error);
+        });
+      }
+    }
+  }, [mode, currentNote, viewingNoteId, updateNote]);
 
   const handleSubmit = useCallback(async () => {
     const hasTypedContent = typeof content === 'string' && Boolean(content.trim());
