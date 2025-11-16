@@ -78,7 +78,7 @@ export const confirmDialog = async (
                   {},
                   iconElement && createElement(
                     'div',
-                    { className: 'flex justify-center mb-4' },
+                    { className: 'flex justify-center mb-2' },
                     iconElement
                   ),
                   createElement(AlertDialogTitle, {}, options.title || '确认'),
@@ -98,7 +98,7 @@ export const confirmDialog = async (
                       onClick: handleConfirm,
                       className:
                         options.variant === 'destructive'
-                          ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                          ? 'bg-destructive text-white hover:bg-destructive/90 shadow-sm'
                           : '',
                     },
                     options.okLabel || '确定'

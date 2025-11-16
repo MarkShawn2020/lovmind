@@ -167,8 +167,7 @@ function MainWindow() {
         // Add to local state
         setNotes((prevNotes) => [newNote, ...prevNotes]);
 
-        // Trigger confetti celebration (main window only - design decision)
-        // Float windows don't get confetti to avoid distraction during focused editing
+        // Trigger confetti celebration
         confetti({
           particleCount: 100,
           spread: 70,

@@ -79,7 +79,7 @@
   --muted-foreground: #87867F;
   --accent: #CC785C;
   --accent-foreground: #FFFFFF;
-  --destructive: #C85450;
+  --destructive: #CC785C;
   --border: #E8E6DC;
   --input: #E8E6DC;
   --ring: #D97757;
@@ -135,7 +135,7 @@
   --muted-foreground: #87867F;
   --accent: #CC785C;
   --accent-foreground: #FFFFFF;
-  --destructive: #E85654;
+  --destructive: #D97757;
   --border: rgba(135, 134, 127, 0.2);
   --input: rgba(135, 134, 127, 0.25);
   --ring: #D97757;
