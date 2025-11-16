@@ -73,46 +73,65 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       value: initialValue,
     });
 
-    // Track loaded note ID AND content to detect note changes
-    const loadedNoteIdRef = useRef<string | null | undefined>(undefined);
-    const loadedContentRef = useRef<Value | null>(null);
+    // Track the last noteId and richContent we successfully loaded
+    const lastLoadedStateRef = useRef<{
+      noteId: string | null | undefined;
+      richContent: Value | null;
+    }>({ noteId: undefined, richContent: null });
 
-    // Update editor value ONLY when switching to a different note
-    // Do NOT update on every editorContentAtom change (which happens during typing)
+    // Effect 1: When noteId changes, mark that we need to load new content
+    const pendingNoteIdRef = useRef<string | null | undefined>(undefined);
+
+    useEffect(() => {
+      if (lastLoadedStateRef.current.noteId !== noteId) {
+        console.log('[LovmindEditor] noteId changed, marking pending:', noteId);
+        pendingNoteIdRef.current = noteId;
+      }
+    }, [noteId]);
+
+    // Effect 2: When richContent changes AND we have a pending noteId, load it
     useEffect(() => {
       const richContent = editorContent.richContent;
 
-      // Check if noteId has actually changed
-      const noteIdChanged = loadedNoteIdRef.current !== noteId;
+      // Check if we have a pending note to load
+      const hasPendingNote = pendingNoteIdRef.current !== undefined;
 
-      // Check if content has changed (for the same noteId)
-      // This handles the case where noteId is the same but content loaded async
-      const contentChanged = loadedContentRef.current !== richContent;
+      // Check if the richContent has changed (reference equality)
+      const contentChanged = lastLoadedStateRef.current.richContent !== richContent;
 
-      if (!noteIdChanged && !contentChanged) {
-        return; // Nothing changed, skip update
-      }
+      console.log('[LovmindEditor] richContent effect:', {
+        hasPendingNote,
+        pendingNoteId: pendingNoteIdRef.current,
+        currentNoteId: noteId,
+        contentChanged,
+        lastNoteId: lastLoadedStateRef.current.noteId
+      });
 
-      // If noteId changed, always update
-      // If only content changed (for same noteId), only update if we haven't loaded this noteId yet
-      if (noteIdChanged || (contentChanged && loadedNoteIdRef.current === undefined)) {
-        loadedNoteIdRef.current = noteId;
-        loadedContentRef.current = richContent;
+      if (hasPendingNote && contentChanged) {
+        // We have a pending note and content just changed - this is the async load completing
+        console.log('[LovmindEditor] Loading pending note:', pendingNoteIdRef.current);
 
-        // Get the content to load
         const newValue = richContent && !isEditorContentEmpty(richContent)
           ? richContent
           : createInitialValue('');
 
-        // Update editor value using Plate's API
         editor.tf.setValue(newValue);
 
-        console.log('[LovmindEditor] Loaded note:', noteId, 'with content:', richContent ? 'present' : 'empty');
-      } else {
-        // Content changed but noteId is already loaded - this is user typing, ignore
-        console.log('[LovmindEditor] Skipping setValue - content change is from user input');
+        // Update refs
+        lastLoadedStateRef.current = {
+          noteId: pendingNoteIdRef.current,
+          richContent: richContent
+        };
+        pendingNoteIdRef.current = undefined;
+
+        console.log('[LovmindEditor] ✅ setValue completed for noteId:', noteId);
+      } else if (!hasPendingNote && contentChanged) {
+        // Content changed but no pending note - this is user typing
+        console.log('[LovmindEditor] Content changed (user typing), skipping setValue');
+        // Update the richContent ref to avoid re-triggering
+        lastLoadedStateRef.current.richContent = richContent;
       }
-    }, [noteId, editorContent.richContent, editor]);
+    }, [editorContent.richContent, editor, noteId]);
 
     // Sync editor content to atoms
     const { handleContentChange } = useEditorSync();
