@@ -113,39 +113,7 @@ const TagsDisplay = memo(({
   );
 });
 
-const SendButton = memo(({
-  disabled,
-  onClick,
-}: {
-  disabled: boolean;
-  onClick: () => void;
-}) => {
-  return (
-    <button
-      className="
-        w-10 h-10 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0
-        rounded-xl
-        border-none
-        bg-primary text-primary-foreground
-        flex items-center justify-center
-        cursor-pointer
-        transition-all duration-200 ease-out
-        shadow-sm
-        hover:enabled:shadow-md hover:enabled:bg-primary/90
-        active:enabled:scale-[0.97]
-        disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
-        touch-manipulation
-        send-btn
-      "
-      onClick={onClick}
-      disabled={disabled}
-      title="Submit (⌘+Enter)"
-      type="button"
-    >
-      <Send size={16} strokeWidth={2.5} />
-    </button>
-  );
-});
+
 
 interface EditorToolbarProps {
   mode: 'main' | 'float';
@@ -240,11 +208,7 @@ const EditorToolbar = memo(({
           </PopoverContent>
         </Popover>
       </div>
-      <div className="flex gap-3 sm:gap-4 items-center">
-        {!hideSubmitButton && onSubmit && (
-          <SendButton disabled={submitDisabled} onClick={onSubmit} />
-        )}
-      </div>
+
     </div>
   );
 });

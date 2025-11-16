@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAtomValue } from 'jotai';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
@@ -25,6 +25,7 @@ import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-edito
  */
 function FloatWindow() {
   const editorRef = useRef<LovmindEditorRef | null>(null);
+  const [isAlwaysOnTop, setIsAlwaysOnTop] = React.useState(false);
 
   // Extract noteId from URL
   const noteId = useMemo(() => {
@@ -54,6 +55,24 @@ function FloatWindow() {
   // Business logic hooks (for toolbar and sidebar)
   const { togglePin, toggleArchive, deleteNote } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
+
+  // Initialize always-on-top state from window
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    const initAlwaysOnTop = async () => {
+      try {
+        const currentWindow = getCurrentWindow();
+        const isOnTop = await currentWindow.isAlwaysOnTop();
+        setIsAlwaysOnTop(isOnTop);
+        console.log('[FloatWindow] Initial always-on-top state:', isOnTop);
+      } catch (error) {
+        console.error('[FloatWindow] Failed to get always-on-top state:', error);
+      }
+    };
+
+    void initAlwaysOnTop();
+  }, []);
 
   // Auto-focus window and editor after mount
   useEffect(() => {
@@ -111,6 +130,21 @@ function FloatWindow() {
   // In that case, LovmindEditor will handle creating the note on first input
   // We don't block rendering - just pass noteId and let the editor handle it
 
+  // Toggle always-on-top state
+  const handleToggleAlwaysOnTop = useCallback(async () => {
+    if (!isTauri()) return;
+
+    try {
+      const currentWindow = getCurrentWindow();
+      const newState = !isAlwaysOnTop;
+      await currentWindow.setAlwaysOnTop(newState);
+      setIsAlwaysOnTop(newState);
+      console.log('[FloatWindow] Always-on-top:', newState);
+    } catch (error) {
+      console.error('[FloatWindow] Failed to toggle always-on-top:', error);
+    }
+  }, [isAlwaysOnTop]);
+
   // Use withSidebarClose to auto-close mobile sidebar after opening note
   const handleOpenNote = useCallback(
     withSidebarClose(openNoteInNewWindow),
@@ -145,8 +179,8 @@ function FloatWindow() {
               console.error('Failed to start dragging:', error);
             }
           }}
-          isWindowAlwaysOnTop={false}
-          onToggleAlwaysOnTop={async () => {}}
+          isWindowAlwaysOnTop={isAlwaysOnTop}
+          onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
           onCloseWindow={async () => {
             if (isTauri()) {
               const currentWindow = getCurrentWindow();
