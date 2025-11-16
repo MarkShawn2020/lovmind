@@ -534,17 +534,15 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       <div className="h-full w-full flex flex-col">
         <Plate editor={editor} onChange={handleChange}>
           <EditorContainer ref={editorContainerRef} className="h-full w-full flex flex-col flex-1">
-            <div className="relative h-full w-full">
-              <Editor
-                placeholder={placeholder}
-                variant="none"
-                className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
-                onKeyDown={handleKeyDown}
-                onCompositionStart={handleCompositionStart}
-                onCompositionEnd={handleCompositionEnd}
-              />
-
-              {/* Auto-save toast - positioned relative to Editor input area */}
+            <Editor
+              placeholder={placeholder}
+              variant="none"
+              className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
+              onKeyDown={handleKeyDown}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd}
+            >
+              {/* Auto-save toast - positioned inside Editor (PlateContent) */}
               {showAutoSaveToast && (
                 <div
                   className="absolute top-2 right-2 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
@@ -554,7 +552,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
                   已自动保存
                 </div>
               )}
-            </div>
+            </Editor>
           </EditorContainer>
         </Plate>
       </div>

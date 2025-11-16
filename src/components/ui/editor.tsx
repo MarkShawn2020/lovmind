@@ -88,25 +88,30 @@ const editorVariants = cva(
 );
 
 export type EditorProps = PlateContentProps &
-  VariantProps<typeof editorVariants>;
+  VariantProps<typeof editorVariants> & {
+    children?: React.ReactNode;
+  };
 
 export const Editor = React.forwardRef<HTMLDivElement, EditorProps>(
-  ({ className, disabled, focused, variant, ...props }, ref) => {
+  ({ className, disabled, focused, variant, children, ...props }, ref) => {
     return (
-      <PlateContent
-        ref={ref}
-        className={cn(
-          editorVariants({
-            disabled,
-            focused,
-            variant,
-          }),
-          className
-        )}
-        disabled={disabled}
-        disableDefaultStyles
-        {...props}
-      />
+      <div className="relative h-full w-full">
+        <PlateContent
+          ref={ref}
+          className={cn(
+            editorVariants({
+              disabled,
+              focused,
+              variant,
+            }),
+            className
+          )}
+          disabled={disabled}
+          disableDefaultStyles
+          {...props}
+        />
+        {children}
+      </div>
     );
   }
 );
