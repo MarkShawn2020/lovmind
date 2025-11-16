@@ -71,7 +71,13 @@ export function EditorContextMenu({ editor, children }: EditorContextMenuProps) 
 
   const handleSelectAll = () => {
     // Select all content in editor
-    editor.tf.select(editor.api.range([], editor.api.end([])));
+    const startPoint = editor.api.start([]);
+    const endPoint = editor.api.end([]);
+
+    if (startPoint && endPoint) {
+      editor.tf.select(editor.api.range(startPoint, endPoint));
+      editor.tf.focus();
+    }
   };
 
   return (

@@ -360,6 +360,43 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       };
     }, []);
 
+    // Handle Cmd+A to properly select all content and prevent shadow input issue
+    useEffect(() => {
+      const handleSelectAll = (e: KeyboardEvent) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+          // Check if the event target is within the editor
+          const target = e.target as HTMLElement;
+          if (!editorContainerRef.current?.contains(target)) {
+            return; // Not our editor, ignore
+          }
+
+          // Prevent default to avoid shadow input focus
+          e.preventDefault();
+
+          // Select all content using Slate API
+          try {
+            // Create range from start to end of document
+            const startPoint = editor.api.start([]);
+            const endPoint = editor.api.end([]);
+
+            if (startPoint && endPoint) {
+              editor.tf.select(editor.api.range(startPoint, endPoint));
+              // Ensure editor has focus
+              editor.tf.focus();
+            }
+          } catch (error) {
+            console.error('[SelectAll] Failed to select all:', error);
+          }
+        }
+      };
+
+      document.addEventListener('keydown', handleSelectAll);
+
+      return () => {
+        document.removeEventListener('keydown', handleSelectAll);
+      };
+    }, [editor]);
+
     // ✅ onChange handler with input state tracking
     const handleChange = ({ value }: { value: Value }) => {
       if (onChange) {
