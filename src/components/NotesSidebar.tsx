@@ -255,78 +255,83 @@ const NotesSidebarComponent = ({
   };
 
   return (
-    <>
-      {/* Pinned Notes Section with Collapsible Header */}
-      {hasPinnedNotes && (
-        <>
-          <button
-            onClick={() => setIsPinnedCollapsed(!isPinnedCollapsed)}
-            className="flex items-center justify-between w-full px-2.5 py-2 min-h-[44px] mb-1 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] rounded-[var(--radius)] transition-colors cursor-pointer border-none bg-transparent active:scale-[0.98] touch-manipulation"
-            type="button"
-          >
-            <div className="flex items-center gap-1.5">
-              <Pin size={12} className="text-[var(--primary)]" />
-              <span>置顶笔记</span>
-              <span className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full">
-                {pinnedNotes.length}
-              </span>
+    <div className="flex flex-col h-full">
+      {/* Scrollable Notes Area */}
+      <div className="flex-1 overflow-y-auto p-[var(--spacing-s)] flex flex-col gap-2">
+        {/* Pinned Notes Section with Collapsible Header */}
+        {hasPinnedNotes && (
+          <>
+            <button
+              onClick={() => setIsPinnedCollapsed(!isPinnedCollapsed)}
+              className="flex items-center justify-between w-full px-2.5 py-2 min-h-[44px] mb-1 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] rounded-[var(--radius)] transition-colors cursor-pointer border-none bg-transparent active:scale-[0.98] touch-manipulation"
+              type="button"
+            >
+              <div className="flex items-center gap-1.5">
+                <Pin size={12} className="text-[var(--primary)]" />
+                <span>置顶笔记</span>
+                <span className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full">
+                  {pinnedNotes.length}
+                </span>
+              </div>
+              {isPinnedCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            </button>
+
+            {/* Pinned Notes List with Smooth Collapse Animation */}
+            <div
+              className="flex flex-col gap-2 transition-all duration-300 ease-in-out overflow-hidden py-1"
+              style={{
+                maxHeight: isPinnedCollapsed ? '0' : `${pinnedNotes.length * 98 + 8}px`,
+                opacity: isPinnedCollapsed ? 0 : 1,
+              }}
+            >
+              {pinnedNotes.map(renderNoteItem)}
             </div>
-            {isPinnedCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </button>
 
-          {/* Pinned Notes List with Smooth Collapse Animation */}
-          <div
-            className="flex flex-col gap-2 transition-all duration-300 ease-in-out overflow-hidden py-1"
-            style={{
-              maxHeight: isPinnedCollapsed ? '0' : `${pinnedNotes.length * 98 + 8}px`,
-              opacity: isPinnedCollapsed ? 0 : 1,
-            }}
-          >
-            {pinnedNotes.map(renderNoteItem)}
-          </div>
+            {/* Divider between pinned and unpinned sections */}
+            {unpinnedNotes.length > 0 && (
+              <div className="my-3 flex items-center gap-2">
+                <div className="flex-1 h-px bg-[var(--border)]" />
+                <span className="text-[0.625rem] text-[var(--muted-foreground)] px-1">其他笔记</span>
+                <div className="flex-1 h-px bg-[var(--border)]" />
+              </div>
+            )}
+          </>
+        )}
 
-          {/* Divider between pinned and unpinned sections */}
-          {unpinnedNotes.length > 0 && (
-            <div className="my-3 flex items-center gap-2">
-              <div className="flex-1 h-px bg-[var(--border)]" />
-              <span className="text-[0.625rem] text-[var(--muted-foreground)] px-1">其他笔记</span>
-              <div className="flex-1 h-px bg-[var(--border)]" />
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Unpinned Notes Section */}
-      <div className="flex flex-col gap-2">
-        {unpinnedNotes.map(renderNoteItem)}
+        {/* Unpinned Notes Section */}
+        <div className="flex flex-col gap-2">
+          {unpinnedNotes.map(renderNoteItem)}
+        </div>
       </div>
 
-      {/* New Note Button - Only show in main window when viewing a note */}
+      {/* New Note Button - Fixed at bottom, only show in main window when viewing a note */}
       {onCreateNewNote && (
-        <button
-          onClick={onCreateNewNote}
-          className="
-            w-full h-10 min-h-[44px] px-4 mt-4
-            rounded-xl
-            border-none
-            bg-primary text-primary-foreground
-            flex items-center justify-center gap-2
-            font-medium text-sm
-            cursor-pointer
-            transition-all duration-200 ease-out
-            shadow-sm
-            hover:shadow-md hover:bg-primary/90
-            active:scale-[0.97]
-            touch-manipulation
-          "
-          title="Create new note"
-          type="button"
-        >
-          <Plus size={16} strokeWidth={2.5} />
-          <span>新建笔记</span>
-        </button>
+        <div className="flex-shrink-0 p-[var(--spacing-s)] pt-0 border-t border-border/40 bg-muted">
+          <button
+            onClick={onCreateNewNote}
+            className="
+              w-full h-10 min-h-[44px] px-4
+              rounded-xl
+              border-none
+              bg-primary text-primary-foreground
+              flex items-center justify-center gap-2
+              font-medium text-sm
+              cursor-pointer
+              transition-all duration-200 ease-out
+              shadow-sm
+              hover:shadow-md hover:bg-primary/90
+              active:scale-[0.97]
+              touch-manipulation
+            "
+            title="Create new note"
+            type="button"
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            <span>新建笔记</span>
+          </button>
+        </div>
       )}
-    </>
+    </div>
   );
 };
 

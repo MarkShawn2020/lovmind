@@ -126,23 +126,25 @@ const SendButton = memo(({
 
 interface EditorToolbarProps {
   mode: 'main' | 'float';
-  onSubmit: () => void;
-  submitDisabled: boolean;
+  onSubmit?: () => void;
+  submitDisabled?: boolean;
   currentTags?: string[];
   allNotes?: Note[];
   editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
   onOpenMobileSidebar?: () => void;
+  hideSubmitButton?: boolean;
 }
 
 // Memoized toolbar to prevent any re-renders
 const EditorToolbar = memo(({
   mode,
   onSubmit,
-  submitDisabled,
+  submitDisabled = false,
   currentTags = [],
   allNotes = [],
   editorRef,
-  onOpenMobileSidebar
+  onOpenMobileSidebar,
+  hideSubmitButton = false,
 }: EditorToolbarProps) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
@@ -199,7 +201,9 @@ const EditorToolbar = memo(({
         </Popover>
       </div>
       <div className="flex gap-3 sm:gap-4 items-center">
-        <SendButton disabled={submitDisabled} onClick={onSubmit} />
+        {!hideSubmitButton && onSubmit && (
+          <SendButton disabled={submitDisabled} onClick={onSubmit} />
+        )}
       </div>
     </div>
   );
