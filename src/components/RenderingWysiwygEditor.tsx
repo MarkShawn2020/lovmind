@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect } from 'react';
+import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect, useCallback } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
 
@@ -225,7 +225,12 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     }, [initialContent, initialRichContent, editor]);
 
     // ✅ Track the editor container ref to check DOM focus
-    const editorContainerRef = useRef<HTMLDivElement>(null);
+    const editorContainerRef = useRef<HTMLDivElement | null>(null);
+    const [contextMenuTarget, setContextMenuTarget] = React.useState<HTMLDivElement | null>(null);
+    const setEditorContainerNode = useCallback((node: HTMLDivElement | null) => {
+      editorContainerRef.current = node;
+      setContextMenuTarget(node);
+    }, []);
 
     // Input state tracking
     const isComposingRef = useRef(false);
@@ -610,29 +615,31 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
           </FixedToolbar>
 
           {/* Row 2: Content Area with Toast */}
-          <EditorContextMenu editor={editor}>
-            <EditorContainer ref={editorContainerRef} className="relative overflow-auto">
-              <Editor
-                placeholder={placeholder}
-                variant="none"
-                className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
-                onKeyDown={handleKeyDown}
-                onCompositionStart={handleCompositionStart}
-                onCompositionEnd={handleCompositionEnd}
-              >
-                {/* Auto-save toast - fixed positioning below header to stay visible when scrolled */}
-                {showAutoSaveToast && (
-                  <div
-                    className="fixed top-[68px] right-2 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
-                    role="status"
-                    aria-live="polite"
-                  >
-                    已自动保存
-                  </div>
-                )}
-              </Editor>
-            </EditorContainer>
-          </EditorContextMenu>
+          <div ref={setEditorContainerNode} className="relative h-full w-full">
+            <EditorContextMenu editor={editor} targetElement={contextMenuTarget}>
+              <EditorContainer className="relative overflow-auto">
+                <Editor
+                  placeholder={placeholder}
+                  variant="none"
+                  className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
+                  onKeyDown={handleKeyDown}
+                  onCompositionStart={handleCompositionStart}
+                  onCompositionEnd={handleCompositionEnd}
+                >
+                  {/* Auto-save toast - fixed positioning below header to stay visible when scrolled */}
+                  {showAutoSaveToast && (
+                    <div
+                      className="fixed top-[68px] right-2 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      已自动保存
+                    </div>
+                  )}
+                </Editor>
+              </EditorContainer>
+            </EditorContextMenu>
+          </div>
         </div>
       </Plate>
     );
