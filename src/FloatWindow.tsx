@@ -20,6 +20,7 @@ function FloatWindow() {
   const [, setNotes] = useAtom(notesAtom);
   const setImageMaxHeight = useSetAtom(imageMaxHeightAtom);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [showAutoSaveToast, setShowAutoSaveToast] = useState(false);
 
   // Extract noteId synchronously to avoid double-render
   const noteId = useMemo(() => {
@@ -213,7 +214,18 @@ function FloatWindow() {
   );
 
   const editorNode = (
-    <div ref={editorContainerRef}>
+    <div ref={editorContainerRef} className="relative h-full">
+      {/* Auto-save toast - positioned at editor viewport level, not inside scrollable content */}
+      {showAutoSaveToast && (
+        <div
+          className="absolute top-2 right-2 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
+          role="status"
+          aria-live="polite"
+        >
+          已自动保存
+        </div>
+      )}
+
       <RenderingWysiwygEditor
         ref={controlledEditorRef}
         initialContent={content}
@@ -221,6 +233,7 @@ function FloatWindow() {
         onChange={handleContentChange}
         onSubmit={handleSubmit}
         placeholder={placeholder}
+        onAutoSaveToastChange={setShowAutoSaveToast}
       />
     </div>
   );
