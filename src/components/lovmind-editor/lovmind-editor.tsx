@@ -17,6 +17,7 @@ import {useNoteLoader} from "@/hooks/useNoteLoader.ts";
 import {useEditorSync} from "@/hooks/useEditorSync.ts";
 import {useAutoSave} from "@/hooks/useAutoSave.ts";
 import {editorContentAtom} from "@/atoms/noteAtoms.ts";
+import {attachEventEmitter} from "@/utils/createEditorEventEmitter.ts";
 
 interface LovmindEditorProps {
   noteId?: string | null;
@@ -76,6 +77,11 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       plugins: EditorKitWithoutFixedToolbar,
       value: initialValue,
     });
+
+    // Attach event emitter to editor on first creation
+    useEffect(() => {
+      attachEventEmitter(editor);
+    }, [editor]);
 
     // Track loaded rich content to detect external changes
     const loadedRichContentRef = useRef<Value | null>(null);

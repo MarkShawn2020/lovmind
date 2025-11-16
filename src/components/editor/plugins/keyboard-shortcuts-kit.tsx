@@ -25,24 +25,53 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
             const targetNode = event.target instanceof Node ? event.target : null;
             const activeElement = document.activeElement;
 
-            // Check if target or active element is related to this editor
-            // Note: This is a simplified check. In production, you might want to check
-            // if the element is within the editor's DOM container
-            return !!(targetNode || activeElement || isSlateShadowInput(targetNode) || isSlateShadowInput(activeElement));
+            console.log('[KeyboardShortcuts] isEventFromEditor check:', {
+                targetNode,
+                activeElement,
+                targetNodeName: targetNode?.nodeName,
+                activeElementName: activeElement?.nodeName,
+                isSlateShadowInput: isSlateShadowInput(targetNode),
+                isActiveElementShadowInput: isSlateShadowInput(activeElement),
+            });
+
+            // Always return true for now - we want to capture all Cmd+Enter events
+            // The editor should be the primary input area anyway
+            return true;
         };
 
 
         // Cmd+Enter Handler: Submit shortcut
         const handleSubmit = (event: KeyboardEvent) => {
+            console.log('[KeyboardShortcuts] Key event:', {
+                key: event.key,
+                metaKey: event.metaKey,
+                ctrlKey: event.ctrlKey,
+                isMetaOrCtrl: event.metaKey || event.ctrlKey,
+                isEnter: event.key === 'Enter',
+                target: event.target,
+                activeElement: document.activeElement,
+            });
+
             if (!event || !(event.metaKey || event.ctrlKey)) return;
             if (event.key !== 'Enter') return;
-            if (!isEventFromEditor(event)) return;
 
+            console.log('[KeyboardShortcuts] Cmd+Enter detected, checking editor context...');
+
+            if (!isEventFromEditor(event)) {
+                console.log('[KeyboardShortcuts] Event not from editor, ignoring');
+                return;
+            }
+
+            console.log('[KeyboardShortcuts] Preventing default and emitting submit-shortcut');
             event.preventDefault();
+            event.stopPropagation();
 
             // Emit submit event for parent components
             if (typeof editor.emit === 'function') {
+                console.log('[KeyboardShortcuts] Emitting submit-shortcut event');
                 editor.emit('submit-shortcut');
+            } else {
+                console.error('[KeyboardShortcuts] editor.emit is not a function!');
             }
         };
 
