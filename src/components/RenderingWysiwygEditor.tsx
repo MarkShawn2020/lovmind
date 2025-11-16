@@ -427,15 +427,23 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
       // Clipboard event listeners - manual handling for Tauri
       const handleCopy = async (e: ClipboardEvent) => {
-        console.log('[Clipboard] Copy event fired');
+        console.log('[Clipboard] ===== Copy event fired =====');
         console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
         console.log('[Clipboard] - Selection:', editor.selection);
 
         // Check if we're in Tauri and have a selection
         const isTauri = typeof window.__TAURI__ !== 'undefined';
-        if (!isTauri || !editor.selection) {
-          console.log('[Clipboard] - Not Tauri or no selection, using default behavior');
-          return; // Let browser handle it
+        console.log('[Clipboard] - Is Tauri?', isTauri);
+        console.log('[Clipboard] - Has selection?', editor.selection !== null);
+
+        if (!isTauri) {
+          console.log('[Clipboard] ⚠️  Not in Tauri, using default browser behavior');
+          return;
+        }
+
+        if (!editor.selection) {
+          console.log('[Clipboard] ⚠️  No editor selection, using default behavior');
+          return;
         }
 
         // Check if selection is collapsed (nothing selected)

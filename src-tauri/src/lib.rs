@@ -553,13 +553,14 @@ pub fn run() {
         .manage(MainWindowMenuItem(Mutex::new(None)))
         .plugin(tauri_plugin_opener::init());
 
-    #[cfg(not(target_os = "ios"))]
-    let builder = builder.plugin(tauri_plugin_global_shortcut::Builder::new().build());
-
     let builder = builder
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init());
+
+    #[cfg(not(target_os = "ios"))]
+    let builder = builder
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build());
 
     builder
         .invoke_handler(tauri::generate_handler![
