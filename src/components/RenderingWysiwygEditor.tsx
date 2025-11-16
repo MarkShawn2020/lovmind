@@ -425,25 +425,117 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         }
       };
 
-      // Clipboard event listeners for debugging
-      const handleCopy = (e: ClipboardEvent) => {
+      // Clipboard event listeners - manual handling for Tauri
+      const handleCopy = async (e: ClipboardEvent) => {
         console.log('[Clipboard] Copy event fired');
         console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
         console.log('[Clipboard] - Selection:', editor.selection);
+
+        // Check if we're in Tauri and have a selection
+        const isTauri = typeof window.__TAURI__ !== 'undefined';
+        if (!isTauri || !editor.selection) {
+          console.log('[Clipboard] - Not Tauri or no selection, using default behavior');
+          return; // Let browser handle it
+        }
+
+        // Check if selection is collapsed (nothing selected)
+        const { anchor, focus } = editor.selection;
+        const isCollapsed =
+          anchor.path.toString() === focus.path.toString() &&
+          anchor.offset === focus.offset;
+
+        if (isCollapsed) {
+          console.log('[Clipboard] - Selection collapsed, nothing to copy');
+          return;
+        }
+
+        console.log('[Clipboard] - Tauri detected, manually handling copy');
+        e.preventDefault();
+
+        try {
+          // Get selected fragment from Plate.js
+          const fragment = editor.api.fragment();
+          console.log('[Clipboard] - Fragment:', fragment);
+
+          // Extract text from fragment
+          const { text } = extractTextContent(fragment as Value);
+          console.log('[Clipboard] - Extracted text:', text);
+
+          // Write to clipboard using Tauri API
+          const { writeText } = await import('@tauri-apps/plugin-clipboard-manager');
+          await writeText(text);
+          console.log('[Clipboard] ✓ Successfully copied to clipboard via Tauri API');
+        } catch (error) {
+          console.error('[Clipboard] ✗ Failed to copy:', error);
+        }
       };
 
-      const handleCut = (e: ClipboardEvent) => {
+      const handleCut = async (e: ClipboardEvent) => {
         console.log('[Clipboard] Cut event fired');
         console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
         console.log('[Clipboard] - Selection:', editor.selection);
+
+        const isTauri = typeof window.__TAURI__ !== 'undefined';
+        if (!isTauri || !editor.selection) {
+          return;
+        }
+
+        const { anchor, focus } = editor.selection;
+        const isCollapsed =
+          anchor.path.toString() === focus.path.toString() &&
+          anchor.offset === focus.offset;
+
+        if (isCollapsed) {
+          return;
+        }
+
+        console.log('[Clipboard] - Tauri detected, manually handling cut');
+        e.preventDefault();
+
+        try {
+          const fragment = editor.api.fragment();
+          const { text } = extractTextContent(fragment as Value);
+
+          const { writeText } = await import('@tauri-apps/plugin-clipboard-manager');
+          await writeText(text);
+
+          // Delete selected content after copying
+          editor.tf.deleteFragment();
+
+          console.log('[Clipboard] ✓ Successfully cut to clipboard via Tauri API');
+        } catch (error) {
+          console.error('[Clipboard] ✗ Failed to cut:', error);
+        }
       };
 
-      const handlePaste = (e: ClipboardEvent) => {
+      const handlePaste = async (e: ClipboardEvent) => {
         console.log('[Clipboard] Paste event fired');
         console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
-        if (e.clipboardData) {
-          console.log('[Clipboard] - Types:', e.clipboardData.types);
-          console.log('[Clipboard] - Text:', e.clipboardData.getData('text/plain').substring(0, 100));
+
+        const isTauri = typeof window.__TAURI__ !== 'undefined';
+        if (!isTauri) {
+          if (e.clipboardData) {
+            console.log('[Clipboard] - Types:', e.clipboardData.types);
+            console.log('[Clipboard] - Text:', e.clipboardData.getData('text/plain').substring(0, 100));
+          }
+          return;
+        }
+
+        console.log('[Clipboard] - Tauri detected, manually handling paste');
+        e.preventDefault();
+
+        try {
+          const { readText } = await import('@tauri-apps/plugin-clipboard-manager');
+          const text = await readText();
+          console.log('[Clipboard] - Read from clipboard:', text?.substring(0, 100));
+
+          if (text) {
+            // Insert as plain text
+            editor.tf.insertText(text);
+            console.log('[Clipboard] ✓ Successfully pasted from clipboard via Tauri API');
+          }
+        } catch (error) {
+          console.error('[Clipboard] ✗ Failed to paste:', error);
         }
       };
 

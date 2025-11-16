@@ -287,30 +287,33 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
     };
 
     // Create settings window
-    let mut window_builder = WebviewWindowBuilder::new(
-        &app,
-        "settings",
-        webview_url
-    );
-
     #[cfg(not(target_os = "ios"))]
     {
-        window_builder = window_builder
-            .title("Keyboard Shortcuts")
-            .inner_size(750.0, 600.0)
-            .min_inner_size(650.0, 500.0)
-            .resizable(true)
-            .center()
-            .always_on_top(false)
-            .focused(true)
-            .skip_taskbar(false)
-            .decorations(true)
-            .transparent(false);
+        let window_builder = WebviewWindowBuilder::new(
+            &app,
+            "settings",
+            webview_url
+        )
+        .title("Keyboard Shortcuts")
+        .inner_size(750.0, 600.0)
+        .min_inner_size(650.0, 500.0)
+        .resizable(true)
+        .center()
+        .always_on_top(false)
+        .focused(true)
+        .skip_taskbar(false)
+        .decorations(true)
+        .transparent(false);
+
+        window_builder.build().map_err(|e| e.to_string())?;
     }
 
-    window_builder
-    .build()
-    .map_err(|e| e.to_string())?;
+    #[cfg(target_os = "ios")]
+    {
+        WebviewWindowBuilder::new(&app, "settings", webview_url)
+            .build()
+            .map_err(|e| e.to_string())?;
+    }
 
     Ok(())
 }
@@ -365,36 +368,36 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
         };
 
         // Create new float window
-        let mut window_builder = WebviewWindowBuilder::new(
-            &app,
-            window_label,
-            webview_url
-        );
-
         #[cfg(not(target_os = "ios"))]
         {
-            window_builder = window_builder
-                .title("New Note")
-                .inner_size(360.0, 480.0)
-                .min_inner_size(320.0, 240.0)
-                .resizable(true)
-                .center()
-                .always_on_top(false)
-                .focused(true)
-                .skip_taskbar(false)
-                .decorations(false)
-                .transparent(true);
-        }
+            let window = WebviewWindowBuilder::new(
+                &app,
+                window_label,
+                webview_url
+            )
+            .title("New Note")
+            .inner_size(360.0, 480.0)
+            .min_inner_size(320.0, 240.0)
+            .resizable(true)
+            .center()
+            .always_on_top(false)
+            .focused(true)
+            .skip_taskbar(false)
+            .decorations(false)
+            .transparent(true)
+            .build()
+            .map_err(|e| e.to_string())?;
 
-        let window = window_builder
-        .build()
-        .map_err(|e| e.to_string())?;
-
-        // Ensure window is shown and focused
-        #[cfg(not(target_os = "ios"))]
-        {
+            // Ensure window is shown and focused
             let _ = window.show();
             let _ = window.set_focus();
+        }
+
+        #[cfg(target_os = "ios")]
+        {
+            let _window = WebviewWindowBuilder::new(&app, window_label, webview_url)
+                .build()
+                .map_err(|e| e.to_string())?;
         }
 
         return Ok(());
@@ -555,7 +558,8 @@ pub fn run() {
 
     let builder = builder
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_dialog::init());
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_clipboard_manager::init());
 
     builder
         .invoke_handler(tauri::generate_handler![
