@@ -111,17 +111,14 @@ export const Editor = React.forwardRef<HTMLDivElement, EditorProps>(
       />
     );
 
-    // Only add wrapper if children are provided (for absolute positioning)
-    if (children) {
-      return (
-        <div className="relative h-full w-full">
-          {plateContent}
-          {children}
-        </div>
-      );
-    }
-
-    return plateContent;
+    // Always render wrapper to maintain consistent DOM structure
+    // This prevents scroll position loss when children (like toast) appear/disappear
+    return (
+      <div className="relative h-full w-full">
+        {plateContent}
+        {children}
+      </div>
+    );
   }
 );
 
