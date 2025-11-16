@@ -2,7 +2,7 @@ import { Archive, Copy, Crown, Maximize2, Pin, Sparkles, Trash2, ChevronDown, Ch
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
-import { memo, useState } from 'react';
+import { memo, useState, useEffect } from 'react';
 
 import type { Note } from '@/store';
 import {
@@ -46,6 +46,16 @@ const NotesSidebarComponent = ({
   isEditorEmpty = true,
 }: NotesSidebarProps) => {
   const [isPinnedCollapsed, setIsPinnedCollapsed] = useState(false);
+
+  // Auto-expand pinned section if current note is pinned
+  useEffect(() => {
+    if (currentNoteId) {
+      const currentNote = notes.find(n => n.id === currentNoteId);
+      if (currentNote?.pinned && isPinnedCollapsed) {
+        setIsPinnedCollapsed(false);
+      }
+    }
+  }, [currentNoteId, notes, isPinnedCollapsed]);
 
   // Empty state content
   const emptyStateContent = (
