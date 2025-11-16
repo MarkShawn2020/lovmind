@@ -262,7 +262,7 @@ export const useNoteEditorController = ({
             ? currentNote.title // Keep manual title
             : extractNoteTitle({ text: payload.text, richContent: payload.richContent }),
           time: new Date().toLocaleString(),
-          tags: payload.tags.length > 0 ? payload.tags : currentNote.tags,
+          tags: payload.tags, // Always use current tags from editor (allows empty array)
           richContent: payload.richContent,
         };
 
@@ -294,7 +294,7 @@ export const useNoteEditorController = ({
             ? currentNote.title // Keep manual title
             : extractNoteTitle({ text: payload.text, richContent: payload.richContent }),
           time: new Date().toLocaleString(),
-          tags: payload.tags.length > 0 ? payload.tags : currentNote.tags,
+          tags: payload.tags, // Always use current tags from editor (allows empty array)
           richContent: payload.richContent,
         };
 
@@ -324,7 +324,7 @@ export const useNoteEditorController = ({
           ? currentNote.title // Keep manual title
           : extractNoteTitle({ text: content, richContent }),
         time: new Date().toLocaleString(),
-        tags: currentTags.length > 0 ? currentTags : currentNote.tags,
+        tags: currentTags, // Always use current tags (allows empty array)
         richContent: richContent,
       };
 
@@ -405,7 +405,7 @@ export const useNoteEditorController = ({
           ? currentNote.title // Keep manual title
           : extractNoteTitle({ text: content, richContent }),
         time: new Date().toLocaleString(),
-        tags: currentTags.length > 0 ? currentTags : currentNote.tags,
+        tags: currentTags, // Always use current tags (allows empty array)
         richContent: richContent,
       };
 
@@ -530,7 +530,7 @@ export const useNoteEditorController = ({
             ? currentNote.title // Keep manual title
             : extractNoteTitle({ text: content, richContent }),
           time: new Date().toLocaleString(),
-          tags: currentTags.length > 0 ? currentTags : currentNote.tags,
+          tags: currentTags, // Always use current tags (allows empty array)
           richContent: richContent,
         };
 

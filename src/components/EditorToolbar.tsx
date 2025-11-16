@@ -2,6 +2,7 @@ import { memo, useState } from 'react';
 import { Send, Pin, Tag, Menu } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { TagManagerPopover } from '@/components/TagManagerPopover';
+import { EditableTag } from '@/components/ui/editable-tag';
 import type { Note } from '@/store';
 import type { RenderingWysiwygEditorRef } from '@/components/RenderingWysiwygEditor';
 
@@ -39,11 +40,21 @@ const PinButton = memo(({
 
 const TagsDisplay = memo(({
   tags,
-  onClick
+  onClick,
+  editorRef,
 }: {
   tags: string[];
   onClick?: () => void;
+  editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
 }) => {
+  const handleRenameTag = (oldTag: string, newTag: string) => {
+    if (!editorRef?.current) {
+      console.warn('Editor ref not available for tag rename');
+      return;
+    }
+    editorRef.current.renameTag(oldTag, newTag);
+  };
+
   if (tags.length === 0) {
     return (
       <div
@@ -64,24 +75,36 @@ const TagsDisplay = memo(({
 
   return (
     <div
-      className="flex items-center gap-2 max-w-[280px] cursor-pointer hover:bg-accent/50 px-3 py-2 -mx-3 -my-2 rounded-lg transition-all duration-200"
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
+      className="flex items-center gap-2 max-w-[280px] px-3 py-2 -mx-3 -my-2 rounded-lg transition-all duration-200"
+      role="group"
+      aria-label="Tags"
     >
-      <Tag size={14} strokeWidth={2} className="text-muted-foreground/60 flex-shrink-0" />
+      <div
+        className="flex-shrink-0 cursor-pointer"
+        onClick={onClick}
+        title="Manage tags"
+      >
+        <Tag
+          size={14}
+          strokeWidth={2}
+          className="text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+        />
+      </div>
       <div className="flex gap-1.5 flex-wrap items-center overflow-hidden">
         {displayTags.map((tag, i) => (
-          <span
-            key={i}
-            className="inline-flex items-center px-2 py-0.5 text-[0.6875rem] bg-primary/8 text-primary/90 rounded-md font-medium border border-primary/15 whitespace-nowrap"
-            title={`#${tag}`}
-          >
-            #{tag}
-          </span>
+          <EditableTag
+            key={`${tag}-${i}`}
+            tag={tag}
+            onRename={handleRenameTag}
+            editable={!!editorRef}
+          />
         ))}
         {remaining > 0 && (
-          <span className="text-[0.6875rem] text-muted-foreground/70 font-medium whitespace-nowrap">
+          <span
+            className="text-[0.6875rem] text-muted-foreground/70 font-medium whitespace-nowrap cursor-pointer hover:text-muted-foreground/90"
+            onClick={onClick}
+            title="View all tags"
+          >
             +{remaining}
           </span>
         )}
@@ -187,10 +210,27 @@ const EditorToolbar = memo(({
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <PopoverTrigger asChild>
             <div>
-              <TagsDisplay tags={currentTags} onClick={() => setIsPopoverOpen(true)} />
+              <TagsDisplay
+                tags={currentTags}
+                onClick={() => setIsPopoverOpen(true)}
+                editorRef={editorRef}
+              />
             </div>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-4" align="start" side="top" sideOffset={12}>
+          <PopoverContent
+            className="w-auto p-4"
+            align="start"
+            side="top"
+            sideOffset={12}
+            onInteractOutside={(e) => {
+              // Prevent closing when clicking inside the editor
+              // This allows users to add/remove multiple tags without popover closing
+              const target = e.target as HTMLElement;
+              if (target.closest('[data-slate-editor]') || target.closest('.slate-editor')) {
+                e.preventDefault();
+              }
+            }}
+          >
             <TagManagerPopover
               currentTags={currentTags}
               allNotes={allNotes}

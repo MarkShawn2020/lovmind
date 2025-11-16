@@ -3,6 +3,7 @@
 import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
+import { toast } from 'sonner';
 
 import { EditorKit } from '@/components/editor/editor-kit';
 import { Editor, EditorContainer } from '@/components/ui/editor';
@@ -40,6 +41,7 @@ export interface RenderingWysiwygEditorRef {
   focus: () => void;
   insertTag: (tag: string) => void;
   removeTag: (tag: string) => void;
+  renameTag: (oldTag: string, newTag: string) => void;
 }
 
 const createInitialValue = (text: string = ''): Value => {
@@ -300,6 +302,43 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         } catch (error) {
           console.error('[RenderingWysiwygEditor] Failed to remove tag:', error);
         }
+      },
+      renameTag: (oldTag: string, newTag: string) => {
+        // Find all instances of the old hashtag and update their value
+        try {
+          const nodes = Array.from(
+            editor.api.nodes({
+              at: [],
+              match: (n: any) => n.type === HASHTAG_KEY && n.value === oldTag,
+            })
+          );
+
+          // If new tag already exists, remove old tag instances (merge strategy)
+          const hasNewTag = editor.api.some({
+            at: [],
+            match: (n: any) => n.type === HASHTAG_KEY && n.value === newTag,
+          });
+
+          if (hasNewTag) {
+            // Merge: just remove old tag instances
+            for (let i = nodes.length - 1; i >= 0; i--) {
+              const [, path] = nodes[i];
+              editor.tf.removeNodes({ at: path });
+            }
+          } else {
+            // Rename: update value of all old tag instances
+            for (const [node, path] of nodes) {
+              editor.tf.setNodes(
+                { value: newTag } as Partial<THashtagElement>,
+                { at: path }
+              );
+            }
+          }
+
+          editor.tf.focus();
+        } catch (error) {
+          console.error('[RenderingWysiwygEditor] Failed to rename tag:', error);
+        }
       }
     }), [editor]);
 
@@ -402,9 +441,31 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // Handle Cmd+Enter / Ctrl+Enter for submit
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
         onSubmit?.();
+        return;
+      }
+
+      // Handle Cmd+S / Ctrl+S for save confirmation toast
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+
+        // Show subtle toast notification
+        toast('内容已自动保存', {
+          duration: 1500,
+          position: 'bottom-center',
+          style: {
+            background: 'var(--popover)',
+            color: 'var(--popover-foreground)',
+            border: '1px solid var(--border)',
+            fontSize: '0.875rem',
+            padding: '0.5rem 1rem',
+          },
+        });
+
+        return;
       }
     };
 
