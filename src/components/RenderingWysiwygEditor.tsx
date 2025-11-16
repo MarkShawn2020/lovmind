@@ -348,6 +348,24 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       }
     }), [editor]);
 
+    // Helpers to reason about Slate shadow input + event scope
+    const isSlateShadowInput = (node: EventTarget | null): node is HTMLElement => {
+      return !!(node && node instanceof HTMLElement && node.classList.contains('slate-shadow-input'));
+    };
+
+    const isEventFromEditor = (event: Event): boolean => {
+      const container = editorContainerRef.current;
+      if (!container) return false;
+
+      const targetNode = event.target instanceof Node ? event.target : null;
+      const activeElement = document.activeElement;
+
+      const targetInside = targetNode ? container.contains(targetNode) : false;
+      const activeInside = activeElement ? container.contains(activeElement) : false;
+
+      return targetInside || activeInside || isSlateShadowInput(targetNode) || isSlateShadowInput(activeElement);
+    };
+
     // Cleanup timeouts on unmount
     useEffect(() => {
       return () => {
@@ -360,8 +378,126 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       };
     }, []);
 
-    // Let Plate.js handle clipboard shortcuts natively (including in Tauri)
-    // No custom listeners required.
+    // Force Cmd/Ctrl+A to select the Plate editor content even when the shadow
+    // input temporarily grabs focus (Tauri on macOS issue)
+    useEffect(() => {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (!event || !(event.metaKey || event.ctrlKey)) return;
+        if (event.key.toLowerCase() !== 'a') return;
+        if (!isEventFromEditor(event)) return;
+
+        event.preventDefault();
+
+        const startPoint = editor.api.start([]);
+        const endPoint = editor.api.end([]);
+
+        if (startPoint && endPoint) {
+          const fullRange = editor.api.range(startPoint, endPoint);
+          editor.tf.select(fullRange);
+          editor.tf.focus({ edge: 'start' });
+        }
+      };
+
+      document.addEventListener('keydown', handleKeyDown, true);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown, true);
+      };
+    }, [editor]);
+
+    // Clipboard handling: let Plate serialize the fragment, then mirror that
+    // data to the Tauri system clipboard. In browser mode we stay passive.
+    useEffect(() => {
+      const isTauri = '__TAURI_INTERNALS__' in window || 'isTauri' in window;
+
+      const handleCopy = async (e: ClipboardEvent) => {
+        if (!isEventFromEditor(e)) return;
+
+        if (!isTauri) {
+          return;
+        }
+
+        // Ensure we have a Slate selection – Cmd+A can temporarily collapse it.
+        if (!editor.selection) {
+          return;
+        }
+
+        const { anchor, focus } = editor.selection;
+        const isCollapsed =
+          anchor.path.toString() === focus.path.toString() &&
+          anchor.offset === focus.offset;
+
+        if (isCollapsed) {
+          return;
+        }
+
+        setTimeout(async () => {
+          try {
+            if (!e.clipboardData) {
+              return;
+            }
+
+            const htmlData = e.clipboardData.getData('text/html');
+            const textData = e.clipboardData.getData('text/plain');
+
+            if (textData || htmlData) {
+              const { writeText } = await import('@tauri-apps/plugin-clipboard-manager');
+              await writeText(textData || htmlData);
+            }
+          } catch (error) {
+            console.error('[Clipboard] Failed to mirror copy:', error);
+          }
+        }, 0);
+      };
+
+      const handleCut = async (e: ClipboardEvent) => {
+        if (!isEventFromEditor(e)) return;
+        if (!isTauri) return;
+
+        setTimeout(async () => {
+          try {
+            if (!e.clipboardData) return;
+
+            const textData = e.clipboardData.getData('text/plain');
+            const htmlData = e.clipboardData.getData('text/html');
+
+            if (textData || htmlData) {
+              const { writeText } = await import('@tauri-apps/plugin-clipboard-manager');
+              await writeText(textData || htmlData);
+            }
+          } catch (error) {
+            console.error('[Clipboard] Failed to mirror cut:', error);
+          }
+        }, 0);
+      };
+
+      const handlePaste = async (e: ClipboardEvent) => {
+        if (!isEventFromEditor(e)) return;
+        if (!isTauri) return;
+
+        e.preventDefault();
+
+        try {
+          const { readText } = await import('@tauri-apps/plugin-clipboard-manager');
+          const text = await readText();
+
+          if (text) {
+            editor.tf.insertText(text);
+          }
+        } catch (error) {
+          console.error('[Clipboard] Failed to paste from Tauri clipboard:', error);
+        }
+      };
+
+      document.addEventListener('copy', handleCopy);
+      document.addEventListener('cut', handleCut);
+      document.addEventListener('paste', handlePaste);
+
+      return () => {
+        document.removeEventListener('copy', handleCopy);
+        document.removeEventListener('cut', handleCut);
+        document.removeEventListener('paste', handlePaste);
+      };
+    }, [editor]);
 
     // ✅ onChange handler with input state tracking
     const handleChange = ({ value }: { value: Value }) => {
