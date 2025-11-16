@@ -55,6 +55,22 @@ export function useNoteLoader(noteId: string | null | undefined) {
         } catch (error) {
           console.error('[useNoteLoader] Failed to load note from Tauri:', error);
         }
+
+        // Fallback: If backend doesn't have the note yet (race condition),
+        // try loading from notesAtom (which may have it from localStorage)
+        if (!noteData) {
+          noteData = notes.find(n => n.id === noteId) || null;
+          if (noteData) {
+            console.log('[useNoteLoader] Fallback: Retrieved note from Jotai atom (backend was empty):', noteData);
+            // Store to backend for future access
+            try {
+              await invoke('store_temp_note', { note: noteData });
+              console.log('[useNoteLoader] Synced note to backend');
+            } catch (error) {
+              console.error('[useNoteLoader] Failed to sync note to backend:', error);
+            }
+          }
+        }
       } else {
         noteData = notes.find(n => n.id === noteId) || null;
         console.log('[useNoteLoader] Retrieved note from Jotai atom:', noteData);
@@ -71,7 +87,7 @@ export function useNoteLoader(noteId: string | null | undefined) {
           sourceNoteId: noteId, // Mark content source
         });
       } else {
-        console.warn('[useNoteLoader] Note not found:', noteId);
+        console.warn('[useNoteLoader] Note not found in both backend and Jotai:', noteId);
         setCurrentNoteId(null);
       }
     };
