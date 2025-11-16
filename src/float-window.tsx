@@ -259,13 +259,16 @@ function FloatWindowInner() {
   // Now safe to render the full UI
 
   // Create a fallback note object for blank notes
-  const displayNote = currentNote || {
+  // Check if note exists in notes array (may have been created but not yet synced to currentNote)
+  const existingNoteInArray = notes.find(n => n.id === noteId);
+  const displayNote = currentNote || existingNoteInArray || {
     id: noteId!,
     title: 'New Note',
     text: '',
     time: new Date().toISOString(),
     tags: [],
     richContent: null,
+    rank: undefined, // Will be calculated dynamically by FloatHeader
   };
 
   return (
