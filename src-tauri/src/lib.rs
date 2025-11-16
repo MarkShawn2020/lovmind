@@ -2,7 +2,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Mutex;
-use tauri::{Emitter, Manager, WindowEvent, menu::{MenuBuilder, CheckMenuItemBuilder, SubmenuBuilder, PredefinedMenuItem, MenuItem}};
+use tauri::{Emitter, Manager};
+#[cfg(not(target_os = "ios"))]
+use tauri::{WindowEvent, menu::{MenuBuilder, CheckMenuItemBuilder, SubmenuBuilder, PredefinedMenuItem, MenuItem}};
 #[cfg(not(target_os = "ios"))]
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use tauri_plugin_store::StoreExt;
@@ -13,7 +15,11 @@ mod note_store;
 use note_store::{store_temp_note, get_temp_note, remove_temp_note, get_all_temp_notes, clear_temp_notes};
 
 // Global state to hold reference to the main window menu item
+#[cfg(not(target_os = "ios"))]
 struct MainWindowMenuItem(Mutex<Option<MenuItem<tauri::Wry>>>);
+
+#[cfg(target_os = "ios")]
+struct MainWindowMenuItem(Mutex<Option<()>>);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Note {
@@ -38,11 +44,19 @@ pub struct NoteVersion {
 
 #[tauri::command]
 async fn toggle_window(window: tauri::Window) -> Result<(), String> {
-    if window.is_visible().unwrap_or(false) {
-        window.hide().map_err(|e| e.to_string())?;
-    } else {
-        window.show().map_err(|e| e.to_string())?;
-        window.set_focus().map_err(|e| e.to_string())?;
+    #[cfg(not(target_os = "ios"))]
+    {
+        if window.is_visible().unwrap_or(false) {
+            window.hide().map_err(|e| e.to_string())?;
+        } else {
+            window.show().map_err(|e| e.to_string())?;
+            window.set_focus().map_err(|e| e.to_string())?;
+        }
+    }
+    #[cfg(target_os = "ios")]
+    {
+        let _ = window; // Suppress unused variable warning
+        // iOS doesn't support hide/show/set_focus
     }
     Ok(())
 }
@@ -118,16 +132,16 @@ async fn generate_title_and_tags(content: String) -> Result<(String, Vec<String>
 }
 
 #[tauri::command]
-async fn open_devtools(window: tauri::WebviewWindow) -> Result<(), String> {
-    #[cfg(debug_assertions)]
+async fn open_devtools(_window: tauri::WebviewWindow) -> Result<(), String> {
+    #[cfg(all(debug_assertions, not(target_os = "ios")))]
     {
-        window.open_devtools();
+        _window.open_devtools();
         Ok(())
     }
 
-    #[cfg(not(debug_assertions))]
+    #[cfg(any(not(debug_assertions), target_os = "ios"))]
     {
-        Err("Developer tools are only available in debug builds".to_string())
+        Err("Developer tools are only available in debug builds on desktop".to_string())
     }
 }
 
@@ -209,6 +223,7 @@ async fn set_ai_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), Stri
 }
 
 // Helper function to update menu item text based on window visibility
+#[cfg(not(target_os = "ios"))]
 fn update_main_window_menu_text<R: tauri::Runtime>(app: &tauri::AppHandle<R>, is_visible: bool) {
     println!("[Menu Update] Called with is_visible={}", is_visible);
 
@@ -246,8 +261,15 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
 
     // Check if settings window already exists
     if let Some(existing_window) = app.get_webview_window("settings") {
-        let _ = existing_window.show();
-        let _ = existing_window.set_focus();
+        #[cfg(not(target_os = "ios"))]
+        {
+            let _ = existing_window.show();
+            let _ = existing_window.set_focus();
+        }
+        #[cfg(target_os = "ios")]
+        {
+            let _ = existing_window; // Suppress unused variable warning
+        }
         return Ok(());
     }
 
@@ -265,21 +287,28 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
     };
 
     // Create settings window
-    WebviewWindowBuilder::new(
+    let mut window_builder = WebviewWindowBuilder::new(
         &app,
         "settings",
         webview_url
-    )
-    .title("Keyboard Shortcuts")
-    .inner_size(750.0, 600.0)
-    .min_inner_size(650.0, 500.0)
-    .resizable(true)
-    .center()
-    .always_on_top(false)
-    .focused(true)
-    .skip_taskbar(false)
-    .decorations(true)
-    .transparent(false)
+    );
+
+    #[cfg(not(target_os = "ios"))]
+    {
+        window_builder = window_builder
+            .title("Keyboard Shortcuts")
+            .inner_size(750.0, 600.0)
+            .min_inner_size(650.0, 500.0)
+            .resizable(true)
+            .center()
+            .always_on_top(false)
+            .focused(true)
+            .skip_taskbar(false)
+            .decorations(true)
+            .transparent(false);
+    }
+
+    window_builder
     .build()
     .map_err(|e| e.to_string())?;
 
@@ -336,42 +365,55 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
         };
 
         // Create new float window
-        let window = WebviewWindowBuilder::new(
+        let mut window_builder = WebviewWindowBuilder::new(
             &app,
             window_label,
             webview_url
-        )
-        .title("New Note")
-        .inner_size(360.0, 480.0)
-        .min_inner_size(320.0, 240.0)
-        .resizable(true)
-        .center()
-        .always_on_top(false)
-        .focused(true)
-        .skip_taskbar(false)
-        .decorations(false)
-        .transparent(true)
+        );
+
+        #[cfg(not(target_os = "ios"))]
+        {
+            window_builder = window_builder
+                .title("New Note")
+                .inner_size(360.0, 480.0)
+                .min_inner_size(320.0, 240.0)
+                .resizable(true)
+                .center()
+                .always_on_top(false)
+                .focused(true)
+                .skip_taskbar(false)
+                .decorations(false)
+                .transparent(true);
+        }
+
+        let window = window_builder
         .build()
         .map_err(|e| e.to_string())?;
 
         // Ensure window is shown and focused
-        let _ = window.show();
-        let _ = window.set_focus();
+        #[cfg(not(target_os = "ios"))]
+        {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
 
         return Ok(());
     }
 
     // Float windows exist, toggle their visibility
-    let any_visible = float_windows.iter()
-        .any(|w| w.is_visible().unwrap_or(false));
+    #[cfg(not(target_os = "ios"))]
+    {
+        let any_visible = float_windows.iter()
+            .any(|w| w.is_visible().unwrap_or(false));
 
-    // Toggle all float windows based on current state
-    for window in float_windows {
-        if any_visible {
-            let _ = window.hide();
-        } else {
-            let _ = window.show();
-            let _ = window.set_focus();
+        // Toggle all float windows based on current state
+        for window in float_windows {
+            if any_visible {
+                let _ = window.hide();
+            } else {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
         }
     }
 
@@ -504,12 +546,18 @@ async fn reset_shortcut_settings(app: tauri::AppHandle) -> Result<ShortcutSettin
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .manage(MainWindowMenuItem(Mutex::new(None)))
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_opener::init());
+
+    #[cfg(not(target_os = "ios"))]
+    let builder = builder.plugin(tauri_plugin_global_shortcut::Builder::new().build());
+
+    let builder = builder
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_dialog::init());
+
+    builder
         .invoke_handler(tauri::generate_handler![
             toggle_window,
             create_note,
@@ -540,6 +588,8 @@ pub fn run() {
             save_tag_merge_strategy,
         ])
         .setup(|app| {
+            #[cfg(not(target_os = "ios"))]
+            {
             // Create menu with AI toggle
             let store = app.store("settings.json").unwrap();
             let ai_enabled = store.get("ai_enabled")
@@ -568,10 +618,10 @@ pub fn run() {
                 .item(&PredefinedMenuItem::quit(app, None)?)
                 .build()?;
 
-            // Create Edit menu with standard clipboard operations
-            // NOTE: PredefinedMenuItem is REQUIRED for macOS to properly route keyboard shortcuts
-            // Without these menu items, macOS intercepts Cmd+C/X/V/A at the system level
-            // and the shortcuts never reach the WebView or our keyboard handlers
+            // Create Edit menu with clipboard operations
+            // NOTE: Cut/Copy/Paste MUST use PredefinedMenuItem to allow macOS to route shortcuts
+            // to the WebView. However, Select All is handled in JavaScript to work around
+            // Plate.js shadow input capturing the selection (see RenderingWysiwygEditor.tsx)
             let edit_menu = SubmenuBuilder::new(app, "Edit")
                 .item(&PredefinedMenuItem::undo(app, None)?)
                 .item(&PredefinedMenuItem::redo(app, None)?)
@@ -579,8 +629,6 @@ pub fn run() {
                 .item(&PredefinedMenuItem::cut(app, None)?)
                 .item(&PredefinedMenuItem::copy(app, None)?)
                 .item(&PredefinedMenuItem::paste(app, None)?)
-                .separator()
-                .item(&PredefinedMenuItem::select_all(app, None)?)
                 .build()?;
 
             // Load shortcut settings to build menu with correct accelerators
@@ -835,12 +883,20 @@ pub fn run() {
                     _ => {}
                 }
             });
-            
+            }
+
+            #[cfg(target_os = "ios")]
+            {
+                let _ = app; // Suppress unused variable warning
+            }
+
             Ok(())
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
+            #[cfg(not(target_os = "ios"))]
+            {
             match event {
                 // Prevent app from exiting when last window is closed (macOS behavior)
                 // Only Cmd+Q (Quit menu) should exit the app
@@ -868,6 +924,11 @@ pub fn run() {
                     }
                 }
                 _ => {}
+            }
+            }
+            #[cfg(target_os = "ios")]
+            {
+                let _ = (app_handle, event); // Suppress unused variable warnings
             }
         });
 }

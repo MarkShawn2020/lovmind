@@ -390,23 +390,37 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
         // Handle Cmd+A (Select All) - prevent shadow input from capturing selection
         if (isMod && e.key === 'a') {
-          console.log('[SelectAll] Cmd+A detected - preventing shadow input capture');
+          console.log('[SelectAll] ===== Cmd+A detected =====');
+          console.log('[SelectAll] Event target:', target.tagName, target.className);
+          console.log('[SelectAll] Preventing default to stop shadow input capture');
           e.preventDefault();
+          e.stopPropagation();
+
           try {
             const startPoint = editor.api.start([]);
             const endPoint = editor.api.end([]);
-            console.log('[SelectAll] - Start:', startPoint, 'End:', endPoint);
+            console.log('[SelectAll] Start point:', startPoint);
+            console.log('[SelectAll] End point:', endPoint);
 
             if (startPoint && endPoint) {
-              editor.tf.select(editor.api.range(startPoint, endPoint));
+              const range = editor.api.range(startPoint, endPoint);
+              editor.tf.select(range);
               editor.tf.focus();
-              console.log('[SelectAll] - Plate.js selection set');
+              console.log('[SelectAll] ✓ Plate.js selection set:', range);
             }
           } catch (error) {
-            console.error('[SelectAll] Failed:', error);
+            console.error('[SelectAll] ✗ Failed to set Plate.js selection:', error);
           }
+
+          // Also set DOM selection to match
           selectDomRange();
-          console.log('[SelectAll] - DOM range selected');
+
+          // Verify final selection state
+          setTimeout(() => {
+            console.log('[SelectAll] Final editor selection:', editor.selection);
+            console.log('[SelectAll] Final DOM selection:', window.getSelection()?.toString().substring(0, 50));
+          }, 100);
+
           return;
         }
       };
