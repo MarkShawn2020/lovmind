@@ -567,18 +567,14 @@ pub fn run() {
                 .item(&PredefinedMenuItem::quit(app, None)?)
                 .build()?;
 
-            // Create Edit menu with standard clipboard operations for macOS
-            // NOTE: These menu items trigger the browser's native clipboard events,
-            // which Plate.js handles automatically for proper cross-editor copy/paste
+            // Create Edit menu with undo/redo only
+            // NOTE: We do NOT include cut/copy/paste/select-all because:
+            // 1. PredefinedMenuItem bypasses browser's ClipboardEvent in Tauri
+            // 2. This prevents Plate.js from serializing rich content to clipboard
+            // 3. Manual keyboard handlers in RenderingWysiwygEditor handle clipboard properly
             let edit_menu = SubmenuBuilder::new(app, "Edit")
                 .item(&PredefinedMenuItem::undo(app, None)?)
                 .item(&PredefinedMenuItem::redo(app, None)?)
-                .separator()
-                .item(&PredefinedMenuItem::cut(app, None)?)
-                .item(&PredefinedMenuItem::copy(app, None)?)
-                .item(&PredefinedMenuItem::paste(app, None)?)
-                .separator()
-                .item(&PredefinedMenuItem::select_all(app, None)?)
                 .build()?;
 
             // Load shortcut settings to build menu with correct accelerators

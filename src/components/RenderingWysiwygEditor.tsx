@@ -3,6 +3,7 @@
 import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
+import { serializeMd } from '@platejs/markdown';
 
 import { EditorKitWithoutFixedToolbar } from '@/components/editor/editor-kit';
 import { Editor, EditorContainer } from '@/components/ui/editor';
@@ -360,40 +361,183 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       };
     }, []);
 
-    // Handle Cmd+A to properly select all content and prevent shadow input issue
+    // Handle clipboard operations manually since Tauri's PredefinedMenuItem bypasses browser events
     useEffect(() => {
-      const handleSelectAll = (e: KeyboardEvent) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
-          // Check if the event target is within the editor
-          const target = e.target as HTMLElement;
-          if (!editorContainerRef.current?.contains(target)) {
-            return; // Not our editor, ignore
-          }
+      const handleKeyDown = (e: KeyboardEvent) => {
+        // Check if the event target is within the editor
+        const target = e.target as HTMLElement;
+        if (!editorContainerRef.current?.contains(target)) {
+          return; // Not our editor, ignore
+        }
 
-          // Prevent default to avoid shadow input focus
+        const isMod = e.metaKey || e.ctrlKey;
+
+        // Handle Cmd+A (Select All)
+        if (isMod && e.key === 'a') {
           e.preventDefault();
 
           // Select all content using Slate API
           try {
-            // Create range from start to end of document
             const startPoint = editor.api.start([]);
             const endPoint = editor.api.end([]);
 
             if (startPoint && endPoint) {
               editor.tf.select(editor.api.range(startPoint, endPoint));
-              // Ensure editor has focus
               editor.tf.focus();
             }
           } catch (error) {
-            console.error('[SelectAll] Failed to select all:', error);
+            console.error('[SelectAll] Failed:', error);
           }
+        }
+
+        // Handle Cmd+C (Copy)
+        if (isMod && e.key === 'c') {
+          e.preventDefault();
+
+          try {
+            // Get selected fragment (or entire document if no selection)
+            let fragment: any[] = [];
+
+            if (editor.selection) {
+              // Use editor's getFragment method
+              const getFragment = (editor as any).getFragment;
+              if (typeof getFragment === 'function') {
+                fragment = getFragment();
+              }
+            }
+
+            // Fallback to entire document if fragment is empty
+            if (!fragment || fragment.length === 0) {
+              fragment = editor.children as any[];
+            }
+
+            if (!fragment || fragment.length === 0) {
+              console.warn('[Copy] No content to copy');
+              return;
+            }
+
+            // Serialize to multiple formats for compatibility
+            const plainText = serializeMd(editor as any, { value: fragment });
+
+            // Encode Slate fragment for perfect fidelity on paste
+            const encoded = window.btoa(encodeURIComponent(JSON.stringify(fragment)));
+
+            // Write to clipboard using ClipboardItem API
+            const clipboardData: Record<string, Blob> = {
+              'text/plain': new Blob([plainText], { type: 'text/plain' }),
+              'application/x-slate-fragment': new Blob([encoded], { type: 'application/x-slate-fragment' }),
+            };
+
+            const item = new ClipboardItem(clipboardData);
+            navigator.clipboard.write([item]).catch((err) => {
+              console.error('[Copy] Clipboard write failed:', err);
+              // Fallback to plain text
+              navigator.clipboard.writeText(plainText);
+            });
+
+            console.log('[Copy] Successfully copied to clipboard');
+          } catch (error) {
+            console.error('[Copy] Failed:', error);
+          }
+        }
+
+        // Handle Cmd+X (Cut)
+        if (isMod && e.key === 'x') {
+          e.preventDefault();
+
+          try {
+            // First copy
+            if (editor.selection) {
+              let fragment: any[] = [];
+
+              const getFragment = (editor as any).getFragment;
+              if (typeof getFragment === 'function') {
+                fragment = getFragment();
+              }
+
+              if (fragment && fragment.length > 0) {
+                const plainText = serializeMd(editor as any, { value: fragment });
+                const encoded = window.btoa(encodeURIComponent(JSON.stringify(fragment)));
+
+                const clipboardData: Record<string, Blob> = {
+                  'text/plain': new Blob([plainText], { type: 'text/plain' }),
+                  'application/x-slate-fragment': new Blob([encoded], { type: 'application/x-slate-fragment' }),
+                };
+
+                const item = new ClipboardItem(clipboardData);
+                navigator.clipboard.write([item]).catch((err) => {
+                  console.error('[Cut] Clipboard write failed:', err);
+                  navigator.clipboard.writeText(plainText);
+                });
+
+                // Then delete selected content
+                editor.tf.delete();
+                console.log('[Cut] Successfully cut to clipboard');
+              }
+            }
+          } catch (error) {
+            console.error('[Cut] Failed:', error);
+          }
+        }
+
+        // Handle Cmd+V (Paste)
+        if (isMod && e.key === 'v') {
+          e.preventDefault();
+
+          navigator.clipboard.read().then((items) => {
+            for (const item of items) {
+              // Try to read Slate fragment first (perfect fidelity)
+              if (item.types.includes('application/x-slate-fragment')) {
+                item.getType('application/x-slate-fragment').then((blob) => {
+                  blob.text().then((encoded) => {
+                    try {
+                      const decoded = JSON.parse(decodeURIComponent(window.atob(encoded)));
+                      editor.tf.insertNodes(decoded);
+                      console.log('[Paste] Pasted Slate fragment');
+                    } catch (error) {
+                      console.error('[Paste] Failed to parse Slate fragment:', error);
+                    }
+                  });
+                });
+                return;
+              }
+
+              // Fallback to HTML
+              if (item.types.includes('text/html')) {
+                item.getType('text/html').then((blob) => {
+                  blob.text().then((html) => {
+                    // TODO: Use Plate.js HTML deserializer
+                    console.log('[Paste] Got HTML, need to deserialize');
+                  });
+                });
+                return;
+              }
+
+              // Fallback to plain text
+              if (item.types.includes('text/plain')) {
+                item.getType('text/plain').then((blob) => {
+                  blob.text().then((text) => {
+                    editor.tf.insertText(text);
+                    console.log('[Paste] Pasted plain text');
+                  });
+                });
+                return;
+              }
+            }
+          }).catch((err) => {
+            console.error('[Paste] Clipboard read failed:', err);
+            // Fallback to readText
+            navigator.clipboard.readText().then((text) => {
+              editor.tf.insertText(text);
+            });
+          });
         }
       };
 
-      document.addEventListener('keydown', handleSelectAll);
+      document.addEventListener('keydown', handleKeyDown);
 
       return () => {
-        document.removeEventListener('keydown', handleSelectAll);
+        document.removeEventListener('keydown', handleKeyDown);
       };
     }, [editor]);
 
