@@ -90,7 +90,9 @@ const HashtagAutoformatPlugin = createSlatePlugin({
 });
 
 export const HashtagKit = [
-  BaseHashtagPlugin.withComponent(HashtagElement),
+  BaseHashtagPlugin.configure({
+    render: { node: HashtagElement },
+  }),
   HashtagAutoformatPlugin,
 ];
 

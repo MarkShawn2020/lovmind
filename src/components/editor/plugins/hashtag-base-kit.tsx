@@ -1,6 +1,7 @@
 'use client';
 
 import { createSlatePlugin, type TElement } from 'platejs';
+import { HashtagElementStatic } from '@/components/ui/hashtag-node-static';
 
 export const HASHTAG_KEY = 'hashtag' as const;
 
@@ -21,4 +22,4 @@ export const BaseHashtagPlugin = createSlatePlugin({
   },
 });
 
-export const BaseHashtagKit = [BaseHashtagPlugin];
+export const BaseHashtagKit = [BaseHashtagPlugin.withComponent(HashtagElementStatic)];

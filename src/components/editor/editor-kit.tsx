@@ -38,6 +38,10 @@ import { SuggestionKit } from '@/components/editor/plugins/suggestion-kit';
 import { TableKit } from '@/components/editor/plugins/table-kit';
 import { TocKit } from '@/components/editor/plugins/toc-kit';
 import { ToggleKit } from '@/components/editor/plugins/toggle-kit';
+import { HashtagTransformsPlugin } from '@/utils/hashtag-transforms';
+import { InputStatePlugin } from '@/components/editor/plugins/input-state-kit';
+import { TauriClipboardPlugin } from '@/components/editor/plugins/tauri-clipboard-kit';
+import { KeyboardShortcutsPlugin } from '@/components/editor/plugins/keyboard-shortcuts-kit';
 
 export const EditorKit = [
   // AI features temporarily disabled (no backend API implemented)
@@ -91,6 +95,12 @@ export const EditorKit = [
   ...BlockPlaceholderKit,
   ...FixedToolbarKit,
   ...FloatingToolbarKit,
+
+  // API Extensions & Custom Plugins
+  HashtagTransformsPlugin,
+  InputStatePlugin,
+  TauriClipboardPlugin,
+  KeyboardShortcutsPlugin,
 ];
 
 // EditorKit without FixedToolbar for manual layout control
