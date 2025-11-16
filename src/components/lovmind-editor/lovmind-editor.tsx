@@ -48,6 +48,7 @@ export interface LovmindEditorRef {
   insertTag: (tag: string) => void;
   removeTag: (tag: string) => void;
   renameTag: (oldTag: string, newTag: string) => void;
+  editor: any; // Expose editor instance for sync content extraction
 }
 
 const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
@@ -124,6 +125,7 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       insertTag: (tag: string) => (editor.api as any).hashtag.insert(tag),
       removeTag: (tag: string) => (editor.api as any).hashtag.remove(tag),
       renameTag: (oldTag: string, newTag: string) => (editor.api as any).hashtag.rename(oldTag, newTag),
+      editor, // Expose editor for sync content extraction
     }), [editor]);
 
     return (

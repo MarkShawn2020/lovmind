@@ -92,8 +92,37 @@ function MainWindow() {
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    const hasTypedContent = typeof editorContent.text === 'string' && Boolean(editorContent.text.trim());
-    if (!hasTypedContent && editorContent.isEmpty) {
+    // Extract fresh content synchronously from editor to avoid race conditions
+    // This ensures we get the latest typed content even if the atom hasn't updated yet
+    let currentContent = editorContent;
+
+    if (editorRef.current?.editor) {
+      try {
+        const editor = editorRef.current.editor;
+        if (editor?.children) {
+          const { extractTextContent } = await import('./utils/extract-text-content');
+          const { isEditorContentEmpty } = await import('./utils/is-editor-content-empty');
+
+          const { text, tags } = extractTextContent(editor.children);
+          const isEmpty = isEditorContentEmpty(editor.children);
+
+          currentContent = {
+            text,
+            tags,
+            richContent: editor.children,
+            isEmpty,
+            sourceNoteId: editorContent.sourceNoteId,
+          };
+
+          console.log('📝 Sync extracted content from editor:', { text, tags, isEmpty });
+        }
+      } catch (error) {
+        console.warn('Failed to extract sync content, using atom:', error);
+      }
+    }
+
+    const hasTypedContent = typeof currentContent.text === 'string' && Boolean(currentContent.text.trim());
+    if (!hasTypedContent && currentContent.isEmpty) {
       return;
     }
 
@@ -104,12 +133,12 @@ function MainWindow() {
         if (existingNote) {
           const updatedNote: Note = {
             ...existingNote,
-            text: editorContent.text,
-            tags: editorContent.tags,
-            richContent: editorContent.richContent,
+            text: currentContent.text,
+            tags: currentContent.tags,
+            richContent: currentContent.richContent,
             title: existingNote.manualTitle
               ? existingNote.title
-              : extractNoteTitle({ text: editorContent.text, richContent: editorContent.richContent }),
+              : extractNoteTitle({ text: currentContent.text, richContent: currentContent.richContent }),
             time: new Date().toLocaleString(),
           };
 
@@ -120,11 +149,11 @@ function MainWindow() {
         // Create new note
         const newNote: Note = {
           id: Date.now().toString(),
-          text: editorContent.text,
-          title: extractNoteTitle({ text: editorContent.text, richContent: editorContent.richContent }),
+          text: currentContent.text,
+          title: extractNoteTitle({ text: currentContent.text, richContent: currentContent.richContent }),
           time: new Date().toLocaleString(),
-          tags: editorContent.tags,
-          richContent: editorContent.richContent,
+          tags: currentContent.tags,
+          richContent: currentContent.richContent,
           pinned: false,
           archived: false,
           favorite: false,
