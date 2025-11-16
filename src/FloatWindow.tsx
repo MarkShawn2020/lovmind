@@ -165,7 +165,6 @@ function FloatWindow() {
       editor={
         <div ref={editorContainerRef}>
           <RenderingWysiwygEditor
-            ref={controlledEditorRef}
             initialContent={content}
             initialRichContent={richContent}
             onChange={handleContentChange}

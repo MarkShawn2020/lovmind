@@ -319,7 +319,6 @@ function App() {
         <div ref={editorContainerRef}>
           <RenderingWysiwygEditor
             key={viewingNoteId || 'create-mode'}
-            ref={editorRef}
             initialContent={content}
             initialRichContent={richContent}
             onChange={handleContentChange}
