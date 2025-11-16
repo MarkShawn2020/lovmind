@@ -198,7 +198,7 @@ function FloatWindow() {
   }, [openNoteInNewWindow]);
 
   const sidebarNode = (
-    <div ref={notesListRef}>
+    <div ref={notesListRef} className="h-full">
       <NotesSidebar
         notes={notes}
         currentNoteId={noteId ?? undefined}
