@@ -77,44 +77,21 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       value: initialValue,
     });
 
-    // Track loaded rich content to detect external changes
-    const loadedRichContentRef = useRef<Value | null>(null);
-    const isInitialMountRef = useRef(true);
+    // Track loaded note ID to detect note changes (only update on external note changes)
+    const loadedNoteIdRef = useRef<string | null | undefined>(undefined);
 
-    // Update editor value when note content changes (external change, not user typing)
+    // Update editor value ONLY when switching to a different note
+    // Do NOT update on every editorContentAtom change (which happens during typing)
     useEffect(() => {
+      // Check if noteId has actually changed
+      if (loadedNoteIdRef.current === noteId) {
+        return;
+      }
+
+      loadedNoteIdRef.current = noteId;
+
+      // Get the content to load
       const richContent = editorContent.richContent;
-
-      // On initial mount, just record the content and skip
-      // (initialValue already set in usePlateEditor)
-      if (isInitialMountRef.current) {
-        isInitialMountRef.current = false;
-        loadedRichContentRef.current = richContent;
-        console.log('[LovmindEditor] Initial mount with noteId:', noteId);
-        return;
-      }
-
-      // Skip if content hasn't changed (reference equality check)
-      if (loadedRichContentRef.current === richContent) {
-        return;
-      }
-
-      // Compare actual editor content with new content to avoid unnecessary setValue
-      // This prevents loops where setValue triggers events that update the atom
-      const currentEditorContent = editor.children as Value;
-      const currentEditorText = JSON.stringify(currentEditorContent);
-      const newContentText = JSON.stringify(richContent);
-
-      if (currentEditorText === newContentText) {
-        console.log('[LovmindEditor] Editor content already matches, skipping setValue');
-        loadedRichContentRef.current = richContent;
-        return;
-      }
-
-      // Update the loaded content ref
-      loadedRichContentRef.current = richContent;
-
-      // Get the new value to display
       const newValue = richContent && !isEditorContentEmpty(richContent)
         ? richContent
         : createInitialValue('');
@@ -122,8 +99,8 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       // Update editor value using Plate's API
       editor.tf.setValue(newValue);
 
-      console.log('[LovmindEditor] Updated editor value for noteId:', noteId);
-    }, [editorContent.richContent, editor, noteId]);
+      console.log('[LovmindEditor] Loaded note:', noteId);
+    }, [noteId, editorContent.richContent, editor]);
 
     // Sync editor content to atoms
     const { handleContentChange } = useEditorSync();
