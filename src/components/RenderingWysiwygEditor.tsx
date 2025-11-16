@@ -431,8 +431,8 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
         console.log('[Clipboard] - Selection:', editor.selection);
 
-        // Check if we're in Tauri and have a selection
-        const isTauri = typeof window.__TAURI__ !== 'undefined';
+        // Check if we're in Tauri (v2 uses __TAURI_INTERNALS__ or isTauri property)
+        const isTauri = '__TAURI_INTERNALS__' in window || 'isTauri' in window;
         console.log('[Clipboard] - Is Tauri?', isTauri);
         console.log('[Clipboard] - Has selection?', editor.selection !== null);
 
@@ -479,11 +479,11 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       };
 
       const handleCut = async (e: ClipboardEvent) => {
-        console.log('[Clipboard] Cut event fired');
+        console.log('[Clipboard] ===== Cut event fired =====');
         console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
         console.log('[Clipboard] - Selection:', editor.selection);
 
-        const isTauri = typeof window.__TAURI__ !== 'undefined';
+        const isTauri = '__TAURI_INTERNALS__' in window || 'isTauri' in window;
         if (!isTauri || !editor.selection) {
           return;
         }
@@ -517,10 +517,10 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       };
 
       const handlePaste = async (e: ClipboardEvent) => {
-        console.log('[Clipboard] Paste event fired');
+        console.log('[Clipboard] ===== Paste event fired =====');
         console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
 
-        const isTauri = typeof window.__TAURI__ !== 'undefined';
+        const isTauri = '__TAURI_INTERNALS__' in window || 'isTauri' in window;
         if (!isTauri) {
           if (e.clipboardData) {
             console.log('[Clipboard] - Types:', e.clipboardData.types);
@@ -554,7 +554,9 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
       // Log environment info once
       console.log('[Clipboard] Environment:');
-      console.log('[Clipboard] - Tauri:', typeof window.__TAURI__ !== 'undefined');
+      console.log('[Clipboard] - Tauri (v2):', '__TAURI_INTERNALS__' in window || 'isTauri' in window);
+      console.log('[Clipboard] - __TAURI_INTERNALS__:', '__TAURI_INTERNALS__' in window);
+      console.log('[Clipboard] - window.isTauri:', 'isTauri' in window);
       console.log('[Clipboard] - Clipboard API:', typeof navigator.clipboard);
 
       return () => {
