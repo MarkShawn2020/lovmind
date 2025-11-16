@@ -4,7 +4,6 @@ import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { useAtom, useSetAtom } from 'jotai';
 
-import './App.css';
 import { isTauri } from './utils/tauri';
 import { notesAtom, Note, imageMaxHeightAtom } from './store';
 import RenderingWysiwygEditor from './components/RenderingWysiwygEditor';

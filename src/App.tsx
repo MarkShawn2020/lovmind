@@ -4,7 +4,6 @@ import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from "
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-import "./App.css";
 import { isTauri } from "./utils/tauri";
 import { notesAtom, Note, imageMaxHeightAtom } from "./store";
 import { NotesSidebar } from "./components/NotesSidebar";
