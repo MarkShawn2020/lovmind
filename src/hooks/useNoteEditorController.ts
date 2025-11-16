@@ -15,6 +15,7 @@ import { useWindowOperations } from '@/hooks/useWindowOperations';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useTagMergeStrategy } from '@/hooks/useTagMergeStrategy';
 import type { NoteStatsSummary } from '@/features/note/types';
+import { extractNoteTitle } from '@/utils/titleExtractor';
 
 interface UseNoteEditorControllerOptions {
   mode: 'main' | 'float';
@@ -257,7 +258,9 @@ export const useNoteEditorController = ({
         const updatedNote: Note = {
           ...currentNote,
           text: payload.text,
-          title: payload.text.split('\n')[0].substring(0, 50) || 'Untitled Note',
+          title: currentNote.manualTitle
+            ? currentNote.title // Keep manual title
+            : extractNoteTitle({ text: payload.text, richContent: payload.richContent }),
           time: new Date().toLocaleString(),
           tags: payload.tags.length > 0 ? payload.tags : currentNote.tags,
           richContent: payload.richContent,
@@ -287,7 +290,9 @@ export const useNoteEditorController = ({
         const updatedNote: Note = {
           ...currentNote,
           text: payload.text,
-          title: payload.text.split('\n')[0].substring(0, 50) || 'Untitled Note',
+          title: currentNote.manualTitle
+            ? currentNote.title // Keep manual title
+            : extractNoteTitle({ text: payload.text, richContent: payload.richContent }),
           time: new Date().toLocaleString(),
           tags: payload.tags.length > 0 ? payload.tags : currentNote.tags,
           richContent: payload.richContent,
@@ -315,7 +320,9 @@ export const useNoteEditorController = ({
       const updatedNote: Note = {
         ...currentNote,
         text: content,
-        title: content.split('\n')[0].substring(0, 50) || 'Untitled Note',
+        title: currentNote.manualTitle
+          ? currentNote.title // Keep manual title
+          : extractNoteTitle({ text: content, richContent }),
         time: new Date().toLocaleString(),
         tags: currentTags.length > 0 ? currentTags : currentNote.tags,
         richContent: richContent,
@@ -331,8 +338,11 @@ export const useNoteEditorController = ({
     }
 
     if (mode === 'main') {
-      const firstLine = content ? content.split("\n")[0].substring(0, 50) : "Image Note";
-      const title = firstLine || "Untitled Note";
+      const title = extractNoteTitle({
+        text: content || "",
+        richContent,
+        fallback: content ? "Untitled Note" : "Image Note"
+      });
       const tags = currentTags.length > 0 ? currentTags : [];
 
       const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
@@ -346,6 +356,7 @@ export const useNoteEditorController = ({
         tags,
         richContent: richContent,
         rank: newRank,
+        manualTitle: false, // Auto-generated title
       };
 
       setNotes([...notes, newNote]);
@@ -390,7 +401,9 @@ export const useNoteEditorController = ({
       const updatedNote: Note = {
         ...currentNote,
         text: content,
-        title: content.split('\n')[0].substring(0, 50) || 'Untitled Note',
+        title: currentNote.manualTitle
+          ? currentNote.title // Keep manual title
+          : extractNoteTitle({ text: content, richContent }),
         time: new Date().toLocaleString(),
         tags: currentTags.length > 0 ? currentTags : currentNote.tags,
         richContent: richContent,
@@ -478,6 +491,7 @@ export const useNoteEditorController = ({
     const updatedNote: Note = {
       ...currentNote,
       title: editingTitle.trim(),
+      manualTitle: true, // Mark as manually edited
     };
 
     try {
@@ -512,7 +526,9 @@ export const useNoteEditorController = ({
         const updatedNote: Note = {
           ...currentNote,
           text: content,
-          title: content.split('\n')[0].substring(0, 50) || 'Untitled Note',
+          title: currentNote.manualTitle
+            ? currentNote.title // Keep manual title
+            : extractNoteTitle({ text: content, richContent }),
           time: new Date().toLocaleString(),
           tags: currentTags.length > 0 ? currentTags : currentNote.tags,
           richContent: richContent,

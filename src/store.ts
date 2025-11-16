@@ -14,6 +14,7 @@ export interface Note {
   archived?: boolean;
   richContent?: any; // Plate.js Value (JSON) for rich text with images
   rank?: number; // Pre-assigned rank for consistent display across windows
+  manualTitle?: boolean; // If true, title was manually edited and should not be auto-updated
 }
 
 // Check if running in Tauri environment
