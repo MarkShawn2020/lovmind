@@ -550,10 +550,10 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
             >
-              {/* Auto-save toast - positioned in content area, isolated from toolbar */}
+              {/* Auto-save toast - fixed positioning below header to stay visible when scrolled */}
               {showAutoSaveToast && (
                 <div
-                  className="absolute top-2 right-2 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
+                  className="fixed top-[68px] right-2 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
                   role="status"
                   aria-live="polite"
                 >
