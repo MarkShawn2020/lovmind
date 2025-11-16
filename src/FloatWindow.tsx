@@ -14,7 +14,6 @@ import { EditorLayout } from './components/note-editor/EditorLayout';
 import { FloatHeader } from './components/note-editor/FloatHeader';
 import { useNoteEditorController } from './hooks/useNoteEditorController';
 import type { RenderingWysiwygEditorRef } from './components/RenderingWysiwygEditor';
-import { Toaster } from './components/ui/sonner';
 
 function FloatWindow() {
   const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
@@ -228,45 +227,42 @@ function FloatWindow() {
 
   console.log('[Perf] FloatWindow rendering layout with noteId:', noteId);
   return (
-    <>
-      <EditorLayout
-        header={
-          <FloatHeader
-            currentNote={currentNote}
-            notes={notes}
-            isEditingTitle={isEditingTitle}
-            editingTitle={editingTitle}
-            onTitleChange={handleTitleChange}
-            onStartEditingTitle={handleStartEditingTitle}
-            onCancelEditingTitle={handleCancelEditingTitle}
-            onSaveTitle={handleSaveTitle}
-            onHeaderMouseDown={handleHeaderMouseDown}
-            isWindowAlwaysOnTop={isWindowAlwaysOnTop}
-            onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
-            onCloseWindow={handleFloatWindowClose}
-          />
-        }
-        sidebar={sidebarNode}
-        editor={editorNode}
-        toolbar={
-          <EditorToolbar
-            mode="float"
-            onSubmit={handleSubmit}
-            submitDisabled={submitDisabled}
-            currentTags={currentTags}
-            allNotes={notes}
-            editorRef={controlledEditorRef}
-            onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          />
-        }
-        userMenu={null}
-        profileModal={null}
-        aboutModal={null}
-        isMobileSidebarOpen={isMobileSidebarOpen}
-        onMobileSidebarChange={setIsMobileSidebarOpen}
-      />
-      <Toaster position="bottom-center" />
-    </>
+    <EditorLayout
+      header={
+        <FloatHeader
+          currentNote={currentNote}
+          notes={notes}
+          isEditingTitle={isEditingTitle}
+          editingTitle={editingTitle}
+          onTitleChange={handleTitleChange}
+          onStartEditingTitle={handleStartEditingTitle}
+          onCancelEditingTitle={handleCancelEditingTitle}
+          onSaveTitle={handleSaveTitle}
+          onHeaderMouseDown={handleHeaderMouseDown}
+          isWindowAlwaysOnTop={isWindowAlwaysOnTop}
+          onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
+          onCloseWindow={handleFloatWindowClose}
+        />
+      }
+      sidebar={sidebarNode}
+      editor={editorNode}
+      toolbar={
+        <EditorToolbar
+          mode="float"
+          onSubmit={handleSubmit}
+          submitDisabled={submitDisabled}
+          currentTags={currentTags}
+          allNotes={notes}
+          editorRef={controlledEditorRef}
+          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+        />
+      }
+      userMenu={null}
+      profileModal={null}
+      aboutModal={null}
+      isMobileSidebarOpen={isMobileSidebarOpen}
+      onMobileSidebarChange={setIsMobileSidebarOpen}
+    />
   );
 }
 
