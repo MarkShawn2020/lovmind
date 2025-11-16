@@ -148,42 +148,35 @@ function FloatWindowInner() {
     );
   }
 
-  // Show loading if currentNote not yet loaded
-  if (!currentNote) {
-    return (
-      <div className="app-container flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          {/* Animated spinner */}
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
+  // For blank notes (new note creation via Cmd+N):
+  // - Backend doesn't persist blank notes until user writes content (lib.rs:355)
+  // - currentNote will be null, but we should still render the editor
+  // - The note will be created and persisted on first submit
+  const isBlankNote = !currentNote && noteId;
 
-          {/* Loading text with pulse animation */}
-          <div className="animate-pulse text-lg font-medium">
-            Loading note data...
-          </div>
-
-          {/* Debug info (only in development) */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-6 text-xs text-muted-foreground space-y-1 opacity-50">
-              <div>Note ID: {noteId}</div>
-              <div>Notes count: {notes.length}</div>
-              <div>Current note ID: {currentNoteId || 'null'}</div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
+  if (isBlankNote) {
+    console.log('[FloatWindow] Rendering blank note (not persisted yet):', noteId);
+    // Continue to render the UI with empty/default values
   }
 
   // All hooks are called above, before any conditional returns
   // Now safe to render the full UI
 
+  // Create a fallback note object for blank notes
+  const displayNote = currentNote || {
+    id: noteId!,
+    title: 'New Note',
+    text: '',
+    time: new Date().toISOString(),
+    tags: [],
+    richContent: null,
+  };
+
   return (
     <EditorLayout
       header={
         <FloatHeader
-          currentNote={currentNote}
+          currentNote={displayNote}
           notes={notes}
           isEditingTitle={false}
           editingTitle={''}
@@ -226,7 +219,7 @@ function FloatWindowInner() {
       }
       editor={
         <LovmindEditor
-          key={currentNote?.id || 'loading'}
+          key={noteId || 'loading'}
           noteId={noteId}
           onSubmit={async () => {
             console.log('[FloatWindow] Submit triggered');
