@@ -219,7 +219,7 @@ function App() {
         onDeleteNote={deleteNote}
         onDuplicateNote={handleDuplicateNote}
         onCreateNewNote={handleBackToCreate}
-        isInViewingMode={!!viewingNoteId}
+        isCreateMode={!viewingNoteId}
       />
     </div>
   ), [notes, viewingNoteId, showArchived, handleOpenNoteInCurrentWindow, handleOpenNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote, handleBackToCreate]);

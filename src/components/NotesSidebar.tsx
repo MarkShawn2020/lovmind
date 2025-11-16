@@ -27,7 +27,7 @@ interface NotesSidebarProps {
   onDeleteNote: (id: string) => void | Promise<unknown>;
   onDuplicateNote: (note: Note) => void | Promise<unknown>;
   onCreateNewNote?: () => void;
-  isInViewingMode?: boolean;
+  isCreateMode?: boolean;
 }
 
 const NotesSidebarComponent = ({
@@ -41,43 +41,42 @@ const NotesSidebarComponent = ({
   onDeleteNote,
   onDuplicateNote,
   onCreateNewNote,
-  isInViewingMode = false,
+  isCreateMode = false,
 }: NotesSidebarProps) => {
   const [isPinnedCollapsed, setIsPinnedCollapsed] = useState(false);
 
-  if (notes.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 gap-5 h-full">
-        <div className="relative w-16 h-16">
-          <svg
-            className="w-full h-full text-primary opacity-20 drop-shadow-[0_8px_16px_rgba(0,0,0,0.1)] transition-[opacity,transform,color] duration-300 ease-in-out hover:opacity-35 hover:scale-105 floating-logo"
-            viewBox="0 0 986.05 1080"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <g fill="currentColor">
-              <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z" />
-              <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z" />
-              <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z" />
-            </g>
-          </svg>
-        </div>
-
-        <div className="flex flex-col items-center gap-2 opacity-0 animate-[fadeInUpCentered_0.5s_ease_forwards_0.15s]">
-          <h3 className="inline-flex items-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0">
-            <Sparkles size={16} className="text-primary icon-sparkle" />
-            开启灵感之旅
-          </h3>
-          <p className="text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0">
-            快捷键{' '}
-            <kbd className="inline-block px-1.5 py-0.5 text-xs font-mono bg-[var(--muted)] border border-[var(--border)] rounded mx-0.5">
-              ⌘N
-            </kbd>{' '}
-            随时唤起
-          </p>
-        </div>
+  // Empty state content
+  const emptyStateContent = (
+    <div className="flex flex-col items-center justify-center p-8 gap-5">
+      <div className="relative w-16 h-16">
+        <svg
+          className="w-full h-full text-primary opacity-20 drop-shadow-[0_8px_16px_rgba(0,0,0,0.1)] transition-[opacity,transform,color] duration-300 ease-in-out hover:opacity-35 hover:scale-105 floating-logo"
+          viewBox="0 0 986.05 1080"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <g fill="currentColor">
+            <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z" />
+            <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z" />
+            <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z" />
+          </g>
+        </svg>
       </div>
-    );
-  }
+
+      <div className="flex flex-col items-center gap-2 opacity-0 animate-[fadeInUpCentered_0.5s_ease_forwards_0.15s]">
+        <h3 className="inline-flex items-center gap-1.5 text-base font-semibold text-[var(--foreground)] m-0">
+          <Sparkles size={16} className="text-primary icon-sparkle" />
+          开启灵感之旅
+        </h3>
+        <p className="text-center text-[0.8125rem] text-[var(--muted-foreground)] m-0">
+          快捷键{' '}
+          <kbd className="inline-block px-1.5 py-0.5 text-xs font-mono bg-[var(--muted)] border border-[var(--border)] rounded mx-0.5">
+            ⌘N
+          </kbd>{' '}
+          随时唤起
+        </p>
+      </div>
+    </div>
+  );
 
   const filteredNotes = showArchived ? notes.filter(note => note.archived) : notes.filter(note => !note.archived);
 
@@ -260,50 +259,56 @@ const NotesSidebarComponent = ({
     <div className="flex flex-col h-full">
       {/* Scrollable Notes Area */}
       <div className="flex-1 overflow-y-auto p-[var(--spacing-s)] flex flex-col gap-2">
-        {/* Pinned Notes Section with Collapsible Header */}
-        {hasPinnedNotes && (
+        {notes.length === 0 ? (
+          emptyStateContent
+        ) : (
           <>
-            <button
-              onClick={() => setIsPinnedCollapsed(!isPinnedCollapsed)}
-              className="flex items-center justify-between w-full px-2.5 py-2 min-h-[44px] mb-1 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] rounded-[var(--radius)] transition-colors cursor-pointer border-none bg-transparent active:scale-[0.98] touch-manipulation"
-              type="button"
-            >
-              <div className="flex items-center gap-1.5">
-                <Pin size={12} className="text-[var(--primary)]" />
-                <span>置顶笔记</span>
-                <span className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full">
-                  {pinnedNotes.length}
-                </span>
-              </div>
-              {isPinnedCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-            </button>
+            {/* Pinned Notes Section with Collapsible Header */}
+            {hasPinnedNotes && (
+              <>
+                <button
+                  onClick={() => setIsPinnedCollapsed(!isPinnedCollapsed)}
+                  className="flex items-center justify-between w-full px-2.5 py-2 min-h-[44px] mb-1 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)] rounded-[var(--radius)] transition-colors cursor-pointer border-none bg-transparent active:scale-[0.98] touch-manipulation"
+                  type="button"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Pin size={12} className="text-[var(--primary)]" />
+                    <span>置顶笔记</span>
+                    <span className="text-[0.625rem] px-1.5 py-0.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full">
+                      {pinnedNotes.length}
+                    </span>
+                  </div>
+                  {isPinnedCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                </button>
 
-            {/* Pinned Notes List with Smooth Collapse Animation */}
-            <div
-              className="flex flex-col gap-2 transition-all duration-300 ease-in-out overflow-hidden py-1"
-              style={{
-                maxHeight: isPinnedCollapsed ? '0' : `${pinnedNotes.length * 98 + 8}px`,
-                opacity: isPinnedCollapsed ? 0 : 1,
-              }}
-            >
-              {pinnedNotes.map(renderNoteItem)}
-            </div>
+                {/* Pinned Notes List with Smooth Collapse Animation */}
+                <div
+                  className="flex flex-col gap-2 transition-all duration-300 ease-in-out overflow-hidden py-1"
+                  style={{
+                    maxHeight: isPinnedCollapsed ? '0' : `${pinnedNotes.length * 98 + 8}px`,
+                    opacity: isPinnedCollapsed ? 0 : 1,
+                  }}
+                >
+                  {pinnedNotes.map(renderNoteItem)}
+                </div>
 
-            {/* Divider between pinned and unpinned sections */}
-            {unpinnedNotes.length > 0 && (
-              <div className="my-3 flex items-center gap-2">
-                <div className="flex-1 h-px bg-[var(--border)]" />
-                <span className="text-[0.625rem] text-[var(--muted-foreground)] px-1">其他笔记</span>
-                <div className="flex-1 h-px bg-[var(--border)]" />
-              </div>
+                {/* Divider between pinned and unpinned sections */}
+                {unpinnedNotes.length > 0 && (
+                  <div className="my-3 flex items-center gap-2">
+                    <div className="flex-1 h-px bg-[var(--border)]" />
+                    <span className="text-[0.625rem] text-[var(--muted-foreground)] px-1">其他笔记</span>
+                    <div className="flex-1 h-px bg-[var(--border)]" />
+                  </div>
+                )}
+              </>
             )}
+
+            {/* Unpinned Notes Section */}
+            <div className="flex flex-col gap-2">
+              {unpinnedNotes.map(renderNoteItem)}
+            </div>
           </>
         )}
-
-        {/* Unpinned Notes Section */}
-        <div className="flex flex-col gap-2">
-          {unpinnedNotes.map(renderNoteItem)}
-        </div>
       </div>
 
       {/* New Note Button - Fixed at bottom, always visible in main window */}
@@ -311,25 +316,26 @@ const NotesSidebarComponent = ({
         <div className="flex-shrink-0 p-[var(--spacing-s)] pt-2 border-t border-border/40 bg-muted">
           <button
             onClick={onCreateNewNote}
-            className="
+            disabled={isCreateMode}
+            className={`
               w-full h-10 min-h-[44px] px-4
               rounded-xl
               border-none
-              bg-primary text-primary-foreground
               flex items-center justify-center gap-2
               font-medium text-sm
-              cursor-pointer
               transition-all duration-200 ease-out
               shadow-sm
-              hover:shadow-md hover:bg-primary/90
-              active:scale-[0.97]
               touch-manipulation
-            "
-            title={isInViewingMode ? "Create new note" : "New note"}
+              ${isCreateMode
+                ? 'bg-muted-foreground/20 text-muted-foreground cursor-not-allowed opacity-50'
+                : 'bg-primary text-primary-foreground cursor-pointer hover:shadow-md hover:bg-primary/90 active:scale-[0.97]'
+              }
+            `}
+            title={isCreateMode ? "Already in create mode" : "Create new note"}
             type="button"
           >
             <Plus size={16} strokeWidth={2.5} />
-            <span>{isInViewingMode ? "新建笔记" : "新建笔记"}</span>
+            <span>新建笔记</span>
           </button>
         </div>
       )}
