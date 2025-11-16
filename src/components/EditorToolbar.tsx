@@ -47,12 +47,12 @@ const TagsDisplay = memo(({
   if (tags.length === 0) {
     return (
       <div
-        className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground/60 cursor-pointer hover:bg-accent/50 rounded-lg transition-all duration-200"
+        className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground cursor-pointer hover:bg-accent/50 rounded-lg transition-all duration-200"
         onClick={onClick}
         role="button"
         tabIndex={0}
       >
-        <Tag size={14} strokeWidth={2} className="opacity-40" />
+        <Tag size={14} strokeWidth={2} className="opacity-60" />
         <span className="font-medium">Add tags</span>
       </div>
     );
@@ -182,7 +182,7 @@ const EditorToolbar = memo(({
     <div
       className={`
         flex-shrink-0
-        bg-background/95
+        bg-background
         border-t border-border/40
         flex justify-between items-center
         px-4 sm:px-6
