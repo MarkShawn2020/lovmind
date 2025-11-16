@@ -20,6 +20,7 @@ import { useWindowOperations } from "./hooks/useWindowOperations";
 import { useUserProfile } from "./hooks/useUserProfile";
 import { editorContentAtom, notesAtom } from "./atoms/noteAtoms";
 import { noteStatsAtom } from "./store";
+import { extractNoteTitle } from "./utils/titleExtractor";
 import type { LovmindEditorRef } from "@/components/lovmind-editor/lovmind-editor.tsx";
 import lovpenLogo from "./assets/lovpen-logo.svg";
 import packageJson from "../package.json";
@@ -58,7 +59,7 @@ function MainWindow() {
   const noteStats = useAtomValue(noteStatsAtom);
 
   // Business logic hooks (for toolbar and sidebar)
-  const { deleteNote, togglePin, toggleArchive } = useNoteOperations();
+  const { deleteNote, togglePin, toggleArchive, setNotes, updateNote } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
   const { userProfile } = useUserProfile();
 
@@ -96,10 +97,60 @@ function MainWindow() {
       return;
     }
 
-    // TODO: Implement submit logic using editorContent from atom
-    // This should create a new note or update existing note
-    console.log('[App] Submit:', editorContent);
-  }, [editorContent]);
+    try {
+      if (viewingNoteId) {
+        // Update existing note
+        const existingNote = notes.find(n => n.id === viewingNoteId);
+        if (existingNote) {
+          const updatedNote: Note = {
+            ...existingNote,
+            text: editorContent.text,
+            tags: editorContent.tags,
+            richContent: editorContent.richContent,
+            title: existingNote.manualTitle
+              ? existingNote.title
+              : extractNoteTitle({ text: editorContent.text, richContent: editorContent.richContent }),
+            time: new Date().toLocaleString(),
+          };
+
+          await updateNote(updatedNote);
+          console.log('✅ Note updated:', updatedNote.id);
+        }
+      } else {
+        // Create new note
+        const newNote: Note = {
+          id: Date.now().toString(),
+          text: editorContent.text,
+          title: extractNoteTitle({ text: editorContent.text, richContent: editorContent.richContent }),
+          time: new Date().toLocaleString(),
+          tags: editorContent.tags,
+          richContent: editorContent.richContent,
+          pinned: false,
+          archived: false,
+          favorite: false,
+        };
+
+        // Add to local state
+        setNotes((prevNotes) => [newNote, ...prevNotes]);
+
+        // Save to backend
+        if (isTauri()) {
+          try {
+            await invoke('store_temp_note', { note: newNote });
+            await invoke('broadcast_note_update', { note: newNote });
+            console.log('✅ Note created and broadcasted:', newNote.id);
+          } catch (error) {
+            console.error('Failed to save to backend:', error);
+          }
+        }
+
+        // Reset editor and return to create mode
+        editorRef.current?.resetAndFocus();
+      }
+    } catch (error) {
+      console.error('Failed to submit note:', error);
+    }
+  }, [editorContent, viewingNoteId, notes, setNotes, updateNote]);
 
   const handleBackToCreate = useCallback(async () => {
     // Auto-save is handled by useAutoSave hook in RenderingWysiwygEditor
