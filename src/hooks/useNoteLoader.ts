@@ -26,7 +26,7 @@ import type { Note } from '@/store';
  * const currentNote = useAtomValue(currentNoteAtom); // Auto-derived!
  * ```
  */
-export function useNoteLoader(noteId: string | null) {
+export function useNoteLoader(noteId: string | null | undefined) {
   const setCurrentNoteId = useSetAtom(currentNoteIdAtom);
   const setEditorContent = useSetAtom(editorContentAtom);
   const { notes } = useNoteOperations();

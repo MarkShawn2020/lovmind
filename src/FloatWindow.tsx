@@ -11,9 +11,6 @@ import { FloatHeader } from './components/note-editor/FloatHeader';
 import { useNoteEventSync } from './hooks/useNoteEventSync';
 import { useImageHeightSync } from './hooks/useImageHeightSync';
 import { useMobileSidebarState } from './hooks/useMobileSidebarState';
-import { useNoteLoader } from './hooks/useNoteLoader';
-import { useEditorSync } from './hooks/useEditorSync';
-import { useAutoSave } from './hooks/useAutoSave';
 import { useNoteOperations } from './hooks/useNoteOperations';
 import { useWindowOperations } from './hooks/useWindowOperations';
 import { currentNoteAtom, editorContentAtom, notesAtom } from './atoms/noteAtoms';
@@ -22,51 +19,37 @@ import type { RenderingWysiwygEditorRef } from './components/RenderingWysiwygEdi
 /**
  * FloatWindow Component (Refactored)
  *
- * Displays a floating editor window for editing a single note.
- * Uses Jotai atoms for state management instead of useNoteEditorController.
- *
- * Architecture:
- * - Reads note ID from URL params
- * - Uses useNoteLoader to load note into atoms
- * - Reads currentNote/editorContent from atoms (no local state!)
- * - Business logic in focused hooks (useEditorSync, useAutoSave, etc.)
- * - Pure rendering component
+ * Thin wrapper for floating editor window.
+ * All editor logic is handled by RenderingWysiwygEditor internally.
  */
 function FloatWindow() {
   const editorRef = useRef<RenderingWysiwygEditorRef | null>(null);
 
-  // Modular event hooks
+  // Event sync hooks
   useNoteEventSync();
   useImageHeightSync();
   const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
 
-  // Extract noteId from URL (once on mount)
+  // Extract noteId from URL
   const noteId = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('noteId');
-
     if (!id) {
       console.error('[FloatWindow] No noteId in URL parameters');
       return null;
     }
-
     console.log('[FloatWindow] Loading note with ID:', id);
     return id;
   }, []);
 
-  // Load note into atoms
-  useNoteLoader(noteId);
-
-  // Read from atoms (no local state!)
+  // Read from atoms (for UI display only)
   const currentNote = useAtomValue(currentNoteAtom);
   const editorContent = useAtomValue(editorContentAtom);
   const notes = useAtomValue(notesAtom);
 
-  // Business logic hooks
-  const { handleContentChange } = useEditorSync();
-  useAutoSave(); // Automatically saves on typing-stop
+  // Business logic hooks (for toolbar and sidebar)
   const { togglePin, toggleArchive, deleteNote } = useNoteOperations();
-  const { openNoteInNewWindow } = useWindowOperations(notes, () => {}); // setNotes not needed with atoms
+  const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
 
   // Auto-focus window and editor after mount
   useEffect(() => {
@@ -137,19 +120,12 @@ function FloatWindow() {
     [withSidebarClose, openNoteInNewWindow]
   );
 
-  // Note: We removed all handler functions that were extracted from useNoteEditorController
-  // They're now either in hooks or directly handled by child components reading atoms
-
-  console.log('[Perf] FloatWindow rendering layout with noteId:', noteId);
-
   return (
     <EditorLayout
       header={
         <FloatHeader
           currentNote={currentNote}
           notes={notes}
-          // Title editing will be handled inside FloatHeader by reading/writing atoms
-          // For now, keep the old props structure for compatibility
           isEditingTitle={false}
           editingTitle={''}
           onTitleChange={() => {}}
@@ -165,8 +141,8 @@ function FloatWindow() {
               console.error('Failed to start dragging:', error);
             }
           }}
-          isWindowAlwaysOnTop={false} // TODO: Read from atom
-          onToggleAlwaysOnTop={async () => {}} // TODO: Implement
+          isWindowAlwaysOnTop={false}
+          onToggleAlwaysOnTop={async () => {}}
           onCloseWindow={async () => {
             if (isTauri()) {
               const currentWindow = getCurrentWindow();
@@ -179,24 +155,21 @@ function FloatWindow() {
         <NotesSidebarContainer
           notes={notes}
           currentNoteId={noteId}
-          showArchived={false} // TODO: Read from uiStateAtom
+          showArchived={false}
           onOpenNote={handleOpenNote}
           onTogglePin={togglePin}
           onToggleArchive={toggleArchive}
           onDeleteNote={deleteNote}
           onDuplicateNote={async (note) => {
-            // TODO: Implement duplicate in useNoteOperations
             console.log('Duplicate note:', note);
           }}
         />
       }
       editor={
         <RenderingWysiwygEditor
-          key={currentNote.id}
-          initialRichContent={currentNote.richContent}
-          onChange={handleContentChange}
+          key={currentNote?.id || 'loading'}
+          noteId={noteId}
           onSubmit={async () => {
-            // Submit handler - for float window, just save
             console.log('[FloatWindow] Submit triggered');
           }}
           ref={editorRef}

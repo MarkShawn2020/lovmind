@@ -15,13 +15,10 @@ import { useNoteEventSync } from "./hooks/useNoteEventSync";
 import { useImageHeightSync } from "./hooks/useImageHeightSync";
 import { useTauriWindowEvents } from "./hooks/useTauriWindowEvents";
 import { useMobileSidebarState } from "./hooks/useMobileSidebarState";
-import { useNoteLoader } from "./hooks/useNoteLoader";
-import { useEditorSync } from "./hooks/useEditorSync";
-import { useAutoSave } from "./hooks/useAutoSave";
 import { useNoteOperations } from "./hooks/useNoteOperations";
 import { useWindowOperations } from "./hooks/useWindowOperations";
 import { useUserProfile } from "./hooks/useUserProfile";
-import { currentNoteAtom, editorContentAtom, notesAtom } from "./atoms/noteAtoms";
+import { editorContentAtom, notesAtom } from "./atoms/noteAtoms";
 import { noteStatsAtom } from "./store";
 import type { RenderingWysiwygEditorRef } from "./components/RenderingWysiwygEditor";
 import lovpenLogo from "./assets/lovpen-logo.svg";
@@ -30,21 +27,14 @@ import packageJson from "../package.json";
 /**
  * App Component (Refactored)
  *
- * Main window component for creating and viewing notes.
- * Uses Jotai atoms for state management instead of useNoteEditorController.
- *
- * Architecture:
- * - Local state for viewingNoteId (which note to view)
- * - Uses useNoteLoader to load viewing note into atoms
- * - Reads currentNote/editorContent from atoms
- * - Business logic in focused hooks
- * - UI state (modals, menus) in local component state
+ * Main window - thin wrapper that provides UI state and routing.
+ * All editor logic is handled by RenderingWysiwygEditor internally.
  */
 function App() {
   // Local state: which note we're viewing (null = create mode)
   const [viewingNoteId, setViewingNoteId] = useState<string | null>(null);
 
-  // Local UI state (moved from useNoteEditorController)
+  // Local UI state
   const [showArchived, setShowArchived] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -56,26 +46,20 @@ function App() {
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Modular event hooks
+  // Event sync hooks
   useNoteEventSync({ enableBroadcastChannel: true });
   useImageHeightSync();
   useTauriWindowEvents();
   const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
 
-  // Load viewing note into atoms
-  useNoteLoader(viewingNoteId);
-
-  // Read from atoms
-  const currentNote = useAtomValue(currentNoteAtom);
+  // Read from atoms (for UI display only)
   const editorContent = useAtomValue(editorContentAtom);
   const notes = useAtomValue(notesAtom);
   const noteStats = useAtomValue(noteStatsAtom);
 
-  // Business logic hooks
-  const { handleContentChange } = useEditorSync();
-  useAutoSave();
-  const { updateNote, deleteNote, togglePin, toggleArchive } = useNoteOperations();
-  const { openNoteInNewWindow, createNewNoteWindow } = useWindowOperations(notes, () => {});
+  // Business logic hooks (for toolbar and sidebar)
+  const { deleteNote, togglePin, toggleArchive } = useNoteOperations();
+  const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
   const { userProfile } = useUserProfile();
 
   // Handlers
@@ -118,32 +102,11 @@ function App() {
   }, [editorContent]);
 
   const handleBackToCreate = useCallback(async () => {
-    // Auto-save current note if in viewing mode
-    if (viewingNoteId && currentNote) {
-      const hasChanges = editorContent.text !== currentNote.text ||
-                        JSON.stringify(editorContent.richContent) !== JSON.stringify(currentNote.richContent);
-
-      if (hasChanges) {
-        const updatedNote = {
-          ...currentNote,
-          text: editorContent.text,
-          tags: editorContent.tags,
-          richContent: editorContent.richContent,
-          time: new Date().toLocaleString(),
-        };
-
-        try {
-          await updateNote(updatedNote);
-        } catch (error) {
-          console.error('Failed to auto-save before returning to create mode:', error);
-        }
-      }
-    }
-
-    // Return to create mode
+    // Auto-save is handled by useAutoSave hook in RenderingWysiwygEditor
+    // Just return to create mode
     setViewingNoteId(null);
     editorRef.current?.resetAndFocus();
-  }, [viewingNoteId, currentNote, editorContent, updateNote]);
+  }, []);
 
   // Use withSidebarClose to auto-close mobile sidebar
   const handleOpenNoteInCurrentWindow = useCallback(
@@ -409,8 +372,7 @@ function App() {
       editor={
         <RenderingWysiwygEditor
           key={viewingNoteId || 'create-mode'}
-          initialRichContent={currentNote?.richContent}
-          onChange={handleContentChange}
+          noteId={viewingNoteId}
           onSubmit={handleSubmit}
           placeholder="此时此刻，你在想什么呢？"
           ref={editorRef}

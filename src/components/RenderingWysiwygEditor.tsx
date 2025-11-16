@@ -1,6 +1,7 @@
 'use client';
 
 import React, {forwardRef, useImperativeHandle, useMemo} from 'react';
+import {useAtomValue} from 'jotai';
 import type {Value} from 'platejs';
 import {Plate, usePlateEditor} from 'platejs/react';
 
@@ -12,11 +13,13 @@ import {EditorContextMenu} from '@/components/editor/EditorContextMenu';
 import {isEditorContentEmpty} from "@/utils/is-editor-content-empty.ts";
 import {createInitialValue} from "@/utils/create-initial-value.ts";
 import {useEditorEventBridge} from "@/hooks/useEditorEventBridge.ts";
+import {useNoteLoader} from "@/hooks/useNoteLoader";
+import {useEditorSync} from "@/hooks/useEditorSync";
+import {useAutoSave} from "@/hooks/useAutoSave";
+import {currentNoteAtom} from "@/atoms/noteAtoms";
 
 interface RenderingWysiwygEditorProps {
-  initialContent?: string;
-  initialRichContent?: Value | null;
-  onChange?: (payload: EditorContentChange) => void;
+  noteId?: string | null;
   onSubmit?: () => void;
   placeholder?: string;
 }
@@ -49,20 +52,23 @@ export interface RenderingWysiwygEditorRef {
 
 const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWysiwygEditorProps>(
   function RenderingWysiwygEditor({
-    initialContent = '',
-    initialRichContent,
-    onChange,
+    noteId,
     onSubmit,
     placeholder = "Type your amazing content here..."
   }, ref) {
-    // Compute initial value only once on mount
-    // Note: Empty deps array is intentional - parent should use key prop to create new instances
+    // Load note into atoms (handles both create mode and view mode)
+    useNoteLoader(noteId);
+
+    // Read current note from atom
+    const currentNote = useAtomValue(currentNoteAtom);
+
+    // Compute initial value from loaded note
     const initialValue = useMemo<Value>(() => {
-      if (initialRichContent && !isEditorContentEmpty(initialRichContent)) {
-        return initialRichContent;
+      const richContent = currentNote?.richContent;
+      if (richContent && !isEditorContentEmpty(richContent)) {
+        return richContent;
       }
-      const safeContent = typeof initialContent === 'string' ? initialContent : '';
-      return createInitialValue(safeContent);
+      return createInitialValue('');
     }, []);
 
     const editor = usePlateEditor({
@@ -70,7 +76,14 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       value: initialValue,
     });
 
-    useEditorEventBridge(editor, onChange, onSubmit);
+    // Sync editor content to atoms
+    const { handleContentChange } = useEditorSync();
+
+    // Auto-save on typing stop
+    useAutoSave();
+
+    // Bridge plugin events to React callbacks
+    useEditorEventBridge(editor, handleContentChange, onSubmit);
 
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => (editor.api as any).commands.resetAndFocus(),
