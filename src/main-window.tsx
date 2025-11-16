@@ -2,7 +2,6 @@ import { useState, useCallback, useRef } from "react";
 import { useAtomValue } from 'jotai';
 import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
-import confetti from 'canvas-confetti';
 
 import { isTauri } from "./utils/tauri";
 import { Note } from "./store";
@@ -19,9 +18,9 @@ import { useMobileSidebarState } from "./hooks/useMobileSidebarState";
 import { useNoteOperations } from "./hooks/useNoteOperations";
 import { useWindowOperations } from "./hooks/useWindowOperations";
 import { useUserProfile } from "./hooks/useUserProfile";
+import { useNoteSubmit } from "./hooks/useNoteSubmit";
 import { editorContentAtom, notesAtom } from "./atoms/noteAtoms";
 import { noteStatsAtom } from "./store";
-import { extractNoteTitle } from "./utils/titleExtractor";
 import type { LovmindEditorRef } from "@/components/lovmind-editor/lovmind-editor.tsx";
 import lovpenLogo from "./assets/lovpen-logo.svg";
 import packageJson from "../package.json";
@@ -60,9 +59,14 @@ function MainWindow() {
   const noteStats = useAtomValue(noteStatsAtom);
 
   // Business logic hooks (for toolbar and sidebar)
-  const { deleteNote, togglePin, toggleArchive, setNotes, updateNote } = useNoteOperations();
+  const { deleteNote, togglePin, toggleArchive } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
   const { userProfile } = useUserProfile();
+  const { handleSubmit } = useNoteSubmit({
+    noteId: viewingNoteId,
+    editorRef,
+    resetEditorAfterCreate: true,
+  });
 
   // Handlers
   const handleViewingModeChange = useCallback((noteId: string | null) => {
@@ -91,113 +95,6 @@ function MainWindow() {
       console.error("Failed to start dragging:", error);
     }
   }, []);
-
-  const handleSubmit = useCallback(async () => {
-    // Extract fresh content synchronously from editor to avoid race conditions
-    // This ensures we get the latest typed content even if the atom hasn't updated yet
-    let currentContent = editorContent;
-
-    if (editorRef.current?.editor) {
-      try {
-        const editor = editorRef.current.editor;
-        if (editor?.children) {
-          const { extractTextContent } = await import('./utils/extract-text-content');
-          const { isEditorContentEmpty } = await import('./utils/is-editor-content-empty');
-
-          const { text, tags } = extractTextContent(editor.children);
-          const isEmpty = isEditorContentEmpty(editor.children);
-
-          currentContent = {
-            text,
-            tags,
-            richContent: editor.children,
-            isEmpty,
-            sourceNoteId: editorContent.sourceNoteId,
-          };
-
-          console.log('📝 Sync extracted content from editor:', { text, tags, isEmpty });
-        }
-      } catch (error) {
-        console.warn('Failed to extract sync content, using atom:', error);
-      }
-    }
-
-    const hasTypedContent = typeof currentContent.text === 'string' && Boolean(currentContent.text.trim());
-    if (!hasTypedContent && currentContent.isEmpty) {
-      return;
-    }
-
-    try {
-      if (viewingNoteId) {
-        // Update existing note
-        const existingNote = notes.find(n => n.id === viewingNoteId);
-        if (existingNote) {
-          const updatedNote: Note = {
-            ...existingNote,
-            text: currentContent.text,
-            tags: currentContent.tags,
-            richContent: currentContent.richContent,
-            title: existingNote.manualTitle
-              ? existingNote.title
-              : extractNoteTitle({ text: currentContent.text, richContent: currentContent.richContent }),
-            time: new Date().toLocaleString(),
-          };
-
-          await updateNote(updatedNote);
-          console.log('✅ Note updated:', updatedNote.id);
-        }
-      } else {
-        // Create new note
-        const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
-        const newRank = Math.max(maxRank + 1, notes.length + 1);
-
-        const newNote: Note = {
-          id: Date.now().toString(),
-          text: currentContent.text,
-          title: extractNoteTitle({ text: currentContent.text, richContent: currentContent.richContent }),
-          time: new Date().toLocaleString(),
-          tags: currentContent.tags,
-          richContent: currentContent.richContent,
-          pinned: false,
-          archived: false,
-          favorite: false,
-          rank: newRank,
-        };
-
-        // Add to local state
-        setNotes((prevNotes) => [newNote, ...prevNotes]);
-
-        // Trigger confetti celebration
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#ff3366', '#ff66cc', '#ff99dd', '#9966ff', '#6699ff'],
-          ticks: 200,
-          gravity: 1.2,
-          scalar: 1.2,
-          shapes: ['star', 'circle'],
-          drift: 0
-        });
-
-        // Save to backend
-        if (isTauri()) {
-          try {
-            await invoke('store_temp_note', { note: newNote });
-            await invoke('broadcast_note_update', { note: newNote });
-            console.log('✅ Note created and broadcasted:', newNote.id);
-          } catch (error) {
-            console.error('Failed to save to backend:', error);
-          }
-        }
-
-        // Reset editor and return to create mode
-        editorRef.current?.resetAndFocus();
-      }
-    } catch (error) {
-      console.error('Failed to submit note:', error);
-    }
-  }, [editorContent, viewingNoteId, notes, setNotes, updateNote]);
 
   const handleBackToCreate = useCallback(async () => {
     // Auto-save is handled by useAutoSave hook in RenderingWysiwygEditor

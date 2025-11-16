@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { invoke } from '@tauri-apps/api/core';
-import confetti from 'canvas-confetti';
 
 import { isTauri } from './utils/tauri';
 import LovmindEditor from '@/components/lovmind-editor/lovmind-editor.tsx';
@@ -16,6 +14,7 @@ import { useMobileSidebarState } from './hooks/useMobileSidebarState';
 import { useNoteOperations } from './hooks/useNoteOperations';
 import { useWindowOperations } from './hooks/useWindowOperations';
 import { useNoteLoader } from './hooks/useNoteLoader';
+import { useNoteSubmit } from './hooks/useNoteSubmit';
 import { currentNoteAtom, editorContentAtom, notesAtom, currentNoteIdAtom } from './atoms/noteAtoms';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
@@ -73,8 +72,13 @@ function FloatWindowInner() {
   // Business logic hooks (for toolbar and sidebar)
   // CRITICAL: These hooks must be called before any conditional returns
   // to satisfy the Rules of Hooks
-  const { togglePin, toggleArchive, deleteNote, setNotes, updateNote } = useNoteOperations();
+  const { togglePin, toggleArchive, deleteNote } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
+  const { handleSubmit } = useNoteSubmit({
+    noteId,
+    editorRef,
+    resetEditorAfterCreate: false,
+  });
 
   // Use withSidebarClose to auto-close mobile sidebar after opening note
   // MUST be declared before conditional returns
@@ -82,114 +86,6 @@ function FloatWindowInner() {
     withSidebarClose(openNoteInNewWindow),
     [withSidebarClose, openNoteInNewWindow]
   );
-
-  // Submit handler: Save note content on Cmd+Enter
-  const handleSubmit = useCallback(async () => {
-    console.log('[FloatWindow] Submit handler called');
-
-    // Extract fresh content synchronously from editor to avoid race conditions
-    let currentContent = editorContent;
-
-    if (editorRef.current?.editor) {
-      try {
-        const editor = editorRef.current.editor;
-        if (editor?.children) {
-          const { extractTextContent } = await import('./utils/extract-text-content');
-          const { isEditorContentEmpty } = await import('./utils/is-editor-content-empty');
-
-          const { text, tags } = extractTextContent(editor.children);
-          const isEmpty = isEditorContentEmpty(editor.children);
-
-          currentContent = {
-            text,
-            tags,
-            richContent: editor.children,
-            isEmpty,
-            sourceNoteId: editorContent.sourceNoteId,
-          };
-
-          console.log('[FloatWindow] Extracted content from editor:', { text, tags, isEmpty });
-        }
-      } catch (error) {
-        console.warn('[FloatWindow] Failed to extract sync content, using atom:', error);
-      }
-    }
-
-    const hasTypedContent = typeof currentContent.text === 'string' && Boolean(currentContent.text.trim());
-    if (!hasTypedContent && currentContent.isEmpty) {
-      console.log('[FloatWindow] Empty content, skipping submit');
-      return;
-    }
-
-    try {
-      const existingNote = notes.find(n => n.id === noteId);
-
-      if (existingNote) {
-        // Update existing note
-        const { extractNoteTitle } = await import('./utils/titleExtractor');
-        const updatedNote = {
-          ...existingNote,
-          text: currentContent.text,
-          tags: currentContent.tags,
-          richContent: currentContent.richContent,
-          title: existingNote.manualTitle
-            ? existingNote.title
-            : extractNoteTitle({ text: currentContent.text, richContent: currentContent.richContent }),
-          time: new Date().toLocaleString(),
-        };
-
-        await updateNote(updatedNote);
-        console.log('[FloatWindow] ✅ Note updated:', updatedNote.id);
-      } else {
-        // Create new note (for blank notes from Cmd+N)
-        const { extractNoteTitle } = await import('./utils/titleExtractor');
-        const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
-        const newRank = Math.max(maxRank + 1, notes.length + 1);
-
-        const newNote = {
-          id: noteId!,
-          text: currentContent.text,
-          title: extractNoteTitle({ text: currentContent.text, richContent: currentContent.richContent }),
-          time: new Date().toLocaleString(),
-          tags: currentContent.tags,
-          richContent: currentContent.richContent,
-          pinned: false,
-          archived: false,
-          favorite: false,
-          rank: newRank,
-        };
-
-        // Add to local state
-        setNotes((prevNotes) => [newNote, ...prevNotes]);
-
-        // Trigger confetti celebration for new note creation
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#ff3366', '#ff66cc', '#ff99dd', '#9966ff', '#6699ff'],
-          ticks: 200,
-          gravity: 1.2,
-          scalar: 1.2,
-          shapes: ['star', 'circle'],
-          drift: 0
-        });
-
-        // Save to backend
-        if (isTauri()) {
-          try {
-            await invoke('store_temp_note', { note: newNote });
-            await invoke('broadcast_note_update', { note: newNote });
-            console.log('[FloatWindow] ✅ Note created and broadcasted:', newNote.id);
-          } catch (error) {
-            console.error('[FloatWindow] Failed to save to backend:', error);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('[FloatWindow] Failed to submit note:', error);
-    }
-  }, [editorContent, noteId, notes, setNotes, updateNote]);
 
   // Toggle always-on-top state
   const handleToggleAlwaysOnTop = useCallback(async () => {
