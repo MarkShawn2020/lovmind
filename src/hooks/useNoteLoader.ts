@@ -29,7 +29,7 @@ import type { Note } from '@/store';
 export function useNoteLoader(noteId: string | null | undefined) {
   const setCurrentNoteId = useSetAtom(currentNoteIdAtom);
   const setEditorContent = useSetAtom(editorContentAtom);
-  const { notes } = useNoteOperations();
+  const { notes, setNotes } = useNoteOperations();
 
   useEffect(() => {
     // Reset when no noteId
@@ -62,6 +62,15 @@ export function useNoteLoader(noteId: string | null | undefined) {
 
       if (noteData) {
         setCurrentNoteId(noteId);
+
+        // Ensure note exists in notesAtom (for currentNoteAtom derivation)
+        // This is critical for FloatWindow where the note might not be in the local list yet
+        const noteExistsInList = notes.some(n => n.id === noteId);
+        if (!noteExistsInList) {
+          console.log('[useNoteLoader] Adding note to notesAtom:', noteId);
+          setNotes((prevNotes) => [noteData, ...prevNotes]);
+        }
+
         // Initialize editor content with note data
         setEditorContent({
           text: noteData.text || '',
@@ -79,5 +88,5 @@ export function useNoteLoader(noteId: string | null | undefined) {
     loadNote();
     // Only re-run when noteId changes, NOT when notes array updates
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [noteId, setCurrentNoteId, setEditorContent]);
+  }, [noteId, setCurrentNoteId, setEditorContent, setNotes]);
 }
