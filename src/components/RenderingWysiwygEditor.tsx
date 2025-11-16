@@ -360,9 +360,58 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       };
     }, []);
 
-    // Clipboard debug logging - tracks clipboard operations in Tauri
+    // Handle Cmd+A in Tauri to prevent shadow input from capturing selection
+    // PredefinedMenuItem handles Cmd+C/X/V through native menu, but Cmd+A needs manual handling
     useEffect(() => {
-      // Add clipboard event listeners to verify Plate.js handlers work correctly
+      const selectDomRange = () => {
+        if (typeof window === 'undefined') return;
+        const container = editorContainerRef.current;
+        if (!container) return;
+        const editorRoot = container.querySelector('[data-slate-editor="true"]') as HTMLElement | null;
+        if (!editorRoot) return;
+
+        const selection = window.getSelection?.();
+        if (!selection) return;
+
+        const range = document.createRange();
+        range.selectNodeContents(editorRoot);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      };
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        // Check if the event target is within the editor
+        const target = e.target as HTMLElement;
+        if (!editorContainerRef.current?.contains(target)) {
+          return; // Not our editor, ignore
+        }
+
+        const isMod = e.metaKey || e.ctrlKey;
+
+        // Handle Cmd+A (Select All) - prevent shadow input from capturing selection
+        if (isMod && e.key === 'a') {
+          console.log('[SelectAll] Cmd+A detected - preventing shadow input capture');
+          e.preventDefault();
+          try {
+            const startPoint = editor.api.start([]);
+            const endPoint = editor.api.end([]);
+            console.log('[SelectAll] - Start:', startPoint, 'End:', endPoint);
+
+            if (startPoint && endPoint) {
+              editor.tf.select(editor.api.range(startPoint, endPoint));
+              editor.tf.focus();
+              console.log('[SelectAll] - Plate.js selection set');
+            }
+          } catch (error) {
+            console.error('[SelectAll] Failed:', error);
+          }
+          selectDomRange();
+          console.log('[SelectAll] - DOM range selected');
+          return;
+        }
+      };
+
+      // Clipboard event listeners for debugging
       const handleCopy = (e: ClipboardEvent) => {
         console.log('[Clipboard] Copy event fired');
         console.log('[Clipboard] - Target:', (e.target as HTMLElement)?.tagName);
@@ -384,6 +433,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         }
       };
 
+      document.addEventListener('keydown', handleKeyDown);
       document.addEventListener('copy', handleCopy);
       document.addEventListener('cut', handleCut);
       document.addEventListener('paste', handlePaste);
@@ -394,6 +444,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       console.log('[Clipboard] - Clipboard API:', typeof navigator.clipboard);
 
       return () => {
+        document.removeEventListener('keydown', handleKeyDown);
         document.removeEventListener('copy', handleCopy);
         document.removeEventListener('cut', handleCut);
         document.removeEventListener('paste', handlePaste);
