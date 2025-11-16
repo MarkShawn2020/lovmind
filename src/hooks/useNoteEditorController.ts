@@ -526,49 +526,18 @@ export const useNoteEditorController = ({
       }
     }
 
-    // If in create mode with unsaved content, save it as a new note first
+    // If in create mode with unsaved content, submit it (includes confetti animation)
     if (mode === 'main' && !viewingNoteId) {
       const hasTypedContent = typeof content === 'string' && Boolean(content.trim());
       if (hasTypedContent || !isEditorEmpty) {
-        const firstLine = content ? content.split("\n")[0].substring(0, 50) : "Untitled Note";
-        const title = firstLine || "Untitled Note";
-        const tags = currentTags.length > 0 ? currentTags : [];
-
-        const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
-        const newRank = Math.max(maxRank + 1, notes.length + 1);
-
-        const newNote: Note = {
-          id: Date.now().toString(),
-          text: content || "",
-          title,
-          time: new Date().toLocaleString(),
-          tags,
-          richContent: richContent,
-          rank: newRank,
-        };
-
-        setNotes([...notes, newNote]);
-
-        if (isTauri()) {
-          await invoke("store_temp_note", { note: newNote });
-
-          try {
-            const [generatedTitle, generatedTags] = await invoke<[string, string[]]>(
-              "generate_title_and_tags",
-              { content }
-            );
-            newNote.title = generatedTitle;
-            newNote.tags = mergeTagsByStrategy(tags, generatedTags);
-            setNotes((prev) => [...prev.slice(0, -1), newNote]);
-            await invoke("store_temp_note", { note: newNote });
-          } catch (error) {
-            console.log("Using local title generation");
-          }
-        }
+        // Reuse handleSubmit to create note with confetti animation
+        await handleSubmit();
+        // handleSubmit already resets the editor, so we're done
+        return;
       }
     }
 
-    // Return to create mode
+    // Return to create mode (only if we didn't submit)
     if (onViewingModeChange) {
       onViewingModeChange(null);
     }
@@ -579,7 +548,7 @@ export const useNoteEditorController = ({
     setCurrentTags([]);
     setIsEditorEmpty(true);
     editorRef.current?.resetAndFocus();
-  }, [onViewingModeChange, editorRef, mode, viewingNoteId, currentNote, content, richContent, currentTags, updateNote, isEditorEmpty, notes, setNotes, mergeTagsByStrategy]);
+  }, [onViewingModeChange, editorRef, mode, viewingNoteId, currentNote, content, richContent, currentTags, updateNote, isEditorEmpty, handleSubmit]);
 
   const submitDisabled = (!content || typeof content !== 'string' || !content.trim()) && isEditorEmpty;
 
