@@ -84,17 +84,29 @@ function FloatWindowInner() {
   );
 
   // Toggle always-on-top functionality
-  const handleToggleAlwaysOnTop = useCallback(async () => {
-    if (!isTauri()) return;
+  const handleToggleAlwaysOnTop = useCallback(async (e?: React.MouseEvent) => {
+    console.log('[FloatWindow] handleToggleAlwaysOnTop called', {
+      event: e?.type,
+      currentState: isWindowAlwaysOnTop,
+      isTauri: isTauri()
+    });
+
+    if (!isTauri()) {
+      console.warn('[FloatWindow] Not in Tauri environment, cannot toggle always on top');
+      return;
+    }
 
     try {
       const window = getCurrentWindow();
       const newState = !isWindowAlwaysOnTop;
+
+      console.log('[FloatWindow] Calling window.setAlwaysOnTop with:', newState);
       await window.setAlwaysOnTop(newState);
+
       setIsWindowAlwaysOnTop(newState);
-      console.log('[FloatWindow] Always on top:', newState);
+      console.log('[FloatWindow] ✅ Always on top toggled successfully:', newState);
     } catch (error) {
-      console.error('[FloatWindow] Failed to toggle always on top:', error);
+      console.error('[FloatWindow] ❌ Failed to toggle always on top:', error);
     }
   }, [isWindowAlwaysOnTop]);
 

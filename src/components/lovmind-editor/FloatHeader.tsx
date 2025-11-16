@@ -91,7 +91,13 @@ export const FloatHeader = ({
       <div className="flex items-center gap-1">
         <button
           className="w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 bg-transparent border-none flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 touch-manipulation"
-          onClick={onToggleAlwaysOnTop}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleAlwaysOnTop(e);
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
           title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
           style={{
             color: isWindowAlwaysOnTop ? 'white' : 'rgba(255, 255, 255, 0.5)',
@@ -102,7 +108,13 @@ export const FloatHeader = ({
         </button>
         <button
           className="w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 bg-transparent border-none flex items-center justify-center cursor-pointer transition-all duration-150 text-white/50 hover:text-white active:scale-95 touch-manipulation"
-          onClick={onCloseWindow}
+          onClick={(e) => {
+            e.stopPropagation();
+            onCloseWindow(e);
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
           title="Close window"
           type="button"
         >
