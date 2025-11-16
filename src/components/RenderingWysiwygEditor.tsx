@@ -360,7 +360,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       };
     }, []);
 
-    // Clipboard handling: Manual serialization for Tauri (clipboardData not populated by webview)
+    // Clipboard handling: Manual serialization in Tauri, native in browser
     useEffect(() => {
       const isTauri = '__TAURI_INTERNALS__' in window || 'isTauri' in window;
 
@@ -373,52 +373,46 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
       const handleCopy = (e: ClipboardEvent) => {
         console.log('[Clipboard] ===== Copy =====');
-        e.preventDefault(); // Take full control in Tauri
 
-        // Check editor selection state
-        console.log('[Clipboard] - editor.selection:', editor.selection);
+        // Prevent default to handle manually
+        e.preventDefault();
 
+        // Check if there's a selection
         if (!editor.selection) {
-          console.log('[Clipboard] ⚠️  No Slate selection');
+          console.log('[Clipboard] ⚠️  No selection');
           return;
         }
 
-        const { anchor, focus } = editor.selection;
-        const isCollapsed =
-          anchor.path.toString() === focus.path.toString() &&
-          anchor.offset === focus.offset;
+        // Get selected fragment
+        const fragment = editor.api.getFragment();
 
-        if (isCollapsed) {
-          console.log('[Clipboard] ⚠️  Selection is collapsed');
+        if (!fragment || fragment.length === 0) {
+          console.log('[Clipboard] ⚠️  Empty selection');
           return;
         }
 
-        // Get selected fragment and serialize it
-        try {
-          const fragment = editor.api.fragment();
-          const { text } = extractTextContent(fragment as Value);
+        console.log('[Clipboard] Fragment:', fragment);
 
-          console.log('[Clipboard] - Serialized text:', text?.substring(0, 100));
-          console.log('[Clipboard] - Text length:', text?.length || 0);
+        // Serialize to plain text using our existing extractTextContent
+        const { text } = extractTextContent(fragment as Value);
 
-          if (text) {
-            import('@tauri-apps/plugin-clipboard-manager').then(({ writeText }) => {
-              writeText(text).then(() => {
-                console.log('[Clipboard] ✓ Wrote to Tauri clipboard');
-              }).catch((error) => {
-                console.error('[Clipboard] ✗ Failed:', error);
-              });
+        console.log('[Clipboard] Serialized text:', text?.substring(0, 100));
+
+        // Write to Tauri clipboard
+        if (text) {
+          import('@tauri-apps/plugin-clipboard-manager').then(({ writeText }) => {
+            writeText(text).then(() => {
+              console.log('[Clipboard] ✓ Copied to Tauri clipboard');
+            }).catch((error) => {
+              console.error('[Clipboard] ✗ Failed:', error);
             });
-          } else {
-            console.log('[Clipboard] ⚠️  No text to copy');
-          }
-        } catch (error) {
-          console.error('[Clipboard] ✗ Serialization failed:', error);
+          });
         }
       };
 
       const handleCut = (e: ClipboardEvent) => {
         console.log('[Clipboard] ===== Cut =====');
+
         e.preventDefault();
 
         if (!editor.selection) {
@@ -426,34 +420,28 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
           return;
         }
 
-        const { anchor, focus } = editor.selection;
-        const isCollapsed =
-          anchor.path.toString() === focus.path.toString() &&
-          anchor.offset === focus.offset;
+        // Get fragment before deleting
+        const fragment = editor.api.getFragment();
 
-        if (isCollapsed) {
-          console.log('[Clipboard] ⚠️  Selection is collapsed');
+        if (!fragment || fragment.length === 0) {
+          console.log('[Clipboard] ⚠️  Empty selection');
           return;
         }
 
-        try {
-          const fragment = editor.api.fragment();
-          const { text } = extractTextContent(fragment as Value);
+        const { text } = extractTextContent(fragment as Value);
 
-          if (text) {
-            // Write to clipboard first
-            import('@tauri-apps/plugin-clipboard-manager').then(({ writeText }) => {
-              writeText(text).then(() => {
-                console.log('[Clipboard] ✓ Cut to Tauri clipboard');
-                // Delete the selection
-                editor.tf.deleteFragment();
-              }).catch((error) => {
-                console.error('[Clipboard] ✗ Failed:', error);
-              });
+        // Delete the selection
+        editor.tf.deleteFragment();
+
+        // Write to clipboard
+        if (text) {
+          import('@tauri-apps/plugin-clipboard-manager').then(({ writeText }) => {
+            writeText(text).then(() => {
+              console.log('[Clipboard] ✓ Cut to Tauri clipboard');
+            }).catch((error) => {
+              console.error('[Clipboard] ✗ Failed:', error);
             });
-          }
-        } catch (error) {
-          console.error('[Clipboard] ✗ Failed:', error);
+          });
         }
       };
 
@@ -594,33 +582,6 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-      const isTauri = '__TAURI_INTERNALS__' in window || 'isTauri' in window;
-
-      // Cmd+A / Ctrl+A: Select all (Tauri only - fix selection state)
-      if (isTauri && (e.metaKey || e.ctrlKey) && e.key === 'a') {
-        e.preventDefault();
-        console.log('[Keyboard] Cmd+A pressed - selecting all content in Slate');
-
-        try {
-          // Select from start of first block to end of last block
-          const firstPath = [0];
-          const lastPath = [editor.children.length - 1];
-
-          const start = editor.api.start(firstPath);
-          const end = editor.api.end(lastPath);
-
-          if (start && end) {
-            editor.tf.select({ anchor: start, focus: end });
-            console.log('[Keyboard] ✓ Selected all content');
-          } else {
-            console.log('[Keyboard] ⚠️  Could not determine start/end points');
-          }
-        } catch (error) {
-          console.error('[Keyboard] ✗ Failed to select all:', error);
-        }
-        return;
-      }
-
       // Cmd+Enter / Ctrl+Enter: Submit
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
