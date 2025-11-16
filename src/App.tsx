@@ -218,9 +218,10 @@ function App() {
         onToggleArchive={toggleArchive}
         onDeleteNote={deleteNote}
         onDuplicateNote={handleDuplicateNote}
+        onCreateNewNote={viewingNoteId ? handleBackToCreate : undefined}
       />
     </div>
-  ), [notes, viewingNoteId, showArchived, handleOpenNoteInCurrentWindow, handleOpenNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote]);
+  ), [notes, viewingNoteId, showArchived, handleOpenNoteInCurrentWindow, handleOpenNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote, handleBackToCreate]);
 
   const editorNode = (
     <div ref={editorContainerRef}>
@@ -446,11 +447,10 @@ function App() {
       toolbar={
         <EditorToolbar
           mode="main"
-          onSubmit={viewingNoteId ? handleBackToCreate : handleSubmit}
+          onSubmit={handleSubmit}
           submitDisabled={submitDisabled}
           currentTags={currentTags}
           allNotes={notes}
-          isViewingMode={!!viewingNoteId}
           editorRef={editorRef}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
         />

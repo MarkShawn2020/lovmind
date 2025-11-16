@@ -1,4 +1,4 @@
-import { Archive, Copy, Crown, Maximize2, Pin, Sparkles, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Archive, Copy, Crown, Maximize2, Pin, Sparkles, Trash2, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -26,6 +26,7 @@ interface NotesSidebarProps {
   onToggleArchive: (id: string) => void | Promise<unknown>;
   onDeleteNote: (id: string) => void | Promise<unknown>;
   onDuplicateNote: (note: Note) => void | Promise<unknown>;
+  onCreateNewNote?: () => void;
 }
 
 const NotesSidebarComponent = ({
@@ -38,6 +39,7 @@ const NotesSidebarComponent = ({
   onToggleArchive,
   onDeleteNote,
   onDuplicateNote,
+  onCreateNewNote,
 }: NotesSidebarProps) => {
   const [isPinnedCollapsed, setIsPinnedCollapsed] = useState(false);
 
@@ -298,6 +300,32 @@ const NotesSidebarComponent = ({
       <div className="flex flex-col gap-2">
         {unpinnedNotes.map(renderNoteItem)}
       </div>
+
+      {/* New Note Button - Only show in main window when viewing a note */}
+      {onCreateNewNote && (
+        <button
+          onClick={onCreateNewNote}
+          className="
+            w-full h-10 min-h-[44px] px-4 mt-4
+            rounded-xl
+            border-none
+            bg-primary text-primary-foreground
+            flex items-center justify-center gap-2
+            font-medium text-sm
+            cursor-pointer
+            transition-all duration-200 ease-out
+            shadow-sm
+            hover:shadow-md hover:bg-primary/90
+            active:scale-[0.97]
+            touch-manipulation
+          "
+          title="Create new note"
+          type="button"
+        >
+          <Plus size={16} strokeWidth={2.5} />
+          <span>新建笔记</span>
+        </button>
+      )}
     </>
   );
 };

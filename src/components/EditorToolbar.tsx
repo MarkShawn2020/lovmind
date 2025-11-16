@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Send, Pin, Tag, Plus, Menu } from 'lucide-react';
+import { Send, Pin, Tag, Menu } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { TagManagerPopover } from '@/components/TagManagerPopover';
 import type { Note } from '@/store';
@@ -93,40 +93,10 @@ const TagsDisplay = memo(({
 const SendButton = memo(({
   disabled,
   onClick,
-  isViewingMode
 }: {
   disabled: boolean;
   onClick: () => void;
-  isViewingMode?: boolean;
 }) => {
-  if (isViewingMode) {
-    return (
-      <button
-        className="
-          h-10 min-h-[44px] px-5
-          rounded-xl
-          border-none
-          bg-primary text-primary-foreground
-          flex items-center justify-center gap-2
-          font-medium text-sm
-          cursor-pointer
-          transition-all duration-200 ease-out
-          shadow-sm
-          hover:shadow-md hover:bg-primary/90
-          active:scale-[0.97]
-          touch-manipulation
-          send-btn
-        "
-        onClick={onClick}
-        title="Create new note"
-        type="button"
-      >
-        <Plus size={16} strokeWidth={2.5} />
-        <span>新建</span>
-      </button>
-    );
-  }
-
   return (
     <button
       className="
@@ -160,7 +130,6 @@ interface EditorToolbarProps {
   submitDisabled: boolean;
   currentTags?: string[];
   allNotes?: Note[];
-  isViewingMode?: boolean;
   editorRef?: React.RefObject<RenderingWysiwygEditorRef | null>;
   onOpenMobileSidebar?: () => void;
 }
@@ -172,7 +141,6 @@ const EditorToolbar = memo(({
   submitDisabled,
   currentTags = [],
   allNotes = [],
-  isViewingMode = false,
   editorRef,
   onOpenMobileSidebar
 }: EditorToolbarProps) => {
@@ -231,7 +199,7 @@ const EditorToolbar = memo(({
         </Popover>
       </div>
       <div className="flex gap-3 sm:gap-4 items-center">
-        <SendButton disabled={submitDisabled} onClick={onSubmit} isViewingMode={isViewingMode} />
+        <SendButton disabled={submitDisabled} onClick={onSubmit} />
       </div>
     </div>
   );
