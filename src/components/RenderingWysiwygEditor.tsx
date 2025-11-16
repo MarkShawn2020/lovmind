@@ -362,6 +362,22 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
 
     // Handle keyboard shortcuts in Tauri (PredefinedMenuItem removed to let frontend handle)
     useEffect(() => {
+      const selectDomRange = () => {
+        if (typeof window === 'undefined') return;
+        const container = editorContainerRef.current;
+        if (!container) return;
+        const editorRoot = container.querySelector('[data-slate-editor="true"]') as HTMLElement | null;
+        if (!editorRoot) return;
+
+        const selection = window.getSelection?.();
+        if (!selection) return;
+
+        const range = document.createRange();
+        range.selectNodeContents(editorRoot);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      };
+
       const handleKeyDown = (e: KeyboardEvent) => {
         // Check if the event target is within the editor
         const target = e.target as HTMLElement;
@@ -384,6 +400,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
           } catch (error) {
             console.error('[SelectAll] Failed:', error);
           }
+          selectDomRange();
           return;
         }
 
