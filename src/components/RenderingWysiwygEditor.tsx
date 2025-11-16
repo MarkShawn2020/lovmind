@@ -534,28 +534,25 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       <div className="h-full w-full flex flex-col">
         <Plate editor={editor} onChange={handleChange}>
           <EditorContainer ref={editorContainerRef} className="h-full w-full flex flex-col flex-1">
-            {/* Positioning context for toast - wraps the actual input area */}
-            <div className="relative h-full w-full">
-              <Editor
-                placeholder={placeholder}
-                variant="none"
-                className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
-                onKeyDown={handleKeyDown}
-                onCompositionStart={handleCompositionStart}
-                onCompositionEnd={handleCompositionEnd}
-              />
+            <Editor
+              placeholder={placeholder}
+              variant="none"
+              className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
+              onKeyDown={handleKeyDown}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd}
+            />
 
-              {/* Auto-save toast - positioned relative to Editor input area */}
-              {showAutoSaveToast && (
-                <div
-                  className="absolute top-4 right-4 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200"
-                  role="status"
-                  aria-live="polite"
-                >
-                  已自动保存
-                </div>
-              )}
-            </div>
+            {/* Auto-save toast - positioned relative to EditorContainer, aligned with Editor's text area */}
+            {showAutoSaveToast && (
+              <div
+                className="absolute top-2 right-12 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
+                role="status"
+                aria-live="polite"
+              >
+                已自动保存
+              </div>
+            )}
           </EditorContainer>
         </Plate>
       </div>
