@@ -302,7 +302,7 @@ const NotesSidebarComponent = ({
 
                 {/* Subtle divider between pinned and unpinned sections */}
                 {!isPinnedCollapsed && unpinnedNotes.length > 0 && (
-                  <div className="my-2 h-px bg-gradient-to-r from-transparent via-border/30 to-transparent" />
+                  <div className="my-3 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
                 )}
               </>
             )}
