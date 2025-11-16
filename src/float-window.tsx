@@ -14,7 +14,8 @@ import { useMobileSidebarState } from './hooks/useMobileSidebarState';
 import { useNoteOperations } from './hooks/useNoteOperations';
 import { useWindowOperations } from './hooks/useWindowOperations';
 import { useNoteLoader } from './hooks/useNoteLoader';
-import { currentNoteAtom, editorContentAtom, notesAtom } from './atoms/noteAtoms';
+import { currentNoteAtom, editorContentAtom, notesAtom, currentNoteIdAtom } from './atoms/noteAtoms';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
 
 /**
@@ -23,7 +24,7 @@ import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-edito
  * Thin wrapper for floating editor window.
  * All editor logic is handled by RenderingWysiwygEditor internally.
  */
-function FloatWindow() {
+function FloatWindowInner() {
   const editorRef = useRef<LovmindEditorRef | null>(null);
 
   // Event sync hooks
@@ -51,12 +52,33 @@ function FloatWindow() {
 
   // Read from atoms (for UI display only)
   const currentNote = useAtomValue(currentNoteAtom);
+  const currentNoteId = useAtomValue(currentNoteIdAtom);
   const editorContent = useAtomValue(editorContentAtom);
   const notes = useAtomValue(notesAtom);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[FloatWindow] State changed:', {
+      noteId,
+      currentNoteId,
+      currentNote: currentNote ? { id: currentNote.id, title: currentNote.title } : null,
+      notesCount: notes.length,
+      editorContentSourceNoteId: editorContent.sourceNoteId
+    });
+  }, [noteId, currentNoteId, currentNote, notes.length, editorContent.sourceNoteId]);
+
   // Business logic hooks (for toolbar and sidebar)
+  // CRITICAL: These hooks must be called before any conditional returns
+  // to satisfy the Rules of Hooks
   const { togglePin, toggleArchive, deleteNote } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
+
+  // Use withSidebarClose to auto-close mobile sidebar after opening note
+  // MUST be declared before conditional returns
+  const handleOpenNote = useCallback(
+    withSidebarClose(openNoteInNewWindow),
+    [withSidebarClose, openNoteInNewWindow]
+  );
 
   // Auto-focus window and editor after mount
   useEffect(() => {
@@ -115,17 +137,23 @@ function FloatWindow() {
     return (
       <div className="app-container">
         <div style={{ padding: '20px', textAlign: 'center' }}>
-          Loading note data...
+          <div>Loading note data...</div>
+          <div style={{ fontSize: '12px', marginTop: '10px', color: '#666' }}>
+            Note ID: {noteId}
+          </div>
+          <div style={{ fontSize: '12px', marginTop: '5px', color: '#666' }}>
+            Notes count: {notes.length}
+          </div>
+          <div style={{ fontSize: '12px', marginTop: '5px', color: '#666' }}>
+            Current note ID in atom: {currentNoteId || 'null'}
+          </div>
         </div>
       </div>
     );
   }
 
-  // Use withSidebarClose to auto-close mobile sidebar after opening note
-  const handleOpenNote = useCallback(
-    withSidebarClose(openNoteInNewWindow),
-    [withSidebarClose, openNoteInNewWindow]
-  );
+  // All hooks are called above, before any conditional returns
+  // Now safe to render the full UI
 
   return (
     <EditorLayout
@@ -201,6 +229,20 @@ function FloatWindow() {
       isMobileSidebarOpen={isMobileSidebarOpen}
       onMobileSidebarChange={setIsMobileSidebarOpen}
     />
+  );
+}
+
+// Wrap with ErrorBoundary to catch any rendering errors
+function FloatWindow() {
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('[FloatWindow] ErrorBoundary caught error:', error);
+        console.error('[FloatWindow] Component stack:', errorInfo.componentStack);
+      }}
+    >
+      <FloatWindowInner />
+    </ErrorBoundary>
   );
 }
 
