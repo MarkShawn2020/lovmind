@@ -1,6 +1,6 @@
 'use client';
 
-import React, {forwardRef, useImperativeHandle, useMemo} from 'react';
+import React, {forwardRef, useImperativeHandle, useMemo, useEffect, useRef} from 'react';
 import {useAtomValue} from 'jotai';
 import type {Value} from 'platejs';
 import {Plate, usePlateEditor} from 'platejs/react';
@@ -16,7 +16,7 @@ import {useEditorEventBridge} from "@/hooks/useEditorEventBridge.ts";
 import {useNoteLoader} from "@/hooks/useNoteLoader.ts";
 import {useEditorSync} from "@/hooks/useEditorSync.ts";
 import {useAutoSave} from "@/hooks/useAutoSave.ts";
-import {currentNoteAtom} from "@/atoms/noteAtoms.ts";
+import {editorContentAtom} from "@/atoms/noteAtoms.ts";
 
 interface LovmindEditorProps {
   noteId?: string | null;
@@ -57,24 +57,61 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
     placeholder = "Type your amazing content here..."
   }, ref) {
     // Load note into atoms (handles both create mode and view mode)
+    // This updates editorContentAtom with the loaded note's content
     useNoteLoader(noteId);
 
-    // Read current note from atom
-    const currentNote = useAtomValue(currentNoteAtom);
+    // Read editor content from atom (updated by useNoteLoader)
+    const editorContent = useAtomValue(editorContentAtom);
 
-    // Compute initial value from loaded note
+    // Compute initial value from loaded note content
     const initialValue = useMemo<Value>(() => {
-      const richContent = currentNote?.richContent;
+      const richContent = editorContent.richContent;
       if (richContent && !isEditorContentEmpty(richContent)) {
         return richContent;
       }
       return createInitialValue('');
-    }, [currentNote]);
+    }, [editorContent.richContent]);
 
     const editor = usePlateEditor({
       plugins: EditorKitWithoutFixedToolbar,
       value: initialValue,
     });
+
+    // Track loaded rich content to detect external changes
+    const loadedRichContentRef = useRef<Value | null>(null);
+    const isInitialMountRef = useRef(true);
+
+    // Update editor value when note content changes (external change, not user typing)
+    useEffect(() => {
+      const richContent = editorContent.richContent;
+
+      // On initial mount, just record the content and skip
+      // (initialValue already set in usePlateEditor)
+      if (isInitialMountRef.current) {
+        isInitialMountRef.current = false;
+        loadedRichContentRef.current = richContent;
+        console.log('[LovmindEditor] Initial mount with noteId:', noteId);
+        return;
+      }
+
+      // Skip if content hasn't changed (reference equality check)
+      if (loadedRichContentRef.current === richContent) {
+        return;
+      }
+
+      // Update the loaded content ref
+      loadedRichContentRef.current = richContent;
+
+      // Get the new value to display
+      const newValue = richContent && !isEditorContentEmpty(richContent)
+        ? richContent
+        : createInitialValue('');
+
+      // Update editor value using Plate's API
+      editor.tf.setValue(newValue);
+
+      console.log('[LovmindEditor] Updated editor value for noteId:', noteId);
+    }, [editorContent.richContent, editor, noteId]);
 
     // Sync editor content to atoms
     const { handleContentChange } = useEditorSync();
