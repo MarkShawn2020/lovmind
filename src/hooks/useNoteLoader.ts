@@ -75,5 +75,7 @@ export function useNoteLoader(noteId: string | null | undefined) {
     };
 
     loadNote();
-  }, [noteId, notes, setCurrentNoteId, setEditorContent]);
+    // Only re-run when noteId changes, NOT when notes array updates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteId, setCurrentNoteId, setEditorContent]);
 }

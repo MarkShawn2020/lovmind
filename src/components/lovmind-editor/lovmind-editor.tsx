@@ -99,6 +99,18 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
         return;
       }
 
+      // Compare actual editor content with new content to avoid unnecessary setValue
+      // This prevents loops where setValue triggers events that update the atom
+      const currentEditorContent = editor.children as Value;
+      const currentEditorText = JSON.stringify(currentEditorContent);
+      const newContentText = JSON.stringify(richContent);
+
+      if (currentEditorText === newContentText) {
+        console.log('[LovmindEditor] Editor content already matches, skipping setValue');
+        loadedRichContentRef.current = richContent;
+        return;
+      }
+
       // Update the loaded content ref
       loadedRichContentRef.current = richContent;
 
