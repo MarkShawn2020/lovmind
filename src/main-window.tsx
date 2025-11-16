@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { useAtomValue } from 'jotai';
 import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+import confetti from 'canvas-confetti';
 
 import { isTauri } from "./utils/tauri";
 import { Note } from "./store";
@@ -147,6 +148,9 @@ function MainWindow() {
         }
       } else {
         // Create new note
+        const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
+        const newRank = Math.max(maxRank + 1, notes.length + 1);
+
         const newNote: Note = {
           id: Date.now().toString(),
           text: currentContent.text,
@@ -157,10 +161,24 @@ function MainWindow() {
           pinned: false,
           archived: false,
           favorite: false,
+          rank: newRank,
         };
 
         // Add to local state
         setNotes((prevNotes) => [newNote, ...prevNotes]);
+
+        // Trigger confetti celebration
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#ff3366', '#ff66cc', '#ff99dd', '#9966ff', '#6699ff'],
+          ticks: 200,
+          gravity: 1.2,
+          scalar: 1.2,
+          shapes: ['star', 'circle'],
+          drift: 0
+        });
 
         // Save to backend
         if (isTauri()) {
