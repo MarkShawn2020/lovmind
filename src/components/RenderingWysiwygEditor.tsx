@@ -17,7 +17,6 @@ interface RenderingWysiwygEditorProps {
   onChange?: (payload: EditorContentChange) => void;
   onSubmit?: () => void;
   placeholder?: string;
-  onAutoSaveToastChange?: (show: boolean) => void;
 }
 
 export type InputStateReason =
@@ -44,7 +43,6 @@ export interface RenderingWysiwygEditorRef {
   insertTag: (tag: string) => void;
   removeTag: (tag: string) => void;
   renameTag: (oldTag: string, newTag: string) => void;
-  showAutoSaveToast: boolean;
 }
 
 const createInitialValue = (text: string = ''): Value => {
@@ -181,8 +179,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     initialRichContent,
     onChange,
     onSubmit,
-    placeholder = "Type your amazing content here...",
-    onAutoSaveToastChange
+    placeholder = "Type your amazing content here..."
   }, ref) {
     // ✅ Compute initial value only once using useMemo
     // This prevents re-computation on every render
@@ -241,11 +238,6 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     const [showAutoSaveToast, setShowAutoSaveToast] = React.useState(false);
     const autoSaveToastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Notify parent when toast state changes
-    useEffect(() => {
-      onAutoSaveToastChange?.(showAutoSaveToast);
-    }, [showAutoSaveToast, onAutoSaveToastChange]);
-
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => {
         const emptyValue = [{ type: 'p', children: [{ text: '' }] }];
@@ -266,7 +258,6 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       focus: () => {
         editor.tf.focus();
       },
-      showAutoSaveToast,
       insertTag: (tag: string) => {
         // Insert hashtag at cursor position or end of document
         try {
@@ -549,7 +540,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
             <FixedToolbarButtons />
           </FixedToolbar>
 
-          {/* Row 2: Content Area */}
+          {/* Row 2: Content Area with Toast */}
           <EditorContainer ref={editorContainerRef} className="relative overflow-auto">
             <Editor
               placeholder={placeholder}
@@ -558,7 +549,18 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
               onKeyDown={handleKeyDown}
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
-            />
+            >
+              {/* Auto-save toast - fixed positioning below header to stay visible when scrolled */}
+              {showAutoSaveToast && (
+                <div
+                  className="fixed top-[68px] right-2 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
+                  role="status"
+                  aria-live="polite"
+                >
+                  已自动保存
+                </div>
+              )}
+            </Editor>
           </EditorContainer>
         </div>
       </Plate>
