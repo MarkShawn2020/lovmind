@@ -455,7 +455,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         // Show subtle toast notification
         toast('内容已自动保存', {
           duration: 1500,
-          position: 'bottom-center',
+          position: 'top-right',
           style: {
             background: 'var(--popover)',
             color: 'var(--popover-foreground)',
