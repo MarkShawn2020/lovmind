@@ -28,6 +28,7 @@ interface NotesSidebarProps {
   onDuplicateNote: (note: Note) => void | Promise<unknown>;
   onCreateNewNote?: () => void;
   isCreateMode?: boolean;
+  isEditorEmpty?: boolean;
 }
 
 const NotesSidebarComponent = ({
@@ -42,6 +43,7 @@ const NotesSidebarComponent = ({
   onDuplicateNote,
   onCreateNewNote,
   isCreateMode = false,
+  isEditorEmpty = true,
 }: NotesSidebarProps) => {
   const [isPinnedCollapsed, setIsPinnedCollapsed] = useState(false);
 
@@ -316,7 +318,7 @@ const NotesSidebarComponent = ({
         <div className="flex-shrink-0 p-[var(--spacing-s)] pt-2 border-t border-border/40 bg-muted">
           <button
             onClick={onCreateNewNote}
-            disabled={isCreateMode}
+            disabled={isCreateMode && isEditorEmpty}
             className={`
               w-full h-10 min-h-[44px] px-4
               rounded-xl
@@ -326,12 +328,18 @@ const NotesSidebarComponent = ({
               transition-all duration-200 ease-out
               shadow-sm
               touch-manipulation
-              ${isCreateMode
+              ${isCreateMode && isEditorEmpty
                 ? 'bg-muted-foreground/20 text-muted-foreground cursor-not-allowed opacity-50'
                 : 'bg-primary text-primary-foreground cursor-pointer hover:shadow-md hover:bg-primary/90 active:scale-[0.97]'
               }
             `}
-            title={isCreateMode ? "Already in create mode" : "Create new note"}
+            title={
+              isCreateMode && isEditorEmpty
+                ? "Editor is empty"
+                : isCreateMode
+                ? "Save current note and create new"
+                : "Create new note"
+            }
             type="button"
           >
             <Plus size={16} strokeWidth={2.5} />

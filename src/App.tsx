@@ -186,6 +186,7 @@ function App() {
     handleBackToCreate,
     createNewNoteWindow,
     viewingNoteId: controllerViewingNoteId,
+    isEditorEmpty,
   } = useNoteEditorController({
     mode: "main",
     placeholder: "此时此刻，你在想什么呢？",
@@ -220,9 +221,10 @@ function App() {
         onDuplicateNote={handleDuplicateNote}
         onCreateNewNote={handleBackToCreate}
         isCreateMode={!viewingNoteId}
+        isEditorEmpty={isEditorEmpty}
       />
     </div>
-  ), [notes, viewingNoteId, showArchived, handleOpenNoteInCurrentWindow, handleOpenNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote, handleBackToCreate]);
+  ), [notes, viewingNoteId, showArchived, handleOpenNoteInCurrentWindow, handleOpenNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote, handleBackToCreate, isEditorEmpty]);
 
   const editorNode = (
     <div ref={editorContainerRef}>
