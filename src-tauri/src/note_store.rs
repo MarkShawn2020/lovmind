@@ -11,9 +11,12 @@ pub struct TempNote {
     pub tags: Vec<String>,
     pub favorite: Option<bool>,
     pub pinned: Option<bool>,
+    pub archived: Option<bool>,
     #[serde(rename = "richContent")]
     pub rich_content: Option<serde_json::Value>,
     pub rank: Option<i32>,
+    #[serde(rename = "manualTitle")]
+    pub manual_title: Option<bool>,
 }
 
 #[tauri::command]
