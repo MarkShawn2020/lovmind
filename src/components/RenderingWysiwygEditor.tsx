@@ -3,6 +3,7 @@
 import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
+import { serializeMd } from '@platejs/markdown';
 
 import { EditorKitWithoutFixedToolbar } from '@/components/editor/editor-kit';
 import { Editor, EditorContainer } from '@/components/ui/editor';
@@ -359,6 +360,108 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       };
     }, []);
 
+    // 🔍 DIAGNOSTIC: Monitor clipboard and selection events
+    useEffect(() => {
+      const handleCopy = (e: ClipboardEvent) => {
+        console.log('🔍 [Diagnostic] Copy event fired!');
+        console.log('🔍 [Diagnostic] Editor selection:', editor.selection);
+        console.log('🔍 [Diagnostic] Window selection:', window.getSelection()?.toString().substring(0, 50));
+        console.log('🔍 [Diagnostic] ClipboardEvent target:', e.target);
+        console.log('🔍 [Diagnostic] Has clipboardData:', !!e.clipboardData);
+      };
+
+      const handleSelectionChange = () => {
+        const selection = window.getSelection();
+        if (selection && selection.toString()) {
+          console.log('🔍 [Diagnostic] Selection changed:', {
+            text: selection.toString().substring(0, 30),
+            rangeCount: selection.rangeCount,
+            isCollapsed: selection.isCollapsed,
+            slateSelection: editor.selection,
+          });
+        }
+      };
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+          console.log('🔍 [Diagnostic] Cmd+A detected!');
+          console.log('🔍 [Diagnostic] Event target:', e.target);
+          console.log('🔍 [Diagnostic] Active element:', document.activeElement);
+          setTimeout(() => {
+            console.log('🔍 [Diagnostic] After Cmd+A - Editor selection:', editor.selection);
+            console.log('🔍 [Diagnostic] After Cmd+A - Window selection length:', window.getSelection()?.toString().length);
+            console.log('🔍 [Diagnostic] After Cmd+A - Active element:', document.activeElement);
+          }, 50);
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+          console.log('🔍 [Diagnostic] Cmd+C detected in DOCUMENT keydown!');
+          console.log('🔍 [Diagnostic] Event target:', e.target);
+          console.log('🔍 [Diagnostic] Active element:', document.activeElement);
+
+          // 🔧 CRITICAL FIX: Manually trigger copy here at document level
+          // This ensures it works regardless of where focus is
+          e.preventDefault(); // Prevent any default behavior
+
+          try {
+            const { selection } = editor;
+
+            // Check if focus is on Slate's shadow input (Cmd+A workaround)
+            const activeElement = document.activeElement;
+            const isShadowInput = activeElement?.classList.contains('slate-shadow-input');
+
+            console.log('🔧 [Document Copy] Is shadow input?', isShadowInput);
+            console.log('🔧 [Document Copy] Has editor selection?', !!selection);
+
+            // If no selection OR focus is on shadow input, use entire document
+            let fragment: any[];
+
+            if (!selection || isShadowInput) {
+              console.log('🔧 [Document Copy] Using entire document (editor.children)');
+              fragment = editor.children;
+            } else {
+              // Try to get fragment from selection
+              fragment = (editor.getFragment as () => any)?.() || [];
+
+              // If fragment is empty, fall back to editor.children
+              if (!fragment || fragment.length === 0) {
+                console.log('🔧 [Document Copy] Fragment empty, using editor.children');
+                fragment = editor.children;
+              } else {
+                console.log('🔧 [Document Copy] Using fragment from selection');
+              }
+            }
+
+            const markdown = serializeMd(editor as any, { value: fragment });
+            console.log('🔧 [Document Copy] Markdown length:', markdown.length);
+            console.log('🔧 [Document Copy] Preview:', markdown.substring(0, 100));
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(markdown)
+                .then(() => {
+                  console.log('✅ [Document Copy] Successfully wrote to clipboard!');
+                })
+                .catch((err) => {
+                  console.error('❌ [Document Copy] Clipboard write failed:', err);
+                });
+            }
+          } catch (error) {
+            console.error('❌ [Document Copy] Error:', error);
+          }
+        }
+      };
+
+      // Add listeners to both document and editor container
+      document.addEventListener('copy', handleCopy, true); // Use capture phase
+      document.addEventListener('selectionchange', handleSelectionChange);
+      document.addEventListener('keydown', handleKeyDown);
+
+      return () => {
+        document.removeEventListener('copy', handleCopy, true);
+        document.removeEventListener('selectionchange', handleSelectionChange);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }, [editor]);
+
     // ✅ onChange handler with input state tracking
     const handleChange = ({ value }: { value: Value }) => {
       if (onChange) {
@@ -472,7 +575,11 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
         autoSaveToastTimeoutRef.current = setTimeout(() => {
           setShowAutoSaveToast(false);
         }, 2000);
+        return;
       }
+
+      // Note: Copy is now handled at document level (see useEffect above)
+      // This is because Cmd+A can cause focus to shift away from the Editor component
     };
 
     // Composition event handlers for IME input (Chinese, Japanese, Korean, etc.)
