@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect, useState } from 'react';
+import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect } from 'react';
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
 
@@ -232,9 +232,9 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       reason: 'focus-lost',
     });
 
-    // Save toast state
-    const [showSaveToast, setShowSaveToast] = useState(false);
-    const saveToastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    // Auto-save toast state
+    const [showAutoSaveToast, setShowAutoSaveToast] = React.useState(false);
+    const autoSaveToastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => {
@@ -345,14 +345,14 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
       }
     }), [editor]);
 
-    // Cleanup timeout on unmount
+    // Cleanup timeouts on unmount
     useEffect(() => {
       return () => {
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
-        if (saveToastTimeoutRef.current) {
-          clearTimeout(saveToastTimeoutRef.current);
+        if (autoSaveToastTimeoutRef.current) {
+          clearTimeout(autoSaveToastTimeoutRef.current);
         }
       };
     }, []);
@@ -447,31 +447,29 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-      // Handle Cmd+Enter / Ctrl+Enter for submit
+      // Cmd+Enter / Ctrl+Enter: Submit
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
         onSubmit?.();
         return;
       }
 
-      // Handle Cmd+S / Ctrl+S for save confirmation toast
+      // Cmd+S / Ctrl+S: Show auto-save toast
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
 
-        // Show custom toast inside editor container
-        setShowSaveToast(true);
+        // Show toast
+        setShowAutoSaveToast(true);
 
         // Clear existing timeout
-        if (saveToastTimeoutRef.current) {
-          clearTimeout(saveToastTimeoutRef.current);
+        if (autoSaveToastTimeoutRef.current) {
+          clearTimeout(autoSaveToastTimeoutRef.current);
         }
 
-        // Auto-hide after 1.5 seconds
-        saveToastTimeoutRef.current = setTimeout(() => {
-          setShowSaveToast(false);
-        }, 1500);
-
-        return;
+        // Auto-hide after 2 seconds
+        autoSaveToastTimeoutRef.current = setTimeout(() => {
+          setShowAutoSaveToast(false);
+        }, 2000);
       }
     };
 
@@ -533,53 +531,30 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     };
 
     return (
-      <div className="h-full w-full flex flex-col">
+      <div className="h-full w-full flex flex-col relative">
         <Plate editor={editor} onChange={handleChange}>
           <EditorContainer ref={editorContainerRef} className="h-full w-full flex flex-col flex-1">
-            <div className="relative h-full w-full">
-              <Editor
-                placeholder={placeholder}
-                variant="none"
-                className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
-                onKeyDown={handleKeyDown}
-                onCompositionStart={handleCompositionStart}
-                onCompositionEnd={handleCompositionEnd}
-              />
-              {/* Custom save toast - positioned inside pure editor area (no toolbar) */}
-              {showSaveToast && (
-                <div
-                  className="absolute top-4 right-4 z-50 pointer-events-none"
-                  style={{
-                    animation: 'fadeIn 0.15s ease-out',
-                  }}
-                >
-                  <div
-                    className="px-4 py-2 rounded-lg shadow-lg text-sm"
-                    style={{
-                      background: 'var(--popover)',
-                      color: 'var(--popover-foreground)',
-                      border: '1px solid var(--border)',
-                    }}
-                  >
-                    内容已自动保存
-                  </div>
-                </div>
-              )}
-            </div>
+            <Editor
+              placeholder={placeholder}
+              variant="none"
+              className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
+              onKeyDown={handleKeyDown}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd}
+            />
           </EditorContainer>
         </Plate>
-        <style>{`
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: translateY(-8px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-        `}</style>
+
+        {/* Auto-save toast */}
+        {showAutoSaveToast && (
+          <div
+            className="absolute top-4 right-4 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200"
+            role="status"
+            aria-live="polite"
+          >
+            已自动保存
+          </div>
+        )}
       </div>
     );
   }
