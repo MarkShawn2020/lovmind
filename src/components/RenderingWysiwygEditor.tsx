@@ -4,8 +4,10 @@ import React, { useImperativeHandle, forwardRef, useMemo, useRef, useEffect } fr
 import type { Value } from 'platejs';
 import { Plate, usePlateEditor } from 'platejs/react';
 
-import { EditorKit } from '@/components/editor/editor-kit';
+import { EditorKitWithoutFixedToolbar } from '@/components/editor/editor-kit';
 import { Editor, EditorContainer } from '@/components/ui/editor';
+import { FixedToolbar } from '@/components/ui/fixed-toolbar';
+import { FixedToolbarButtons } from '@/components/ui/fixed-toolbar-buttons';
 import { HASHTAG_KEY } from '@/components/editor/plugins/hashtag-kit';
 import type { THashtagElement } from '@/components/editor/plugins/hashtag-base-kit';
 
@@ -191,7 +193,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     }, []); // ✅ Empty deps - only compute on mount
 
     const editor = usePlateEditor({
-      plugins: EditorKit,
+      plugins: EditorKitWithoutFixedToolbar,
       value: initialValue,
     });
 
@@ -531,9 +533,15 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     };
 
     return (
-      <div className="h-full w-full flex flex-col">
-        <Plate editor={editor} onChange={handleChange}>
-          <EditorContainer ref={editorContainerRef} className="h-full w-full flex flex-col flex-1">
+      <Plate editor={editor} onChange={handleChange}>
+        <div className="h-full w-full grid grid-rows-[auto_1fr]">
+          {/* Row 1: Fixed Toolbar Area */}
+          <FixedToolbar>
+            <FixedToolbarButtons />
+          </FixedToolbar>
+
+          {/* Row 2: Content Area with Toast */}
+          <EditorContainer ref={editorContainerRef} className="relative overflow-auto">
             <Editor
               placeholder={placeholder}
               variant="none"
@@ -542,7 +550,7 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
               onCompositionStart={handleCompositionStart}
               onCompositionEnd={handleCompositionEnd}
             >
-              {/* Auto-save toast - positioned inside Editor (PlateContent) */}
+              {/* Auto-save toast - positioned in content area, isolated from toolbar */}
               {showAutoSaveToast && (
                 <div
                   className="absolute top-2 right-2 z-50 px-3 py-1.5 bg-background/95 backdrop-blur-sm border border-border/40 rounded-md shadow-sm text-xs text-muted-foreground animate-in fade-in slide-in-from-top-1 duration-200 pointer-events-none"
@@ -554,8 +562,8 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
               )}
             </Editor>
           </EditorContainer>
-        </Plate>
-      </div>
+        </div>
+      </Plate>
     );
   }
 );

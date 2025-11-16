@@ -94,25 +94,34 @@ export type EditorProps = PlateContentProps &
 
 export const Editor = React.forwardRef<HTMLDivElement, EditorProps>(
   ({ className, disabled, focused, variant, children, ...props }, ref) => {
-    return (
-      <div className="relative h-full w-full">
-        <PlateContent
-          ref={ref}
-          className={cn(
-            editorVariants({
-              disabled,
-              focused,
-              variant,
-            }),
-            className
-          )}
-          disabled={disabled}
-          disableDefaultStyles
-          {...props}
-        />
-        {children}
-      </div>
+    const plateContent = (
+      <PlateContent
+        ref={ref}
+        className={cn(
+          editorVariants({
+            disabled,
+            focused,
+            variant,
+          }),
+          className
+        )}
+        disabled={disabled}
+        disableDefaultStyles
+        {...props}
+      />
     );
+
+    // Only add wrapper if children are provided (for absolute positioning)
+    if (children) {
+      return (
+        <div className="relative h-full w-full">
+          {plateContent}
+          {children}
+        </div>
+      );
+    }
+
+    return plateContent;
   }
 );
 

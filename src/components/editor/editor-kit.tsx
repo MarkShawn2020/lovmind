@@ -93,6 +93,11 @@ export const EditorKit = [
   ...FloatingToolbarKit,
 ];
 
+// EditorKit without FixedToolbar for manual layout control
+export const EditorKitWithoutFixedToolbar = EditorKit.filter(
+  (plugin) => plugin.key !== 'fixed-toolbar'
+);
+
 export type MyEditor = TPlateEditor<Value, (typeof EditorKit)[number]>;
 
 export const useEditor = () => useEditorRef<MyEditor>();
