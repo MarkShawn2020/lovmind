@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `src/`: React + TypeScript frontend. Entrypoints live in `src/App.tsx` (main window) and `src/FloatWindow.tsx` (floating editor). Shared UI/logic sits in `src/components`, `src/components/note-editor`, `src/hooks`, and `src/features`.
+- `src/`: React + TypeScript frontend. Entrypoints live in `src/App.tsx` (main window) and `src/float-window.tsx` (floating editor). Shared UI/logic sits in `src/components`, `src/components/note-editor`, `src/hooks`, and `src/features`.
 - `src-tauri/`: Rust commands, window configuration, and bundling metadata.
 - Assets such as logos live under `src/assets/`, while docs and marketing pages remain in `docs/`.
 - Keep new platform-specific helpers under `src/utils/` and reuse the `useNoteEditorController` hook for editor state orchestration.

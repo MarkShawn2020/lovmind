@@ -38,7 +38,7 @@ useEffect(() => {
 
 **正确做法**：
 ```typescript
-// FloatWindow.tsx - 等待数据加载完成再渲染
+// float-window.tsx - 等待数据加载完成再渲染
 const { currentNote, isLoading } = useNoteEditorController({ ... });
 
 if (isLoading) {

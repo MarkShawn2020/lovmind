@@ -187,7 +187,7 @@ export function useAutoSave() {
   }, [editorContent, currentNote, updateNote]);
 }
 
-// FloatWindow.tsx / App.tsx
+// float-window.tsx / App.tsx
 function FloatWindow() {
   useAutoSave(); // ✅ 声明式启用 auto-save
   // ...
@@ -455,7 +455,7 @@ export function useAutoSave() {
 #### Phase 4: 简化 FloatWindow
 
 ```typescript
-// FloatWindow.tsx - 重构后
+// float-window.tsx - 重构后
 import { useAtomValue, useSetAtom } from 'jotai';
 import { currentNoteIdAtom, currentNoteAtom, editorContentAtom } from '@/atoms/noteAtoms';
 import { useEditorSync } from '@/hooks/useEditorSync';

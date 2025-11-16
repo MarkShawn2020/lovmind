@@ -3,7 +3,7 @@
 ## 当前架构问题
 
 ```typescript
-// FloatWindow.tsx (父组件)
+// float-window.tsx (父组件)
 const editorRef = useRef<RenderingWysiwygEditorRef>(null);
 editorRef.current?.resetAndFocus();  // 如何消除这个 ref？
 
@@ -22,7 +22,7 @@ useImperativeHandle(ref, () => ({
 // RenderingWysiwygEditor.tsx
 useImperativeHandle(ref, () => editor, [editor]);
 
-// FloatWindow.tsx
+// float-window.tsx
 editorRef.current?.tf.setValue([...]);  // 直接使用 Plate API
 editorRef.current?.api.hashtag.insert(tag);
 ```
@@ -49,7 +49,7 @@ export const CommandsPlugin = createSlatePlugin({
   }
 });
 
-// FloatWindow.tsx
+// float-window.tsx
 window.dispatchEvent(new CustomEvent('editor-reset'));
 ```
 
@@ -76,7 +76,7 @@ useEffect(() => {
   }
 }, [command]);
 
-// FloatWindow.tsx
+// float-window.tsx
 setCommand({ type: 'resetAndFocus' });
 ```
 
@@ -104,7 +104,7 @@ useEffect(() => {
   return () => editorRegistry.unregister(noteId);
 }, []);
 
-// FloatWindow.tsx
+// float-window.tsx
 const editor = editorRegistry.getEditor(noteId);
 editor?.api.hashtag.insert(tag);
 ```
@@ -120,7 +120,7 @@ editor?.api.hashtag.insert(tag);
 ### ❌ 方案 5：反转组件层级
 
 ```typescript
-// FloatWindow.tsx
+// float-window.tsx
 const FloatWindow = () => {
   const editor = usePlateEditor({ plugins: EditorKit });
 

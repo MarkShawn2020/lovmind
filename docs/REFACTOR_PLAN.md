@@ -266,7 +266,7 @@ const RenderingWysiwygEditor = forwardRef<...>((props, ref) => {
 Auto-save toast 是 UI 反馈，不属于编辑器层，应该在上层组件管理。
 
 ### 方案
-1. 在 `App.tsx` 和 `FloatWindow.tsx` 中监听 `Cmd+S` 快捷键
+1. 在 `App.tsx` 和 `float-window.tsx` 中监听 `Cmd+S` 快捷键
 2. 显示全局 Toast（使用 sonner 或其他 toast 库）
 3. RenderingWysiwygEditor 只负责分发 `save-shortcut` 事件
 
@@ -340,7 +340,7 @@ editorRef.current?.resetAndFocus();  // 依然通过 ref 调用
 | 输入状态跟踪 | ~90 行 | InputStatePlugin |
 | 剪贴板处理 | ~95 行 | TauriClipboardPlugin |
 | 键盘快捷键 | ~50 行 | KeyboardShortcutsPlugin |
-| Auto-save toast | ~30 行 | App.tsx/FloatWindow.tsx |
+| Auto-save toast | ~30 行 | App.tsx/float-window.tsx |
 | 焦点管理 (可选) | ~50 行 | FocusManagementPlugin/保留 |
 | **总计** | **~315 行** | **插件系统** |
 
@@ -367,7 +367,7 @@ RenderingWysiwygEditor (510 行，混合职责)
 
 ### 重构后（清晰）
 ```
-App.tsx / FloatWindow.tsx (上层组件)
+App.tsx / float-window.tsx (上层组件)
 ├─ Auto-save toast
 ├─ Save/Submit 事件处理
 └─ RenderingWysiwygEditor (100 行，UI wrapper)

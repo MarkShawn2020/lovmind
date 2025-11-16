@@ -2,13 +2,13 @@
 
 ## 目标
 
-将 App.tsx, FloatWindow.tsx, EditorLayout.tsx, RenderingWysiwygEditor.tsx 从 useNoteEditorController (628 行上帝 Hook) 迁移到 Jotai + 专注 Hooks 架构。
+将 App.tsx, float-window.tsx, EditorLayout.tsx, RenderingWysiwygEditor.tsx 从 useNoteEditorController (628 行上帝 Hook) 迁移到 Jotai + 专注 Hooks 架构。
 
 ---
 
 ## 当前问题
 
-### 1. FloatWindow.tsx (197 行)
+### 1. float-window.tsx (197 行)
 ```typescript
 const {
   notes, showArchived, currentNote, isEditingTitle, editingTitle,
@@ -139,7 +139,7 @@ export function useNoteLoader(noteId: string | null) {
 **TitleEditor.tsx** - 提取标题编辑逻辑
 **FloatWindowControls.tsx** - 浮动窗口控制按钮
 
-### 🔄 Phase 3: 重构 FloatWindow.tsx
+### 🔄 Phase 3: 重构 float-window.tsx
 
 **重构前**（197 行）：
 ```typescript
@@ -290,7 +290,7 @@ function App() {
 
 | 文件 | 重构前 | 重构后 | 减少 |
 |------|--------|--------|------|
-| FloatWindow.tsx | 197 行 | ~80 行 | -59% |
+| float-window.tsx | 197 行 | ~80 行 | -59% |
 | App.tsx | 352 行 | ~120 行 | -66% |
 | useNoteEditorController.ts | 628 行 | **删除** | -100% |
 | **总计** | 1177 行 | ~200 行 | **-83%** |

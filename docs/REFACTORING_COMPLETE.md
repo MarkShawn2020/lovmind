@@ -18,7 +18,7 @@
 - [x] 创建 `hooks/useNoteLoader.ts` - 笔记加载逻辑（替代重复的 useEffect）
 - [x] 修正 `atoms/noteAtoms.ts` - 重用 store.ts 的 notesAtom（避免重复）
 
-### ✅ Phase 3: 重构 FloatWindow.tsx
+### ✅ Phase 3: 重构 float-window.tsx
 - [x] 移除 useNoteEditorController 依赖（30+ 个返回值）
 - [x] 使用 Jotai atoms 读取状态
 - [x] 使用专注 hooks（useEditorSync, useAutoSave, useNoteLoader）
@@ -42,7 +42,7 @@
 ### 之前（上帝 Hook 模式）
 
 ```typescript
-// FloatWindow.tsx - 197 行
+// float-window.tsx - 197 行
 const {
   notes, showArchived, currentNote, isEditingTitle, editingTitle,
   handleTitleChange, handleStartEditingTitle, handleCancelEditingTitle,
@@ -65,7 +65,7 @@ const {
 ### 现在（Jotai + 专注 Hooks）
 
 ```typescript
-// FloatWindow.tsx - ~210 行（可进一步优化）
+// float-window.tsx - ~210 行（可进一步优化）
 const noteId = getNoteIdFromURL();
 
 // Load note into atoms
@@ -107,7 +107,7 @@ return <EditorLayout ... />;
 | hooks/useEditorEventBridge.ts | - | 56 行 | +56 |
 | plugins/EditorCommandsPlugin.tsx | - | 32 行 | +32 |
 | **重构** |
-| FloatWindow.tsx | 197 行 | 212 行 | +15 行* |
+| float-window.tsx | 197 行 | 212 行 | +15 行* |
 | App.tsx | 352 行 | 440 行 | +88 行* |
 | RenderingWysiwygEditor.tsx | 168 行 | 106 行 | -62 行 |
 | **总计** | **1345 行** | **1086 行** | **-259 行 (-19%)** |
@@ -194,7 +194,7 @@ src/
 │   └── editor/plugins/
 │       └── editor-commands-kit.tsx  ← 新增：命令插件
 ├── App.tsx                       ← 重构：使用 atoms
-├── FloatWindow.tsx               ← 重构：使用 atoms
+├── float-window.tsx               ← 重构：使用 atoms
 └── store.ts                      ← 保持不变（notesAtom 来源）
 ```
 

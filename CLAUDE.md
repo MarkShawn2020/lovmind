@@ -64,18 +64,18 @@ The app uses **single-page routing** with different window types:
    - Always-on-top, frameless, transparent
    - Shows input area + recent notes list
    - Toggled via global shortcut
-2. **Float Windows** (`index.html?window=editor` → `FloatWindow.tsx`): Full note editing
+2. **Float Windows** (`index.html?window=editor` → `float-window.tsx`): Full note editing
    - Dynamically created via `new WebviewWindow()` with `?window=editor&noteId=...` URL params
    - Each note opens in its own window
    - Uses Plate.js rich text editor
-3. **Settings Window** (`index.html?window=settings` → `SettingsWindow.tsx`): App settings
+3. **Settings Window** (`index.html?window=settings` → `settings-window.tsx`): App settings
    - Accessed via main window settings button
 
 ### Frontend Structure
-- **src/main.tsx**: Entry point with window-type routing logic (`?window=editor|settings|main`)
+- **src/app.tsx**: Entry point with window-type routing logic (`?window=editor|settings|main`)
 - **src/App.tsx**: Main window component (quick capture + notes list)
-- **src/FloatWindow.tsx**: Float editor window component
-- **src/SettingsWindow.tsx**: Settings window component
+- **src/float-window.tsx**: Float editor window component
+- **src/settings-window.tsx**: Settings window component
 - **src/components/RenderingWysiwygEditor.tsx**: Plate.js editor integration
 - **src/components/editor/plugins/**: Plate.js plugin configurations (markdown, lists, code blocks, etc.)
 - **src/components/ui/**: Plate.js node renderers and Radix UI components
@@ -111,12 +111,12 @@ Notes are synchronized between windows using:
 - `macOSPrivateApi: true` enables advanced window features on macOS
 - Global shortcut registered in `lib.rs` using `tauri-plugin-global-shortcut`
 
-### Window Routing (main.tsx)
+### Window Routing (app.tsx)
 - Single `index.html` entry point
 - URL parameters control which component renders:
   - `?window=main` or no params → `App.tsx`
-  - `?window=editor&noteId=...` → `FloatWindow.tsx`
-  - `?window=settings` → `SettingsWindow.tsx`
+  - `?window=editor&noteId=...` → `float-window.tsx`
+  - `?window=settings` → `settings-window.tsx`
 - StrictMode disabled for editor windows to improve perceived performance
 
 ### Code Inspector (Development Tool)

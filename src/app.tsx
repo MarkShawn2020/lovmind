@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
-import FloatWindow from './FloatWindow';
-import SettingsWindow from './SettingsWindow';
+import MainWindow from './main-window.tsx';
+import FloatWindow from './float-window.tsx';
+import SettingsWindow from './settings-window.tsx';
 import './index.css';
 
 console.time('[Perf] Window load to React render');
@@ -29,7 +29,7 @@ if (rootElement) {
     component = <SettingsWindow />;
   } else {
     console.log('[Perf] Creating App component (main window)');
-    component = <App />;
+    component = <MainWindow />;
   }
 
   console.time('[Perf] ReactDOM.createRoot');

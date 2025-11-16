@@ -30,7 +30,7 @@ import packageJson from "../package.json";
  * Main window - thin wrapper that provides UI state and routing.
  * All editor logic is handled by RenderingWysiwygEditor internally.
  */
-function App() {
+function MainWindow() {
   // Local state: which note we're viewing (null = create mode)
   const [viewingNoteId, setViewingNoteId] = useState<string | null>(null);
 
@@ -399,4 +399,4 @@ function App() {
   );
 }
 
-export default App;
+export default MainWindow;

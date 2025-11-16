@@ -2,7 +2,7 @@
 
 ## Summary
 
-Successfully moved all shared logic from App.tsx and FloatWindow.tsx into RenderingWysiwygEditor.tsx, making parent components thin wrappers that only handle UI state and routing.
+Successfully moved all shared logic from App.tsx and float-window.tsx into RenderingWysiwygEditor.tsx, making parent components thin wrappers that only handle UI state and routing.
 
 ---
 
@@ -54,7 +54,7 @@ Successfully moved all shared logic from App.tsx and FloatWindow.tsx into Render
 - ✅ Business logic hooks for sidebar/toolbar (useNoteOperations, useWindowOperations)
 - ✅ Window dragging handlers
 
-### FloatWindow.tsx (212 → ~170 lines estimated after cleanup)
+### float-window.tsx (212 → ~170 lines estimated after cleanup)
 
 **Removed:**
 - ❌ `useNoteLoader(noteId)`
@@ -102,7 +102,7 @@ useNoteLoader(viewingNoteId);
 const { handleContentChange } = useEditorSync();
 useAutoSave();
 
-// FloatWindow.tsx
+// float-window.tsx
 useNoteLoader(noteId);
 const { handleContentChange } = useEditorSync();
 useAutoSave();
@@ -117,7 +117,7 @@ useNoteLoader(noteId);
 const { handleContentChange } = useEditorSync();
 useAutoSave();
 
-// App.tsx and FloatWindow.tsx just pass noteId prop
+// App.tsx and float-window.tsx just pass noteId prop
 ```
 
 ### 2. Clear Separation of Concerns
@@ -126,7 +126,7 @@ useAutoSave();
 |-----------|----------------|
 | **RenderingWysiwygEditor** | All editor logic (loading, syncing, auto-saving) |
 | **App.tsx** | UI state (modals, menus) + Main window routing |
-| **FloatWindow.tsx** | UI state + Float window routing |
+| **float-window.tsx** | UI state + Float window routing |
 
 ### 3. Simpler Parent Components
 
@@ -177,7 +177,7 @@ const handleBackToCreate = async () => {
 |------|--------|-------|--------|
 | RenderingWysiwygEditor.tsx | 106 lines | 106 lines | No change (logic moved inside) |
 | App.tsx | 440 lines | ~380 lines* | -60 lines (-14%) |
-| FloatWindow.tsx | 212 lines | ~170 lines* | -42 lines (-20%) |
+| float-window.tsx | 212 lines | ~170 lines* | -42 lines (-20%) |
 | **Total** | **758 lines** | **~656 lines** | **-102 lines (-13%)** |
 
 \* Estimated after removing unused imports and handlers
