@@ -535,35 +535,37 @@ const RenderingWysiwygEditor = forwardRef<RenderingWysiwygEditorRef, RenderingWy
     return (
       <div className="h-full w-full flex flex-col">
         <Plate editor={editor} onChange={handleChange}>
-          <EditorContainer ref={editorContainerRef} className="h-full w-full flex flex-col flex-1 relative">
-            <Editor
-              placeholder={placeholder}
-              variant="none"
-              className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
-              onKeyDown={handleKeyDown}
-              onCompositionStart={handleCompositionStart}
-              onCompositionEnd={handleCompositionEnd}
-            />
-            {/* Custom save toast - positioned inside editor container */}
-            {showSaveToast && (
-              <div
-                className="absolute top-4 right-4 z-50 pointer-events-none"
-                style={{
-                  animation: 'fadeIn 0.15s ease-out',
-                }}
-              >
+          <EditorContainer ref={editorContainerRef} className="h-full w-full flex flex-col flex-1">
+            <div className="relative h-full w-full">
+              <Editor
+                placeholder={placeholder}
+                variant="none"
+                className="h-full w-full px-8 py-2 outline-none caret-primary select-text selection:bg-brand/25"
+                onKeyDown={handleKeyDown}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
+              />
+              {/* Custom save toast - positioned inside pure editor area (no toolbar) */}
+              {showSaveToast && (
                 <div
-                  className="px-4 py-2 rounded-lg shadow-lg text-sm"
+                  className="absolute top-4 right-4 z-50 pointer-events-none"
                   style={{
-                    background: 'var(--popover)',
-                    color: 'var(--popover-foreground)',
-                    border: '1px solid var(--border)',
+                    animation: 'fadeIn 0.15s ease-out',
                   }}
                 >
-                  内容已自动保存
+                  <div
+                    className="px-4 py-2 rounded-lg shadow-lg text-sm"
+                    style={{
+                      background: 'var(--popover)',
+                      color: 'var(--popover-foreground)',
+                      border: '1px solid var(--border)',
+                    }}
+                  >
+                    内容已自动保存
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </EditorContainer>
         </Plate>
         <style>{`
