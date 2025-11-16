@@ -207,6 +207,12 @@ function App() {
     setIsMobileSidebarOpen(false);
   }, [openNoteInNewWindow]);
 
+  const handleCreateNewNote = useCallback(() => {
+    handleBackToCreate();
+    // Close mobile sidebar drawer when creating new note
+    setIsMobileSidebarOpen(false);
+  }, [handleBackToCreate]);
+
   const sidebarNode = useMemo(() => (
     <div ref={notesListRef} className="h-full">
       <NotesSidebar
@@ -219,12 +225,12 @@ function App() {
         onToggleArchive={toggleArchive}
         onDeleteNote={deleteNote}
         onDuplicateNote={handleDuplicateNote}
-        onCreateNewNote={handleBackToCreate}
+        onCreateNewNote={handleCreateNewNote}
         isCreateMode={!viewingNoteId}
         isEditorEmpty={isEditorEmpty}
       />
     </div>
-  ), [notes, viewingNoteId, showArchived, handleOpenNoteInCurrentWindow, handleOpenNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote, handleBackToCreate, isEditorEmpty]);
+  ), [notes, viewingNoteId, showArchived, handleOpenNoteInCurrentWindow, handleOpenNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote, handleCreateNewNote, isEditorEmpty]);
 
   const editorNode = (
     <div ref={editorContainerRef}>
