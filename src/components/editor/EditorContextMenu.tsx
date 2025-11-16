@@ -51,9 +51,9 @@ export function EditorContextMenu({ editor, children, targetElement }: EditorCon
       setMenuOpen(true);
     };
 
-    targetElement.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('contextmenu', handleContextMenu, true);
     return () => {
-      targetElement.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('contextmenu', handleContextMenu, true);
     };
   }, [targetElement]);
 
@@ -98,7 +98,11 @@ export function EditorContextMenu({ editor, children, targetElement }: EditorCon
     if (!menuOpen) return;
 
     const handlePointerDown = (event: MouseEvent) => {
-      if (menuRef.current?.contains(event.target as Node)) return;
+      const target = event.target as Node;
+      if (menuRef.current?.contains(target)) return;
+      if (event.type === 'contextmenu' && targetElement?.contains(target)) {
+        return;
+      }
       closeMenu();
     };
 
@@ -126,7 +130,7 @@ export function EditorContextMenu({ editor, children, targetElement }: EditorCon
       window.removeEventListener('resize', handleScrollOrBlur);
       window.removeEventListener('blur', handleScrollOrBlur);
     };
-  }, [menuOpen, closeMenu]);
+  }, [menuOpen, closeMenu, targetElement]);
 
   React.useEffect(() => {
     if (!targetElement) {
