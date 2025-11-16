@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tauri build artifacts
+src-tauri/gen/
+src-tauri/target/
+src-tauri/WixTools/
+src-tauri/icons/android/mipmap-anydpi-v26/
+src-tauri/icons/android/values/
+src-tauri/icons/icon-1024.png
+src-tauri/icons/icon-512.png
