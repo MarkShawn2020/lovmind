@@ -48,6 +48,19 @@ export function useAutoSave() {
 
     if (contentHash === lastSavedContentRef.current) return;
 
+    // Don't save if content matches the current note (no changes made)
+    const noteContentHash = JSON.stringify({
+      text: currentNote.text,
+      tags: currentNote.tags,
+      richContent: currentNote.richContent,
+    });
+
+    if (contentHash === noteContentHash) {
+      // Content hasn't changed from saved state, just update the ref
+      lastSavedContentRef.current = contentHash;
+      return;
+    }
+
     // Debounce: Only save after user stops typing
     // Note: In the future, we could listen to InputStatePlugin's typing-stop event
     // For now, we use a simple timer
