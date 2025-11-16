@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import { useAtomValue } from 'jotai';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
@@ -26,6 +26,9 @@ import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-edito
  */
 function FloatWindowInner() {
   const editorRef = useRef<LovmindEditorRef | null>(null);
+
+  // Local state for always-on-top
+  const [isWindowAlwaysOnTop, setIsWindowAlwaysOnTop] = useState(false);
 
   // Event sync hooks
   useNoteEventSync();
@@ -79,6 +82,21 @@ function FloatWindowInner() {
     withSidebarClose(openNoteInNewWindow),
     [withSidebarClose, openNoteInNewWindow]
   );
+
+  // Toggle always-on-top functionality
+  const handleToggleAlwaysOnTop = useCallback(async () => {
+    if (!isTauri()) return;
+
+    try {
+      const window = getCurrentWindow();
+      const newState = !isWindowAlwaysOnTop;
+      await window.setAlwaysOnTop(newState);
+      setIsWindowAlwaysOnTop(newState);
+      console.log('[FloatWindow] Always on top:', newState);
+    } catch (error) {
+      console.error('[FloatWindow] Failed to toggle always on top:', error);
+    }
+  }, [isWindowAlwaysOnTop]);
 
   // Auto-focus window and editor after mount
   useEffect(() => {
@@ -184,8 +202,8 @@ function FloatWindowInner() {
               console.error('Failed to start dragging:', error);
             }
           }}
-          isWindowAlwaysOnTop={false}
-          onToggleAlwaysOnTop={async () => {}}
+          isWindowAlwaysOnTop={isWindowAlwaysOnTop}
+          onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
           onCloseWindow={async () => {
             if (isTauri()) {
               const currentWindow = getCurrentWindow();
