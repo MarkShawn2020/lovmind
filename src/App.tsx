@@ -218,7 +218,8 @@ function App() {
         onToggleArchive={toggleArchive}
         onDeleteNote={deleteNote}
         onDuplicateNote={handleDuplicateNote}
-        onCreateNewNote={viewingNoteId ? handleBackToCreate : undefined}
+        onCreateNewNote={handleBackToCreate}
+        isInViewingMode={!!viewingNoteId}
       />
     </div>
   ), [notes, viewingNoteId, showArchived, handleOpenNoteInCurrentWindow, handleOpenNoteInNewWindow, togglePin, toggleArchive, deleteNote, handleDuplicateNote, handleBackToCreate]);

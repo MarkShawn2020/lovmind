@@ -27,6 +27,7 @@ interface NotesSidebarProps {
   onDeleteNote: (id: string) => void | Promise<unknown>;
   onDuplicateNote: (note: Note) => void | Promise<unknown>;
   onCreateNewNote?: () => void;
+  isInViewingMode?: boolean;
 }
 
 const NotesSidebarComponent = ({
@@ -40,6 +41,7 @@ const NotesSidebarComponent = ({
   onDeleteNote,
   onDuplicateNote,
   onCreateNewNote,
+  isInViewingMode = false,
 }: NotesSidebarProps) => {
   const [isPinnedCollapsed, setIsPinnedCollapsed] = useState(false);
 
@@ -304,9 +306,9 @@ const NotesSidebarComponent = ({
         </div>
       </div>
 
-      {/* New Note Button - Fixed at bottom, only show in main window when viewing a note */}
+      {/* New Note Button - Fixed at bottom, always visible in main window */}
       {onCreateNewNote && (
-        <div className="flex-shrink-0 p-[var(--spacing-s)] pt-0 border-t border-border/40 bg-muted">
+        <div className="flex-shrink-0 p-[var(--spacing-s)] pt-2 border-t border-border/40 bg-muted">
           <button
             onClick={onCreateNewNote}
             className="
@@ -323,11 +325,11 @@ const NotesSidebarComponent = ({
               active:scale-[0.97]
               touch-manipulation
             "
-            title="Create new note"
+            title={isInViewingMode ? "Create new note" : "New note"}
             type="button"
           >
             <Plus size={16} strokeWidth={2.5} />
-            <span>新建笔记</span>
+            <span>{isInViewingMode ? "新建笔记" : "新建笔记"}</span>
           </button>
         </div>
       )}
