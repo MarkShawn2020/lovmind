@@ -1,7 +1,7 @@
 {
   "name": "lovmind",
   "private": true,
-  "version": "0.76.2",
+  "version": "0.77.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,10 +13,10 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "tauri": "tauri",
-    "build:dmg": "tauri build --bundles dmg",
-    "build:mac-universal": "tauri build --target universal-apple-darwin",
-    "build:mac-intel": "tauri build --target x86_64-apple-darwin",
-    "build:mac-arm": "tauri build --target aarch64-apple-darwin",
+    "build:dmg": "PATH=/usr/bin:/usr/local/bin:/opt/homebrew/bin:$PATH tauri build --bundles dmg",
+    "build:mac-universal": "PATH=/usr/bin:/usr/local/bin:/opt/homebrew/bin:$PATH tauri build --target universal-apple-darwin",
+    "build:mac-intel": "PATH=/usr/bin:/usr/local/bin:/opt/homebrew/bin:$PATH tauri build --target x86_64-apple-darwin",
+    "build:mac-arm": "PATH=/usr/bin:/usr/local/bin:/opt/homebrew/bin:$PATH tauri build --target aarch64-apple-darwin",
     "build:win-x64": "tauri build --target x86_64-pc-windows-msvc",
     "build:win-arm": "tauri build --target aarch64-pc-windows-msvc",
     "release": "semantic-release",

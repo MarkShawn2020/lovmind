@@ -25,9 +25,11 @@ interface UseNoteSubmitOptions {
 
   /**
    * Whether to reset editor after creating a new note
+   * - boolean: static decision
+   * - function: dynamic decision (called when creating new note)
    * @default false
    */
-  resetEditorAfterCreate?: boolean;
+  resetEditorAfterCreate?: boolean | (() => boolean);
 }
 
 /**
@@ -144,8 +146,12 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
             }
           }
 
-          // Reset editor if requested
-          if (resetEditorAfterCreate) {
+          // Reset editor if requested (for new notes only)
+          const shouldReset = typeof resetEditorAfterCreate === 'function'
+            ? resetEditorAfterCreate()
+            : resetEditorAfterCreate;
+
+          if (shouldReset) {
             editorRef.current?.resetAndFocus();
           }
         }
@@ -194,8 +200,12 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           }
         }
 
-        // Reset editor if requested
-        if (resetEditorAfterCreate) {
+        // Reset editor if requested (for new notes only)
+        const shouldReset = typeof resetEditorAfterCreate === 'function'
+          ? resetEditorAfterCreate()
+          : resetEditorAfterCreate;
+
+        if (shouldReset) {
           editorRef.current?.resetAndFocus();
         }
       }

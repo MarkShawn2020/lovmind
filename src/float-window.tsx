@@ -28,6 +28,7 @@ import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-edito
 function FloatWindowInner() {
   const editorRef = useRef<LovmindEditorRef | null>(null);
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
+  const [isTogglingAlwaysOnTop, setIsTogglingAlwaysOnTop] = useState(false);
 
   // Event sync hooks
   useNoteEventSync();
@@ -77,7 +78,8 @@ function FloatWindowInner() {
   const { handleSubmit } = useNoteSubmit({
     noteId,
     editorRef,
-    resetEditorAfterCreate: false,
+    // Reset editor after creating new note, unless window is pinned on top
+    resetEditorAfterCreate: () => !isAlwaysOnTop,
   });
 
   // Use withSidebarClose to auto-close mobile sidebar after opening note
@@ -89,8 +91,9 @@ function FloatWindowInner() {
 
   // Toggle always-on-top state
   const handleToggleAlwaysOnTop = useCallback(async () => {
-    if (!isTauri()) return;
+    if (!isTauri() || isTogglingAlwaysOnTop) return;
 
+    setIsTogglingAlwaysOnTop(true);
     try {
       const window = getCurrentWindow();
       const newState = !isAlwaysOnTop;
@@ -99,8 +102,24 @@ function FloatWindowInner() {
       console.log('[FloatWindow] ✅ Toggled always on top:', newState);
     } catch (error) {
       console.error('[FloatWindow] ❌ Failed to toggle always on top:', error);
+    } finally {
+      setIsTogglingAlwaysOnTop(false);
     }
-  }, [isAlwaysOnTop]);
+  }, [isAlwaysOnTop, isTogglingAlwaysOnTop]);
+
+  // Keyboard shortcut: Cmd+T to toggle always-on-top
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Cmd+T (Mac) or Ctrl+T (Windows/Linux)
+      if ((event.metaKey || event.ctrlKey) && event.key === 't') {
+        event.preventDefault();
+        handleToggleAlwaysOnTop();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleToggleAlwaysOnTop]);
 
   // Auto-focus window and editor after mount
   useEffect(() => {

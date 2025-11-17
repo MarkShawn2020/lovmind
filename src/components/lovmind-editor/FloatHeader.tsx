@@ -92,7 +92,7 @@ export const FloatHeader = ({
         <button
           className="w-9 h-9 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 bg-transparent border-none flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 touch-manipulation"
           onClick={onToggleAlwaysOnTop}
-          title={isWindowAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
+          title={isWindowAlwaysOnTop ? '取消置顶 (⌘T)' : '置顶窗口 (⌘T)'}
           style={{
             color: isWindowAlwaysOnTop ? 'white' : 'rgba(255, 255, 255, 0.5)',
           }}
