@@ -20,6 +20,13 @@ interface EditorLayoutProps {
    * - "fullscreen": Full-screen drawer (iOS style)
    */
   mobileDrawerVariant?: 'default' | 'fullscreen';
+  /**
+   * Mobile view control
+   * - "list": Show sidebar on mobile (master view)
+   * - "editor": Show editor on mobile (detail view)
+   * - undefined: Use drawer-based navigation (legacy behavior)
+   */
+  mobileView?: 'list' | 'editor';
 }
 
 export const EditorLayout = ({
@@ -33,6 +40,7 @@ export const EditorLayout = ({
   isMobileSidebarOpen,
   onMobileSidebarChange,
   mobileDrawerVariant = 'default',
+  mobileView,
 }: EditorLayoutProps) => {
   // iOS fullscreen variant: Drawer takes full width and hides header
   const isFullscreen = mobileDrawerVariant === 'fullscreen';
@@ -46,31 +54,61 @@ export const EditorLayout = ({
     ? "h-full flex flex-col relative overflow-hidden bg-transparent"
     : "h-full flex flex-col relative overflow-hidden bg-transparent rounded-xl";
 
+  // Determine mobile layout behavior based on mobileView prop
+  const useMobileViewSwitching = mobileView !== undefined;
+
   return (
     <div className={containerClassName}>
       {header}
 
       <div className="flex-1 flex min-h-0">
-        {/* Desktop Sidebar - Hidden on mobile */}
+        {/* Desktop Sidebar - Always visible on sm+ screens */}
         <aside className="hidden sm:flex w-80 border-r border-border bg-muted flex-shrink-0 overflow-hidden flex-col">
           {sidebar}
         </aside>
 
-        {/* Mobile Sidebar Drawer */}
-        <Drawer open={isMobileSidebarOpen} onOpenChange={onMobileSidebarChange} direction="left">
-          <DrawerContent className={drawerClassName}>
-            <VisuallyHidden>
-              <DrawerTitle>Navigation Menu</DrawerTitle>
-              <DrawerDescription>
-                Browse and manage your notes from the sidebar
-              </DrawerDescription>
-            </VisuallyHidden>
-            {sidebar}
-          </DrawerContent>
-        </Drawer>
+        {/* Mobile View Switching: Show sidebar OR editor based on mobileView */}
+        {useMobileViewSwitching && (
+          <>
+            {/* Mobile Sidebar - Shown when mobileView === 'list' */}
+            <aside className={`
+              sm:hidden w-full border-r border-border bg-muted flex-shrink-0 overflow-hidden flex-col
+              ${mobileView === 'list' ? 'flex' : 'hidden'}
+            `}>
+              {sidebar}
+            </aside>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
+            {/* Mobile Editor - Shown when mobileView === 'editor' */}
+            <div className={`
+              sm:hidden flex-1 flex flex-col min-w-0
+              ${mobileView === 'editor' ? 'flex' : 'hidden'}
+            `}>
+              <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background">
+                {editor}
+              </div>
+              {toolbar}
+            </div>
+          </>
+        )}
+
+        {/* Legacy Mobile Sidebar Drawer - Only used when mobileView is undefined */}
+        {!useMobileViewSwitching && (
+          <Drawer open={isMobileSidebarOpen} onOpenChange={onMobileSidebarChange} direction="left">
+            <DrawerContent className={drawerClassName}>
+              <VisuallyHidden>
+                <DrawerTitle>Navigation Menu</DrawerTitle>
+                <DrawerDescription>
+                  Browse and manage your notes from the sidebar
+                </DrawerDescription>
+              </VisuallyHidden>
+              {sidebar}
+            </DrawerContent>
+          </Drawer>
+        )}
+
+        {/* Desktop Main Content Area - Always visible on sm+ screens */}
+        {/* Mobile Main Content Area - Only when NOT using mobileView switching */}
+        <div className={`flex-1 flex-col min-w-0 ${useMobileViewSwitching ? 'hidden sm:flex' : 'flex'}`}>
           <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background">
             {editor}
           </div>

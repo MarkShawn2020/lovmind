@@ -468,7 +468,7 @@ const NotesSidebarComponent = ({
           showArchived={showArchived}
         />
       ) : onCreateNewNote ? (
-        <div className="flex-shrink-0 p-[var(--spacing-s)] pt-2 border-t border-border/40 bg-muted">
+        <div className="hidden sm:flex flex-shrink-0 p-[var(--spacing-s)] pt-2 border-t border-border/40 bg-muted">
           <button
             onClick={onCreateNewNote}
             className="w-full h-10 min-h-[44px] px-4 rounded-xl border-none flex items-center justify-center gap-2 font-medium text-sm transition-all duration-200 ease-out shadow-sm touch-manipulation bg-primary text-primary-foreground cursor-pointer hover:shadow-md hover:bg-primary/90 active:scale-[0.97]"

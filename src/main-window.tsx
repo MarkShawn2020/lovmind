@@ -24,6 +24,7 @@ import { useMultiSelectOperations } from "./hooks/useMultiSelectOperations.tsx";
 import { editorContentAtom, notesAtom } from "./atoms/noteAtoms";
 import { noteStatsAtom } from "./store";
 import type { LovmindEditorRef } from "@/components/lovmind-editor/lovmind-editor.tsx";
+import { useIsMobile } from "./hooks/useIsMobile";
 import lovpenLogo from "./assets/lovpen-logo.svg";
 import packageJson from "../package.json";
 
@@ -37,6 +38,9 @@ function MainWindow() {
   // Local state: which note we're viewing (null = create mode)
   const [viewingNoteId, setViewingNoteId] = useState<string | null>(null);
 
+  // Mobile view state: 'list' shows notes sidebar, 'editor' shows editor
+  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
+
   // Local UI state
   const [showArchived, setShowArchived] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -48,6 +52,9 @@ function MainWindow() {
   const editorRef = useRef<LovmindEditorRef | null>(null);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  // Detect mobile screen size
+  const isMobile = useIsMobile();
 
   // Event sync hooks
   useNoteEventSync({ enableBroadcastChannel: true });
@@ -64,11 +71,20 @@ function MainWindow() {
   const { deleteNote, togglePin, toggleArchive } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
   const { userProfile } = useUserProfile();
-  const { handleSubmit } = useNoteSubmit({
+  const { handleSubmit: originalHandleSubmit } = useNoteSubmit({
     noteId: viewingNoteId,
     editorRef,
     resetEditorAfterCreate: true,
   });
+
+  // Wrap handleSubmit to auto-return to list on mobile after submission
+  const handleSubmit = useCallback(async () => {
+    await originalHandleSubmit();
+    // On mobile, return to list view after submitting
+    if (isMobile) {
+      setMobileView('list');
+    }
+  }, [originalHandleSubmit, isMobile]);
 
   // Multi-select hooks
   const {
@@ -124,14 +140,22 @@ function MainWindow() {
     // Just return to create mode
     setViewingNoteId(null);
     editorRef.current?.resetAndFocus();
-  }, []);
+    // On mobile, switch to editor view
+    if (isMobile) {
+      setMobileView('editor');
+    }
+  }, [isMobile]);
 
   // Use withSidebarClose to auto-close mobile sidebar
   const handleOpenNoteInCurrentWindow = useCallback(
     withSidebarClose((note: Note) => {
       setViewingNoteId(note.id);
+      // On mobile, switch to editor view when opening a note
+      if (isMobile) {
+        setMobileView('editor');
+      }
     }),
-    [withSidebarClose]
+    [withSidebarClose, isMobile]
   );
 
   const handleOpenNoteInNewWindow = useCallback(
@@ -143,6 +167,13 @@ function MainWindow() {
     withSidebarClose(handleBackToCreate),
     [withSidebarClose, handleBackToCreate]
   );
+
+  // Handler to return to list view on mobile
+  const handleBackToList = useCallback(() => {
+    if (isMobile) {
+      setMobileView('list');
+    }
+  }, [isMobile]);
 
   // Batch operation handlers
   const handleBatchDelete = useCallback(async () => {
@@ -374,75 +405,101 @@ function MainWindow() {
     </div>
   );
 
+  // Mobile: show FAB when in list view, hide when in editor view
+  const showFAB = isMobile && mobileView === 'list';
+
   return (
-    <EditorLayout
-      header={
-        <MainHeader
-          noteStats={noteStats}
-          userProfile={userProfile}
-          onHeaderMouseDown={handleHeaderMouseDown}
-          onUserMenuToggle={handleUserMenuToggle}
-          userButtonRef={userButtonRef}
-        />
-      }
-      sidebar={
-        <NotesSidebarContainer
-          notes={notes}
-          currentNoteId={viewingNoteId ?? undefined}
-          showArchived={showArchived}
-          onOpenNote={handleOpenNoteInCurrentWindow}
-          onOpenNoteInNewWindow={handleOpenNoteInNewWindow}
-          onTogglePin={togglePin}
-          onToggleArchive={toggleArchive}
-          onDeleteNote={deleteNote}
-          onDuplicateNote={async (note) => {
-            // TODO: Implement duplicate
-            console.log('Duplicate:', note);
-          }}
-          onCreateNewNote={handleCreateNewNote}
-          isCreateMode={!viewingNoteId}
-          isEditorEmpty={editorContent.isEmpty}
-          isMultiSelectMode={isMultiSelectMode}
-          selectedNoteIds={selectedNoteIds}
-          lastClickedNoteId={lastClickedNoteId}
-          onToggleNoteSelection={toggleNoteSelection}
-          onEnterMultiSelectMode={enterMultiSelectMode}
-          onExitMultiSelect={exitMultiSelectMode}
-          onSelectAll={selectAll}
-          onDeselectAll={deselectAll}
-          onSelectRange={selectRange}
-          onSetLastClickedNote={setLastClickedNote}
-          onBatchDelete={handleBatchDelete}
-          onBatchArchive={handleBatchArchive}
-        />
-      }
-      editor={
-        <LovmindEditor
-          key={viewingNoteId || 'create-mode'}
-          noteId={viewingNoteId}
-          onSubmit={handleSubmit}
-          placeholder="此时此刻，你在想什么呢？"
-          ref={editorRef}
-        />
-      }
-      toolbar={
-        <EditorToolbar
-          mode="main"
-          onSubmit={handleSubmit}
-          submitDisabled={editorContent.isEmpty}
-          currentTags={editorContent.tags}
-          allNotes={notes}
-          editorRef={editorRef}
-          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          hideSubmitButton={false}
-        />
-      }
-      userMenu={userMenuNode}
-      profileModal={profileModalNode}
-      aboutModal={aboutModalNode}
-      isMobileSidebarOpen={isMobileSidebarOpen}
-      onMobileSidebarChange={setIsMobileSidebarOpen}
-    />
+    <>
+      <EditorLayout
+        header={
+          <MainHeader
+            noteStats={noteStats}
+            userProfile={userProfile}
+            onHeaderMouseDown={handleHeaderMouseDown}
+            onUserMenuToggle={handleUserMenuToggle}
+            userButtonRef={userButtonRef}
+          />
+        }
+        sidebar={
+          <NotesSidebarContainer
+            notes={notes}
+            currentNoteId={viewingNoteId ?? undefined}
+            showArchived={showArchived}
+            onOpenNote={handleOpenNoteInCurrentWindow}
+            onOpenNoteInNewWindow={handleOpenNoteInNewWindow}
+            onTogglePin={togglePin}
+            onToggleArchive={toggleArchive}
+            onDeleteNote={deleteNote}
+            onDuplicateNote={async (note) => {
+              // TODO: Implement duplicate
+              console.log('Duplicate:', note);
+            }}
+            onCreateNewNote={handleCreateNewNote}
+            isCreateMode={!viewingNoteId}
+            isEditorEmpty={editorContent.isEmpty}
+            isMultiSelectMode={isMultiSelectMode}
+            selectedNoteIds={selectedNoteIds}
+            lastClickedNoteId={lastClickedNoteId}
+            onToggleNoteSelection={toggleNoteSelection}
+            onEnterMultiSelectMode={enterMultiSelectMode}
+            onExitMultiSelect={exitMultiSelectMode}
+            onSelectAll={selectAll}
+            onDeselectAll={deselectAll}
+            onSelectRange={selectRange}
+            onSetLastClickedNote={setLastClickedNote}
+            onBatchDelete={handleBatchDelete}
+            onBatchArchive={handleBatchArchive}
+          />
+        }
+        editor={
+          <LovmindEditor
+            key={viewingNoteId || 'create-mode'}
+            noteId={viewingNoteId}
+            onSubmit={handleSubmit}
+            placeholder="此时此刻，你在想什么呢？"
+            ref={editorRef}
+          />
+        }
+        toolbar={
+          <EditorToolbar
+            mode="main"
+            onSubmit={handleSubmit}
+            submitDisabled={editorContent.isEmpty}
+            currentTags={editorContent.tags}
+            allNotes={notes}
+            editorRef={editorRef}
+            onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+            hideSubmitButton={false}
+            // Mobile: show back button when in editor view
+            onBackToList={isMobile && mobileView === 'editor' ? handleBackToList : undefined}
+          />
+        }
+        userMenu={userMenuNode}
+        profileModal={profileModalNode}
+        aboutModal={aboutModalNode}
+        isMobileSidebarOpen={isMobileSidebarOpen}
+        onMobileSidebarChange={setIsMobileSidebarOpen}
+        // Mobile view control: hide sidebar when showing editor, hide editor when showing list
+        mobileView={mobileView}
+      />
+
+      {/* FAB (Floating Action Button) for quick note creation on mobile */}
+      {showFAB && (
+        <button
+          onClick={handleCreateNewNote}
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-95 z-50 sm:hidden"
+          aria-label="新建笔记"
+        >
+          <svg viewBox="-98.605 -108 1183.26 1296" className="w-7 h-7 fill-current">
+            <g>
+              <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z"/>
+              <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z"/>
+              <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z"/>
+            </g>
+          </svg>
+        </button>
+      )}
+    </>
   );
 }
 
