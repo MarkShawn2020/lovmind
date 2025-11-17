@@ -72,12 +72,17 @@ export function IOSLayout({ children }: IOSLayoutProps) {
     };
   }, []);
 
+  // Detect if keyboard is visible by comparing viewport height to window height
+  const isKeyboardVisible = viewportHeight !== null &&
+    viewportHeight < window.innerHeight - 50; // 50px threshold for keyboard detection
+
   // Apply iOS-specific styles
   const containerStyle = isIOS()
     ? {
         paddingTop: `env(safe-area-inset-top, ${safeAreaInsets.top}px)`,
         paddingRight: `env(safe-area-inset-right, ${safeAreaInsets.right}px)`,
-        paddingBottom: `env(safe-area-inset-bottom, ${safeAreaInsets.bottom}px)`,
+        // Remove bottom padding when keyboard is visible (keyboard provides spacing)
+        paddingBottom: isKeyboardVisible ? '0px' : `env(safe-area-inset-bottom, ${safeAreaInsets.bottom}px)`,
         paddingLeft: `env(safe-area-inset-left, ${safeAreaInsets.left}px)`,
         // Use visualViewport height when available (keyboard adjustments)
         ...(viewportHeight !== null && {
