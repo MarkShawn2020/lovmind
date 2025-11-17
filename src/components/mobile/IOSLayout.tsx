@@ -79,10 +79,8 @@ export function IOSLayout({ children }: IOSLayoutProps) {
   // Apply iOS-specific styles
   const containerStyle = isIOS()
     ? {
-        // No top padding - let content extend under status bar for colored status bar
+        // No top/bottom padding - let content extend to edges (toolbar handles safe area)
         paddingRight: `env(safe-area-inset-right, ${safeAreaInsets.right}px)`,
-        // Remove bottom padding when keyboard is visible (keyboard provides spacing)
-        paddingBottom: isKeyboardVisible ? '0px' : `env(safe-area-inset-bottom, ${safeAreaInsets.bottom}px)`,
         paddingLeft: `env(safe-area-inset-left, ${safeAreaInsets.left}px)`,
         // Use visualViewport height when available (keyboard adjustments)
         ...(viewportHeight !== null && {
