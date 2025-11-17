@@ -103,10 +103,12 @@ export const EditorLayout = ({
         </Drawer>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Editor takes remaining space with internal scrolling */}
+          <div className="flex-1 min-h-0 overflow-hidden bg-background">
             {editor}
           </div>
+          {/* Toolbar fixed at bottom */}
           {toolbar}
         </div>
       </div>
