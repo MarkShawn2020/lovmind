@@ -1,9 +1,7 @@
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
 
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
-import { isIOS } from '@/utils/platform';
 
 interface EditorLayoutProps {
   header: ReactNode;
@@ -41,46 +39,8 @@ export const EditorLayout = ({
     ? "w-screen h-full max-h-screen flex flex-col"
     : "h-full max-h-screen flex flex-col";
 
-  // iOS keyboard handling: adjust layout when keyboard appears
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  useEffect(() => {
-    if (!isIOS()) return;
-
-    // Use Visual Viewport API to detect keyboard
-    const visualViewport = window.visualViewport;
-    if (!visualViewport) return;
-
-    const handleResize = () => {
-      // Calculate keyboard height based on viewport change
-      const viewportHeight = visualViewport.height;
-      const windowHeight = window.innerHeight;
-      const keyboardOffset = windowHeight - viewportHeight;
-      setKeyboardHeight(Math.max(0, keyboardOffset));
-    };
-
-    visualViewport.addEventListener('resize', handleResize);
-    visualViewport.addEventListener('scroll', handleResize);
-
-    return () => {
-      visualViewport.removeEventListener('resize', handleResize);
-      visualViewport.removeEventListener('scroll', handleResize);
-    };
-  }, []);
-
   return (
-    <div
-      className="flex flex-col relative overflow-hidden bg-transparent rounded-xl"
-      style={{
-        // Use 100dvh (dynamic viewport height) for proper mobile support
-        // On iOS, this accounts for browser chrome and safe areas
-        height: '100dvh',
-        // Fallback for older browsers
-        minHeight: '100vh',
-        // iOS: Adjust bottom padding when keyboard is visible
-        paddingBottom: isIOS() && keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
-      }}
-    >
+    <div className="h-full flex flex-col relative overflow-hidden bg-transparent rounded-xl">
       {header}
 
       <div className="flex-1 flex min-h-0">
@@ -103,12 +63,10 @@ export const EditorLayout = ({
         </Drawer>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* Editor takes remaining space with internal scrolling */}
-          <div className="flex-1 min-h-0 overflow-hidden bg-background">
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background">
             {editor}
           </div>
-          {/* Toolbar fixed at bottom */}
           {toolbar}
         </div>
       </div>

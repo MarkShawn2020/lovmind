@@ -130,13 +130,13 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
 
     return (
       <Plate editor={editor}>
-        <div className="h-full w-full flex flex-col">
+        <div className="h-full w-full grid grid-rows-[auto_1fr]">
           <FixedToolbar>
             <FixedToolbarButtons />
           </FixedToolbar>
 
           <EditorContextMenu editor={editor}>
-            <EditorContainer className="flex-1 relative overflow-auto min-h-0">
+            <EditorContainer className="relative overflow-auto">
               <Editor
                 placeholder={placeholder}
                 variant="none"

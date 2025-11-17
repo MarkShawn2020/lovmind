@@ -5,7 +5,6 @@ import { TagManagerPopover } from '@/components/TagManagerPopover';
 import { EditableTag } from '@/components/ui/editable-tag';
 import type { Note } from '@/store';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
-import { isIOS } from '@/utils/platform';
 
 const PinButton = memo(({
   onClick,
@@ -140,9 +139,6 @@ const EditorToolbar = memo(({
 }: EditorToolbarProps) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  // iOS safe area bottom padding for home indicator
-  const iosBottomPadding = isIOS() ? 'env(safe-area-inset-bottom, 0px)' : '0px';
-
   return (
     <div
       className={`
@@ -154,9 +150,6 @@ const EditorToolbar = memo(({
         z-10
         ${mode === 'float' ? 'h-14' : 'h-16'}
       `}
-      style={{
-        paddingBottom: iosBottomPadding,
-      }}
     >
       <div className="flex gap-3 sm:gap-4 items-center">
         {/* Mobile Sidebar Toggle - Only visible on small screens */}
