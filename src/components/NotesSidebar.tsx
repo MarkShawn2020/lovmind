@@ -189,13 +189,6 @@ const NotesSidebarComponent = ({
     const handleClick = (e: React.MouseEvent) => {
       // Support Shift+Click for range selection
       if (e.shiftKey && onEnterMultiSelectMode && onSelectRange && onSetLastClickedNote) {
-        console.log('[NotesSidebar] Shift+Click detected:', {
-          noteId: note.id,
-          isMultiSelectMode,
-          lastClickedNoteId,
-          sortedNotesCount: sortedNotes.length
-        });
-
         if (!isMultiSelectMode) {
           onEnterMultiSelectMode();
         }
@@ -203,15 +196,9 @@ const NotesSidebarComponent = ({
         // If there's a last clicked note, select range between them
         if (lastClickedNoteId) {
           const allNoteIds = sortedNotes.map(n => n.id);
-          console.log('[NotesSidebar] Calling selectRange:', {
-            from: lastClickedNoteId,
-            to: note.id,
-            allNoteIds
-          });
           onSelectRange(lastClickedNoteId, note.id, allNoteIds);
         } else {
           // No anchor, just select this note
-          console.log('[NotesSidebar] No anchor, selecting current note only');
           if (onToggleNoteSelection) {
             onToggleNoteSelection(note.id);
           }
@@ -240,15 +227,6 @@ const NotesSidebarComponent = ({
       }
 
       // Normal mode: open note
-      // Also set anchor for potential future Shift+Click
-      console.log('[NotesSidebar] Normal click:', {
-        noteId: note.id,
-        isMultiSelectMode,
-        willSetAnchor: !!onSetLastClickedNote
-      });
-      if (onSetLastClickedNote) {
-        onSetLastClickedNote(note.id);
-      }
       onOpenNote(note);
     };
 
@@ -316,6 +294,10 @@ const NotesSidebarComponent = ({
                   onEnterMultiSelectMode();
                   if (onToggleNoteSelection) {
                     onToggleNoteSelection(note.id);
+                  }
+                  // Set anchor point for range selection
+                  if (onSetLastClickedNote) {
+                    onSetLastClickedNote(note.id);
                   }
                 }}
               >

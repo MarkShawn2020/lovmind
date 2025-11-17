@@ -42,12 +42,10 @@ export const useMultiSelect = (): UseMultiSelectReturn => {
   }, []);
 
   const enterMultiSelectMode = useCallback(() => {
-    console.log('[useMultiSelect] enterMultiSelectMode called');
     setIsMultiSelectMode(true);
   }, []);
 
   const exitMultiSelectMode = useCallback(() => {
-    console.log('[useMultiSelect] exitMultiSelectMode called - clearing anchor');
     setIsMultiSelectMode(false);
     setSelectedNoteIds(new Set());
     setLastClickedNoteId(null);
@@ -90,14 +88,6 @@ export const useMultiSelect = (): UseMultiSelectReturn => {
     const fromIndex = allNoteIds.indexOf(fromNoteId);
     const toIndex = allNoteIds.indexOf(toNoteId);
 
-    console.log('[selectRange] called with:', {
-      fromNoteId,
-      toNoteId,
-      fromIndex,
-      toIndex,
-      allNoteIdsLength: allNoteIds.length
-    });
-
     if (fromIndex === -1 || toIndex === -1) {
       console.warn('selectRange: note not found in list', { fromNoteId, toNoteId, allNoteIds });
       return;
@@ -109,24 +99,14 @@ export const useMultiSelect = (): UseMultiSelectReturn => {
 
     // Select all notes in range
     const rangeNoteIds = allNoteIds.slice(startIndex, endIndex + 1);
-
-    console.log('[selectRange] range calculated:', {
-      startIndex,
-      endIndex,
-      rangeNoteIds,
-      rangeLength: rangeNoteIds.length
-    });
-
     setSelectedNoteIds(prev => {
       const next = new Set(prev);
       rangeNoteIds.forEach(id => next.add(id));
-      console.log('[selectRange] selected note IDs after update:', Array.from(next));
       return next;
     });
   }, []);
 
   const setLastClickedNote = useCallback((noteId: string) => {
-    console.log('[useMultiSelect] setLastClickedNote called with:', noteId);
     setLastClickedNoteId(noteId);
   }, []);
 
