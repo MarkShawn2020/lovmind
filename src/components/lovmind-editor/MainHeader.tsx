@@ -8,7 +8,7 @@ import type { NoteStatsSummary } from '@/features/note/types';
 interface MainHeaderProps {
   noteStats: NoteStatsSummary;
   userProfile: UserProfile;
-  onHeaderMouseDown: () => void;
+  onHeaderMouseDown?: () => void;
   onUserMenuToggle: (event: React.MouseEvent<HTMLButtonElement>) => void;
   userButtonRef: React.RefObject<HTMLButtonElement | null>;
 }

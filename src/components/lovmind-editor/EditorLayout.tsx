@@ -13,6 +13,12 @@ interface EditorLayoutProps {
   aboutModal: ReactNode;
   isMobileSidebarOpen: boolean;
   onMobileSidebarChange: (open: boolean) => void;
+  /**
+   * Mobile drawer variant
+   * - "default": Slide-in drawer (desktop/Android style)
+   * - "fullscreen": Full-screen drawer (iOS style)
+   */
+  mobileDrawerVariant?: 'default' | 'fullscreen';
 }
 
 export const EditorLayout = ({
@@ -25,7 +31,14 @@ export const EditorLayout = ({
   aboutModal,
   isMobileSidebarOpen,
   onMobileSidebarChange,
+  mobileDrawerVariant = 'default',
 }: EditorLayoutProps) => {
+  // iOS fullscreen variant: Drawer takes full width and hides header
+  const isFullscreen = mobileDrawerVariant === 'fullscreen';
+  const drawerClassName = isFullscreen
+    ? "w-screen h-full max-h-screen flex flex-col"
+    : "h-full max-h-screen flex flex-col";
+
   return (
     <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">
       {header}
@@ -38,7 +51,7 @@ export const EditorLayout = ({
 
         {/* Mobile Sidebar Drawer */}
         <Drawer open={isMobileSidebarOpen} onOpenChange={onMobileSidebarChange} direction="left">
-          <DrawerContent className="h-full max-h-screen flex flex-col">
+          <DrawerContent className={drawerClassName}>
             <VisuallyHidden>
               <DrawerTitle>Navigation Menu</DrawerTitle>
               <DrawerDescription>
