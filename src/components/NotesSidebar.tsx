@@ -33,11 +33,14 @@ interface NotesSidebarProps {
   // Multi-select props
   isMultiSelectMode?: boolean;
   selectedNoteIds?: Set<string>;
+  lastClickedNoteId?: string | null;
   onToggleNoteSelection?: (noteId: string) => void;
   onEnterMultiSelectMode?: () => void;
   onExitMultiSelect?: () => void;
   onSelectAll?: (noteIds: string[]) => void;
   onDeselectAll?: () => void;
+  onSelectRange?: (fromNoteId: string, toNoteId: string, allNoteIds: string[]) => void;
+  onSetLastClickedNote?: (noteId: string) => void;
   onBatchDelete?: () => void;
   onBatchArchive?: () => void;
   onBatchPin?: () => void;
@@ -60,11 +63,14 @@ const NotesSidebarComponent = ({
   // Multi-select props
   isMultiSelectMode = false,
   selectedNoteIds = new Set(),
+  lastClickedNoteId = null,
   onToggleNoteSelection,
   onEnterMultiSelectMode,
   onExitMultiSelect,
   onSelectAll,
   onDeselectAll,
+  onSelectRange,
+  onSetLastClickedNote,
   onBatchDelete,
   onBatchArchive,
   onBatchPin,
@@ -181,18 +187,42 @@ const NotesSidebarComponent = ({
 
     // Handle click in multi-select mode
     const handleClick = (e: React.MouseEvent) => {
+      // Support Shift+Click for range selection
+      if (e.shiftKey && onEnterMultiSelectMode && onSelectRange && onSetLastClickedNote) {
+        if (!isMultiSelectMode) {
+          onEnterMultiSelectMode();
+        }
+
+        // If there's a last clicked note, select range between them
+        if (lastClickedNoteId) {
+          const allNoteIds = sortedNotes.map(n => n.id);
+          onSelectRange(lastClickedNoteId, note.id, allNoteIds);
+        } else {
+          // No anchor, just select this note
+          if (onToggleNoteSelection) {
+            onToggleNoteSelection(note.id);
+          }
+        }
+
+        // Update anchor to current note
+        onSetLastClickedNote(note.id);
+        return;
+      }
+
       // Support Cmd/Ctrl+Click for multi-select
-      if ((e.metaKey || e.ctrlKey) && onEnterMultiSelectMode && onToggleNoteSelection) {
+      if ((e.metaKey || e.ctrlKey) && onEnterMultiSelectMode && onToggleNoteSelection && onSetLastClickedNote) {
         if (!isMultiSelectMode) {
           onEnterMultiSelectMode();
         }
         onToggleNoteSelection(note.id);
+        onSetLastClickedNote(note.id);
         return;
       }
 
       // In multi-select mode, clicking toggles selection
-      if (isMultiSelectMode && onToggleNoteSelection) {
+      if (isMultiSelectMode && onToggleNoteSelection && onSetLastClickedNote) {
         onToggleNoteSelection(note.id);
+        onSetLastClickedNote(note.id);
         return;
       }
 

@@ -18,11 +18,14 @@ interface NotesSidebarContainerProps {
   // Multi-select props
   isMultiSelectMode?: boolean;
   selectedNoteIds?: Set<string>;
+  lastClickedNoteId?: string | null;
   onToggleNoteSelection?: (noteId: string) => void;
   onEnterMultiSelectMode?: () => void;
   onExitMultiSelect?: () => void;
   onSelectAll?: (noteIds: string[]) => void;
   onDeselectAll?: () => void;
+  onSelectRange?: (fromNoteId: string, toNoteId: string, allNoteIds: string[]) => void;
+  onSetLastClickedNote?: (noteId: string) => void;
   onBatchDelete?: () => void;
   onBatchArchive?: () => void;
   onBatchPin?: () => void;
@@ -51,11 +54,14 @@ export const NotesSidebarContainer = forwardRef<HTMLDivElement, NotesSidebarCont
       // Multi-select props
       isMultiSelectMode,
       selectedNoteIds,
+      lastClickedNoteId,
       onToggleNoteSelection,
       onEnterMultiSelectMode,
       onExitMultiSelect,
       onSelectAll,
       onDeselectAll,
+      onSelectRange,
+      onSetLastClickedNote,
       onBatchDelete,
       onBatchArchive,
       onBatchPin,
@@ -79,11 +85,14 @@ export const NotesSidebarContainer = forwardRef<HTMLDivElement, NotesSidebarCont
           isEditorEmpty={isEditorEmpty}
           isMultiSelectMode={isMultiSelectMode}
           selectedNoteIds={selectedNoteIds}
+          lastClickedNoteId={lastClickedNoteId}
           onToggleNoteSelection={onToggleNoteSelection}
           onEnterMultiSelectMode={onEnterMultiSelectMode}
           onExitMultiSelect={onExitMultiSelect}
           onSelectAll={onSelectAll}
           onDeselectAll={onDeselectAll}
+          onSelectRange={onSelectRange}
+          onSetLastClickedNote={onSetLastClickedNote}
           onBatchDelete={onBatchDelete}
           onBatchArchive={onBatchArchive}
           onBatchPin={onBatchPin}
@@ -105,11 +114,14 @@ export const NotesSidebarContainer = forwardRef<HTMLDivElement, NotesSidebarCont
         isEditorEmpty,
         isMultiSelectMode,
         selectedNoteIds,
+        lastClickedNoteId,
         onToggleNoteSelection,
         onEnterMultiSelectMode,
         onExitMultiSelect,
         onSelectAll,
         onDeselectAll,
+        onSelectRange,
+        onSetLastClickedNote,
         onBatchDelete,
         onBatchArchive,
         onBatchPin,

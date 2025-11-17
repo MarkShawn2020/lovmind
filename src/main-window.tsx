@@ -74,11 +74,14 @@ function MainWindow() {
   const {
     isMultiSelectMode,
     selectedNoteIds,
+    lastClickedNoteId,
     toggleNoteSelection,
     enterMultiSelectMode,
     exitMultiSelectMode,
     selectAll,
     deselectAll,
+    selectRange,
+    setLastClickedNote,
   } = useMultiSelect();
 
   const multiSelectOps = useMultiSelectOperations({
@@ -413,11 +416,14 @@ function MainWindow() {
           isEditorEmpty={editorContent.isEmpty}
           isMultiSelectMode={isMultiSelectMode}
           selectedNoteIds={selectedNoteIds}
+          lastClickedNoteId={lastClickedNoteId}
           onToggleNoteSelection={toggleNoteSelection}
           onEnterMultiSelectMode={enterMultiSelectMode}
           onExitMultiSelect={exitMultiSelectMode}
           onSelectAll={selectAll}
           onDeselectAll={deselectAll}
+          onSelectRange={selectRange}
+          onSetLastClickedNote={setLastClickedNote}
           onBatchDelete={handleBatchDelete}
           onBatchArchive={handleBatchArchive}
           onBatchPin={handleBatchPin}
