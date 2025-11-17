@@ -70,8 +70,13 @@ export const EditorLayout = ({
 
   return (
     <div
-      className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl"
+      className="flex flex-col relative overflow-hidden bg-transparent rounded-xl"
       style={{
+        // Use 100dvh (dynamic viewport height) for proper mobile support
+        // On iOS, this accounts for browser chrome and safe areas
+        height: '100dvh',
+        // Fallback for older browsers
+        minHeight: '100vh',
         // iOS: Adjust bottom padding when keyboard is visible
         paddingBottom: isIOS() && keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
       }}
