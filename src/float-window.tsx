@@ -29,6 +29,8 @@ function FloatWindowInner() {
   const editorRef = useRef<LovmindEditorRef | null>(null);
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
   const [isTogglingAlwaysOnTop, setIsTogglingAlwaysOnTop] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
 
   // Extract initial noteId from URL
   const initialNoteId = useMemo(() => {
@@ -77,7 +79,7 @@ function FloatWindowInner() {
   // Business logic hooks (for toolbar and sidebar)
   // CRITICAL: These hooks must be called before any conditional returns
   // to satisfy the Rules of Hooks
-  const { togglePin, toggleArchive, deleteNote } = useNoteOperations();
+  const { togglePin, toggleArchive, deleteNote, updateNote } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
   const { handleSubmit } = useNoteSubmit({
     noteId,
@@ -98,6 +100,52 @@ function FloatWindowInner() {
       }
     },
   });
+
+  // Title editing handlers
+  const handleTitleChange = useCallback((value: string) => {
+    setEditingTitle(value);
+  }, []);
+
+  const handleStartEditingTitle = useCallback((title: string) => {
+    setEditingTitle(title);
+    setIsEditingTitle(true);
+  }, []);
+
+  const handleCancelEditingTitle = useCallback(() => {
+    setIsEditingTitle(false);
+  }, []);
+
+  const handleSaveTitle = useCallback(async () => {
+    if (!currentNote || !editingTitle.trim()) {
+      setIsEditingTitle(false);
+      return;
+    }
+
+    const updatedNote = {
+      ...currentNote,
+      title: editingTitle.trim(),
+      manualTitle: true, // Mark as manually edited
+    };
+
+    try {
+      await updateNote(updatedNote);
+
+      if (isTauri()) {
+        try {
+          const currentWindow = getCurrentWindow();
+          await currentWindow.setTitle(`Edit: ${updatedNote.title}`);
+        } catch (error) {
+          console.error('[FloatWindow] Failed to update window title:', error);
+        }
+      }
+
+      setIsEditingTitle(false);
+      console.log('[FloatWindow] Title saved:', updatedNote.title);
+    } catch (error) {
+      console.error('[FloatWindow] Failed to save title:', error);
+      setIsEditingTitle(false);
+    }
+  }, [currentNote, editingTitle, updateNote]);
 
   // Use withSidebarClose to auto-close mobile sidebar after opening note
   // MUST be declared before conditional returns
@@ -227,12 +275,12 @@ function FloatWindowInner() {
         <FloatHeader
           currentNote={displayNote}
           notes={notes}
-          isEditingTitle={false}
-          editingTitle={''}
-          onTitleChange={() => {}}
-          onStartEditingTitle={() => {}}
-          onCancelEditingTitle={() => {}}
-          onSaveTitle={async () => {}}
+          isEditingTitle={isEditingTitle}
+          editingTitle={editingTitle}
+          onTitleChange={handleTitleChange}
+          onStartEditingTitle={handleStartEditingTitle}
+          onCancelEditingTitle={handleCancelEditingTitle}
+          onSaveTitle={handleSaveTitle}
           onHeaderMouseDown={async () => {
             if (!isTauri()) return;
             try {
