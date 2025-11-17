@@ -32,16 +32,20 @@ function FloatWindowInner() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
 
-  // Extract initial noteId from URL
-  const initialNoteId = useMemo(() => {
+  // Extract initial noteId and rank from URL
+  const { initialNoteId, initialRank } = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('noteId');
+    const rankStr = params.get('rank');
+    const rank = rankStr ? parseInt(rankStr, 10) : undefined;
+
     if (!id) {
       console.error('[FloatWindow] No noteId in URL parameters');
-      return null;
+      return { initialNoteId: null, initialRank: undefined };
     }
-    console.log('[FloatWindow] Loading note with ID:', id);
-    return id;
+
+    console.log('[FloatWindow] Loading note with ID:', id, 'rank:', rank);
+    return { initialNoteId: id, initialRank: rank };
   }, []);
 
   // Active noteId (can change after reset)
@@ -266,7 +270,7 @@ function FloatWindowInner() {
     time: new Date().toISOString(),
     tags: [],
     richContent: null,
-    rank: undefined, // Will be calculated dynamically by FloatHeader
+    rank: initialRank, // Use rank from URL (passed by Rust backend during Cmd+N)
   };
 
   return (
