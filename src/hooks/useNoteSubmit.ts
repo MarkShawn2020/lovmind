@@ -116,23 +116,24 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
             updatedAt: now,
           };
 
-          await updateNote(updatedNote);
-          console.log('✅ Note updated:', updatedNote.id);
-
-          // Check if we should reset editor or close window
+          // Check if we should reset (do this BEFORE updating to prevent flicker)
           const shouldReset = typeof resetEditorAfterCreate === 'function'
             ? resetEditorAfterCreate()
             : resetEditorAfterCreate;
 
+          // If resetting, switch to new noteId BEFORE updating to prevent flicker
           if (shouldReset) {
-            // Pinned mode: reset editor for continuous capture
-            // First reset the editor DOM
-            editorRef.current?.resetAndFocus();
-
-            // Then update noteId (triggers useNoteLoader which will set empty content)
             const nextNoteId = `temp-${Date.now()}`;
             onNoteIdChange?.(nextNoteId);
+            console.log('[Submit] Switched to new noteId before update (prevent flicker):', nextNoteId);
+          }
 
+          await updateNote(updatedNote);
+          console.log('✅ Note updated:', updatedNote.id);
+
+          // Now reset the editor DOM
+          if (shouldReset) {
+            editorRef.current?.resetAndFocus();
             console.log('[Submit] Editor reset for continuous capture (pinned mode)');
           } else if (onCloseWindow) {
             // Normal mode: close window after successful update
@@ -162,6 +163,20 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
             updatedAt: now,
           };
 
+          // Check if we should reset (do this BEFORE saving to prevent flicker)
+          const shouldReset = typeof resetEditorAfterCreate === 'function'
+            ? resetEditorAfterCreate()
+            : resetEditorAfterCreate;
+
+          // If resetting, switch to new noteId BEFORE saving to prevent flicker
+          let nextNoteId: string | null = null;
+          if (shouldReset) {
+            nextNoteId = `temp-${Date.now()}`;
+            // Switch immediately to prevent rendering the created note
+            onNoteIdChange?.(nextNoteId);
+            console.log('[Submit] Switched to new noteId before save (prevent flicker):', nextNoteId);
+          }
+
           // Add to local state
           setNotes((prevNotes) => [newNote, ...prevNotes]);
 
@@ -189,20 +204,9 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
             }
           }
 
-          // Reset editor if requested (for new notes only)
-          const shouldReset = typeof resetEditorAfterCreate === 'function'
-            ? resetEditorAfterCreate()
-            : resetEditorAfterCreate;
-
+          // Now reset the editor DOM
           if (shouldReset) {
-            // Pinned mode: reset editor for continuous capture
-            // First reset the editor DOM
             editorRef.current?.resetAndFocus();
-
-            // Then update noteId (triggers useNoteLoader which will set empty content)
-            const nextNoteId = `temp-${Date.now()}`;
-            onNoteIdChange?.(nextNoteId);
-
             console.log('[Submit] Editor reset for continuous capture (pinned mode)');
           } else if (onCloseWindow) {
             // Close window after successful creation (for float window normal mode)
@@ -233,6 +237,18 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           updatedAt: now,
         };
 
+        // Check if we should reset (do this BEFORE saving to prevent flicker)
+        const shouldReset = typeof resetEditorAfterCreate === 'function'
+          ? resetEditorAfterCreate()
+          : resetEditorAfterCreate;
+
+        // If resetting, switch to new noteId BEFORE saving to prevent flicker
+        if (shouldReset) {
+          const nextNoteId = `temp-${Date.now()}`;
+          onNoteIdChange?.(nextNoteId);
+          console.log('[Submit] Switched to new noteId before save (prevent flicker):', nextNoteId);
+        }
+
         // Add to local state
         setNotes((prevNotes) => [newNote, ...prevNotes]);
 
@@ -260,20 +276,9 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           }
         }
 
-        // Reset editor if requested (for new notes only)
-        const shouldReset = typeof resetEditorAfterCreate === 'function'
-          ? resetEditorAfterCreate()
-          : resetEditorAfterCreate;
-
+        // Now reset the editor DOM
         if (shouldReset) {
-          // Pinned mode: reset editor for continuous capture
-          // First reset the editor DOM
           editorRef.current?.resetAndFocus();
-
-          // Then update noteId (triggers useNoteLoader which will set empty content)
-          const nextNoteId = `temp-${Date.now()}`;
-          onNoteIdChange?.(nextNoteId);
-
           console.log('[Submit] Editor reset for continuous capture (pinned mode)');
         } else if (onCloseWindow) {
           // Close window after successful creation (for float window normal mode)
