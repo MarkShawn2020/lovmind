@@ -382,7 +382,7 @@ function MainWindow() {
           allNotes={notes}
           editorRef={editorRef}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-          hideSubmitButton={true}
+          hideSubmitButton={false}
         />
       }
       userMenu={userMenuNode}

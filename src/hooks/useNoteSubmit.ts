@@ -37,6 +37,12 @@ interface UseNoteSubmitOptions {
    * @param newNoteId - The ID of the newly created note
    */
   onNoteIdChange?: (newNoteId: string | null) => void;
+
+  /**
+   * Callback to close the current window after submit
+   * Used by float-window in normal (non-pinned) mode
+   */
+  onCloseWindow?: () => Promise<void>;
 }
 
 /**
@@ -44,7 +50,7 @@ interface UseNoteSubmitOptions {
  * Provides unified submit handling across main window and float windows
  */
 export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
-  const { noteId, editorRef, resetEditorAfterCreate = false, onNoteIdChange } = options;
+  const { noteId, editorRef, resetEditorAfterCreate = false, onNoteIdChange, onCloseWindow } = options;
 
   // Read from atoms
   const editorContent = useAtomValue(editorContentAtom);
@@ -94,7 +100,8 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
         const existingNote = notes.find(n => n.id === noteId);
 
         if (existingNote) {
-          // Update existing note
+          // Update existing note and convert from draft to submitted
+          const now = new Date().toISOString();
           const updatedNote: Note = {
             ...existingNote,
             text: currentContent.text,
@@ -104,15 +111,30 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
               ? existingNote.title
               : extractNoteTitle({ text: currentContent.text, richContent: currentContent.richContent }),
             time: new Date().toLocaleString(),
+            isDraft: false, // Convert to formal note
+            submittedAt: existingNote.isDraft ? now : (existingNote.submittedAt || now), // Set submission time if was draft
+            updatedAt: now,
           };
 
           await updateNote(updatedNote);
           console.log('✅ Note updated:', updatedNote.id);
+
+          // If this was an edit (not a reset scenario), close window if callback provided
+          const shouldReset = typeof resetEditorAfterCreate === 'function'
+            ? resetEditorAfterCreate()
+            : resetEditorAfterCreate;
+
+          if (!shouldReset && onCloseWindow) {
+            // Close window after successful update (for float window normal mode)
+            await onCloseWindow();
+            return; // Early return to prevent further execution
+          }
         } else {
           // Create new note with provided ID (for blank notes from Cmd+N)
           const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
           const newRank = Math.max(maxRank + 1, notes.length + 1);
 
+          const now = new Date().toISOString();
           const newNote: Note = {
             id: noteId,
             text: currentContent.text,
@@ -124,6 +146,10 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
             archived: false,
             favorite: false,
             rank: newRank,
+            isDraft: false, // Submit creates formal note
+            submittedAt: now,
+            createdAt: now,
+            updatedAt: now,
           };
 
           // Add to local state
@@ -173,6 +199,7 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
         const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
         const newRank = Math.max(maxRank + 1, notes.length + 1);
 
+        const now = new Date().toISOString();
         const newNote: Note = {
           id: Date.now().toString(),
           text: currentContent.text,
@@ -184,6 +211,10 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           archived: false,
           favorite: false,
           rank: newRank,
+          isDraft: false, // Submit creates formal note
+          submittedAt: now,
+          createdAt: now,
+          updatedAt: now,
         };
 
         // Add to local state

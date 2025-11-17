@@ -17,6 +17,14 @@ pub struct TempNote {
     pub rank: Option<i32>,
     #[serde(rename = "manualTitle")]
     pub manual_title: Option<bool>,
+    #[serde(rename = "isDraft")]
+    pub is_draft: Option<bool>,
+    #[serde(rename = "submittedAt")]
+    pub submitted_at: Option<String>,
+    #[serde(rename = "createdAt")]
+    pub created_at: Option<String>,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: Option<String>,
 }
 
 #[tauri::command]

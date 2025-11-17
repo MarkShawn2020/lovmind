@@ -82,12 +82,20 @@ function FloatWindowInner() {
   const { handleSubmit } = useNoteSubmit({
     noteId,
     editorRef,
-    // Reset editor after creating new note, unless window is pinned on top
-    resetEditorAfterCreate: () => !isAlwaysOnTop,
+    // Reset editor after creating new note, only in pinned mode
+    resetEditorAfterCreate: () => isAlwaysOnTop,
     // Update activeNoteId when creating a new note after reset
     onNoteIdChange: (newNoteId) => {
       console.log('[FloatWindow] Switching to new noteId:', newNoteId);
       setActiveNoteId(newNoteId);
+    },
+    // Close window after submit in normal (non-pinned) mode
+    onCloseWindow: async () => {
+      if (!isAlwaysOnTop && isTauri()) {
+        const currentWindow = getCurrentWindow();
+        await currentWindow.close();
+        console.log('[FloatWindow] Window closed after submit (normal mode)');
+      }
     },
   });
 

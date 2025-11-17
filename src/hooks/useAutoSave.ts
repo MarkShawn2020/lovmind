@@ -68,6 +68,7 @@ export function useAutoSave() {
       const hasTypedContent = typeof editorContent.text === 'string' && Boolean(editorContent.text.trim());
 
       if (hasTypedContent || !editorContent.isEmpty) {
+        const now = new Date().toISOString();
         const updatedNote = {
           ...currentNote,
           text: editorContent.text,
@@ -77,11 +78,14 @@ export function useAutoSave() {
             ? currentNote.title // Keep manual title
             : extractNoteTitle({ text: editorContent.text, richContent: editorContent.richContent }),
           time: new Date().toLocaleString(),
+          isDraft: true, // Auto-save marks as draft
+          createdAt: currentNote.createdAt || now, // Set createdAt on first save
+          updatedAt: now, // Always update timestamp
         };
 
         try {
           await updateNote(updatedNote);
-          console.log('🔄 Auto-saved:', updatedNote.id);
+          console.log('🔄 Auto-saved as draft:', updatedNote.id);
           lastSavedContentRef.current = contentHash;
 
           // Update window title if in Tauri
