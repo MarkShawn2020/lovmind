@@ -28,8 +28,6 @@ interface NotesSidebarContainerProps {
   onSetLastClickedNote?: (noteId: string) => void;
   onBatchDelete?: () => void;
   onBatchArchive?: () => void;
-  onBatchPin?: () => void;
-  onBatchUnpin?: () => void;
 }
 
 /**
@@ -64,8 +62,6 @@ export const NotesSidebarContainer = forwardRef<HTMLDivElement, NotesSidebarCont
       onSetLastClickedNote,
       onBatchDelete,
       onBatchArchive,
-      onBatchPin,
-      onBatchUnpin,
     } = props;
 
     const sidebarContent = useMemo(
@@ -95,8 +91,6 @@ export const NotesSidebarContainer = forwardRef<HTMLDivElement, NotesSidebarCont
           onSetLastClickedNote={onSetLastClickedNote}
           onBatchDelete={onBatchDelete}
           onBatchArchive={onBatchArchive}
-          onBatchPin={onBatchPin}
-          onBatchUnpin={onBatchUnpin}
         />
       ),
       [
@@ -124,8 +118,6 @@ export const NotesSidebarContainer = forwardRef<HTMLDivElement, NotesSidebarCont
         onSetLastClickedNote,
         onBatchDelete,
         onBatchArchive,
-        onBatchPin,
-        onBatchUnpin,
       ]
     );
 

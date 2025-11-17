@@ -161,18 +161,6 @@ function MainWindow() {
     exitMultiSelectMode();
   }, [selectedNoteIds, showArchived, multiSelectOps, exitMultiSelectMode]);
 
-  const handleBatchPin = useCallback(async () => {
-    if (selectedNoteIds.size === 0) return;
-    await multiSelectOps.batchPin(Array.from(selectedNoteIds));
-    exitMultiSelectMode();
-  }, [selectedNoteIds, multiSelectOps, exitMultiSelectMode]);
-
-  const handleBatchUnpin = useCallback(async () => {
-    if (selectedNoteIds.size === 0) return;
-    await multiSelectOps.batchUnpin(Array.from(selectedNoteIds));
-    exitMultiSelectMode();
-  }, [selectedNoteIds, multiSelectOps, exitMultiSelectMode]);
-
   // Click outside to close user menu
   useCallback(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -426,8 +414,6 @@ function MainWindow() {
           onSetLastClickedNote={setLastClickedNote}
           onBatchDelete={handleBatchDelete}
           onBatchArchive={handleBatchArchive}
-          onBatchPin={handleBatchPin}
-          onBatchUnpin={handleBatchUnpin}
         />
       }
       editor={

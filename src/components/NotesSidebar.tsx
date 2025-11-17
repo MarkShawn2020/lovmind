@@ -43,8 +43,6 @@ interface NotesSidebarProps {
   onSetLastClickedNote?: (noteId: string) => void;
   onBatchDelete?: () => void;
   onBatchArchive?: () => void;
-  onBatchPin?: () => void;
-  onBatchUnpin?: () => void;
 }
 
 const NotesSidebarComponent = ({
@@ -73,8 +71,6 @@ const NotesSidebarComponent = ({
   onSetLastClickedNote,
   onBatchDelete,
   onBatchArchive,
-  onBatchPin,
-  onBatchUnpin,
 }: NotesSidebarProps) => {
   const [isPinnedCollapsed, setIsPinnedCollapsed] = useState(false);
 
@@ -423,7 +419,7 @@ const NotesSidebarComponent = ({
       </div>
 
       {/* Bottom section: Multi-select toolbar or New Note Button */}
-      {isMultiSelectMode && onExitMultiSelect && onSelectAll && onDeselectAll && onBatchDelete && onBatchArchive && onBatchPin && onBatchUnpin ? (
+      {isMultiSelectMode && onExitMultiSelect && onSelectAll && onDeselectAll && onBatchDelete && onBatchArchive ? (
         <MultiSelectToolbar
           selectedCount={selectedNoteIds.size}
           totalCount={filteredNotes.length}
@@ -431,8 +427,6 @@ const NotesSidebarComponent = ({
           onDeselectAll={onDeselectAll}
           onBatchDelete={onBatchDelete}
           onBatchArchive={onBatchArchive}
-          onBatchPin={onBatchPin}
-          onBatchUnpin={onBatchUnpin}
           onExitMultiSelect={onExitMultiSelect}
           showArchived={showArchived}
         />

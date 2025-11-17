@@ -1,4 +1,4 @@
-import { Archive, Trash2, Pin, FolderPlus, Tag, X, CheckSquare } from 'lucide-react';
+import { Archive, Trash2, FolderPlus, Tag, X, CheckSquare } from 'lucide-react';
 import { memo } from 'react';
 
 interface MultiSelectToolbarProps {
@@ -8,8 +8,6 @@ interface MultiSelectToolbarProps {
   onDeselectAll: () => void;
   onBatchDelete: () => void;
   onBatchArchive: () => void;
-  onBatchPin: () => void;
-  onBatchUnpin: () => void;
   onBatchMoveToFolder?: () => void;
   onBatchAddTag?: () => void;
   onExitMultiSelect: () => void;
@@ -27,8 +25,6 @@ const MultiSelectToolbarComponent = ({
   onDeselectAll,
   onBatchDelete,
   onBatchArchive,
-  onBatchPin,
-  onBatchUnpin,
   onBatchMoveToFolder,
   onBatchAddTag,
   onExitMultiSelect,
@@ -66,28 +62,6 @@ const MultiSelectToolbarComponent = ({
 
       {/* Bottom row: action buttons grid */}
       <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={onBatchPin}
-          disabled={selectedCount === 0}
-          className="h-9 px-3 rounded-lg border-none flex items-center justify-center gap-2 font-medium text-xs transition-all duration-200 ease-out shadow-sm touch-manipulation bg-background text-foreground cursor-pointer hover:shadow-md hover:bg-accent active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
-          type="button"
-          title="批量置顶"
-        >
-          <Pin size={14} />
-          <span>置顶</span>
-        </button>
-
-        <button
-          onClick={onBatchUnpin}
-          disabled={selectedCount === 0}
-          className="h-9 px-3 rounded-lg border-none flex items-center justify-center gap-2 font-medium text-xs transition-all duration-200 ease-out shadow-sm touch-manipulation bg-background text-foreground cursor-pointer hover:shadow-md hover:bg-accent active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
-          type="button"
-          title="批量取消置顶"
-        >
-          <Pin size={14} className="opacity-50" />
-          <span>取消置顶</span>
-        </button>
-
         <button
           onClick={onBatchArchive}
           disabled={selectedCount === 0}
