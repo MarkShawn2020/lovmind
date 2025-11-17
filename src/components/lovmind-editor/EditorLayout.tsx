@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
+import { isIOS } from '@/utils/platform';
 
 interface EditorLayoutProps {
   header: ReactNode;
@@ -39,8 +41,41 @@ export const EditorLayout = ({
     ? "w-screen h-full max-h-screen flex flex-col"
     : "h-full max-h-screen flex flex-col";
 
+  // iOS keyboard handling: adjust layout when keyboard appears
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    if (!isIOS()) return;
+
+    // Use Visual Viewport API to detect keyboard
+    const visualViewport = window.visualViewport;
+    if (!visualViewport) return;
+
+    const handleResize = () => {
+      // Calculate keyboard height based on viewport change
+      const viewportHeight = visualViewport.height;
+      const windowHeight = window.innerHeight;
+      const keyboardOffset = windowHeight - viewportHeight;
+      setKeyboardHeight(Math.max(0, keyboardOffset));
+    };
+
+    visualViewport.addEventListener('resize', handleResize);
+    visualViewport.addEventListener('scroll', handleResize);
+
+    return () => {
+      visualViewport.removeEventListener('resize', handleResize);
+      visualViewport.removeEventListener('scroll', handleResize);
+    };
+  }, []);
+
   return (
-    <div className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl">
+    <div
+      className="h-screen flex flex-col relative overflow-hidden bg-transparent rounded-xl"
+      style={{
+        // iOS: Adjust bottom padding when keyboard is visible
+        paddingBottom: isIOS() && keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+      }}
+    >
       {header}
 
       <div className="flex-1 flex min-h-0">
@@ -64,7 +99,7 @@ export const EditorLayout = ({
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background rounded-b-3xl sm:rounded-b-none">
+          <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background">
             {editor}
           </div>
           {toolbar}
