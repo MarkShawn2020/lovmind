@@ -20,7 +20,7 @@ import { useWindowOperations } from "./hooks/useWindowOperations";
 import { useUserProfile } from "./hooks/useUserProfile";
 import { useNoteSubmit } from "./hooks/useNoteSubmit";
 import { useMultiSelect } from "./hooks/useMultiSelect";
-import { useMultiSelectOperations } from "./hooks/useMultiSelectOperations";
+import { useMultiSelectOperations } from "./hooks/useMultiSelectOperations.tsx";
 import { editorContentAtom, notesAtom } from "./atoms/noteAtoms";
 import { noteStatsAtom } from "./store";
 import type { LovmindEditorRef } from "@/components/lovmind-editor/lovmind-editor.tsx";

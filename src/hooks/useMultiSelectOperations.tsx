@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
 import { Note } from '@/store';
+import { confirmDialog } from '@/utils/tauri';
 
 export interface UseMultiSelectOperationsProps {
   onTogglePin: (id: string) => void | Promise<unknown>;
   onToggleArchive: (id: string) => void | Promise<unknown>;
-  onDeleteNote: (id: string) => void | Promise<unknown>;
+  onDeleteNote: (id: string, skipConfirmation?: boolean) => void | Promise<unknown>;
   notes: Note[];
 }
 
@@ -29,8 +30,38 @@ export const useMultiSelectOperations = ({
   notes,
 }: UseMultiSelectOperationsProps): UseMultiSelectOperationsReturn => {
   const batchDelete = useCallback(async (noteIds: string[]) => {
-    // Delete notes in parallel
-    await Promise.all(noteIds.map(id => Promise.resolve(onDeleteNote(id))));
+    if (noteIds.length === 0) return;
+
+    // Show ONE confirmation dialog for all notes
+    const confirmed = await confirmDialog(
+      `确定要删除这 ${noteIds.length} 条笔记吗？此操作不可恢复。`,
+      {
+        title: '批量删除',
+        okLabel: '删除',
+        cancelLabel: '取消',
+        variant: 'destructive',
+        icon: () => (
+          <div className="relative w-16 h-16">
+            <svg
+              className="w-full h-full text-primary opacity-80 drop-shadow-[0_8px_16px_rgba(0,0,0,0.1)]"
+              viewBox="-98.605 -108 1183.26 1296"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g fill="currentColor">
+                <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z" />
+                <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z" />
+                <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z" />
+              </g>
+            </svg>
+          </div>
+        ),
+      }
+    );
+
+    if (!confirmed) return;
+
+    // Delete all notes without individual confirmations
+    await Promise.all(noteIds.map(id => Promise.resolve(onDeleteNote(id, true))));
   }, [onDeleteNote]);
 
   const batchArchive = useCallback(async (noteIds: string[]) => {
