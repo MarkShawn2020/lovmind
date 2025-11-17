@@ -45,6 +45,20 @@ export function useNoteLoader(noteId: string | null | undefined) {
       return;
     }
 
+    // For temporary IDs (created after reset), initialize with empty content
+    if (noteId.startsWith('temp-')) {
+      console.log('[useNoteLoader] Temporary noteId detected, initializing empty editor:', noteId);
+      setCurrentNoteId(null); // No current note
+      setEditorContent({
+        text: '',
+        tags: [],
+        richContent: null,
+        isEmpty: true,
+        sourceNoteId: noteId, // Mark as temp note
+      });
+      return;
+    }
+
     const loadNote = async () => {
       let noteData: Note | null = null;
 

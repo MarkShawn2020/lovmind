@@ -126,9 +126,13 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
 
           if (shouldReset) {
             // Pinned mode: reset editor for continuous capture
+            // First reset the editor DOM
+            editorRef.current?.resetAndFocus();
+
+            // Then update noteId (triggers useNoteLoader which will set empty content)
             const nextNoteId = `temp-${Date.now()}`;
             onNoteIdChange?.(nextNoteId);
-            editorRef.current?.resetAndFocus();
+
             console.log('[Submit] Editor reset for continuous capture (pinned mode)');
           } else if (onCloseWindow) {
             // Normal mode: close window after successful update
@@ -191,13 +195,15 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
             : resetEditorAfterCreate;
 
           if (shouldReset) {
-            // Generate new noteId for next input
-            const nextNoteId = `temp-${Date.now()}`;
+            // Pinned mode: reset editor for continuous capture
+            // First reset the editor DOM
+            editorRef.current?.resetAndFocus();
 
-            // Notify parent component (e.g., float-window) to update activeNoteId
+            // Then update noteId (triggers useNoteLoader which will set empty content)
+            const nextNoteId = `temp-${Date.now()}`;
             onNoteIdChange?.(nextNoteId);
 
-            editorRef.current?.resetAndFocus();
+            console.log('[Submit] Editor reset for continuous capture (pinned mode)');
           } else if (onCloseWindow) {
             // Close window after successful creation (for float window normal mode)
             await onCloseWindow();
@@ -260,13 +266,15 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           : resetEditorAfterCreate;
 
         if (shouldReset) {
-          // Generate new noteId for next input
-          const nextNoteId = `temp-${Date.now()}`;
+          // Pinned mode: reset editor for continuous capture
+          // First reset the editor DOM
+          editorRef.current?.resetAndFocus();
 
-          // Notify parent component (e.g., float-window) to update activeNoteId
+          // Then update noteId (triggers useNoteLoader which will set empty content)
+          const nextNoteId = `temp-${Date.now()}`;
           onNoteIdChange?.(nextNoteId);
 
-          editorRef.current?.resetAndFocus();
+          console.log('[Submit] Editor reset for continuous capture (pinned mode)');
         } else if (onCloseWindow) {
           // Close window after successful creation (for float window normal mode)
           await onCloseWindow();
