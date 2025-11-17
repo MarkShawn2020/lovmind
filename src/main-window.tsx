@@ -19,6 +19,8 @@ import { useNoteOperations } from "./hooks/useNoteOperations";
 import { useWindowOperations } from "./hooks/useWindowOperations";
 import { useUserProfile } from "./hooks/useUserProfile";
 import { useNoteSubmit } from "./hooks/useNoteSubmit";
+import { useMultiSelect } from "./hooks/useMultiSelect";
+import { useMultiSelectOperations } from "./hooks/useMultiSelectOperations";
 import { editorContentAtom, notesAtom } from "./atoms/noteAtoms";
 import { noteStatsAtom } from "./store";
 import type { LovmindEditorRef } from "@/components/lovmind-editor/lovmind-editor.tsx";
@@ -66,6 +68,24 @@ function MainWindow() {
     noteId: viewingNoteId,
     editorRef,
     resetEditorAfterCreate: true,
+  });
+
+  // Multi-select hooks
+  const {
+    isMultiSelectMode,
+    selectedNoteIds,
+    toggleNoteSelection,
+    enterMultiSelectMode,
+    exitMultiSelectMode,
+    selectAll,
+    deselectAll,
+  } = useMultiSelect();
+
+  const multiSelectOps = useMultiSelectOperations({
+    onTogglePin: togglePin,
+    onToggleArchive: toggleArchive,
+    onDeleteNote: deleteNote,
+    notes,
   });
 
   // Handlers
@@ -120,6 +140,35 @@ function MainWindow() {
     withSidebarClose(handleBackToCreate),
     [withSidebarClose, handleBackToCreate]
   );
+
+  // Batch operation handlers
+  const handleBatchDelete = useCallback(async () => {
+    if (selectedNoteIds.size === 0) return;
+    await multiSelectOps.batchDelete(Array.from(selectedNoteIds));
+    exitMultiSelectMode();
+  }, [selectedNoteIds, multiSelectOps, exitMultiSelectMode]);
+
+  const handleBatchArchive = useCallback(async () => {
+    if (selectedNoteIds.size === 0) return;
+    if (showArchived) {
+      await multiSelectOps.batchUnarchive(Array.from(selectedNoteIds));
+    } else {
+      await multiSelectOps.batchArchive(Array.from(selectedNoteIds));
+    }
+    exitMultiSelectMode();
+  }, [selectedNoteIds, showArchived, multiSelectOps, exitMultiSelectMode]);
+
+  const handleBatchPin = useCallback(async () => {
+    if (selectedNoteIds.size === 0) return;
+    await multiSelectOps.batchPin(Array.from(selectedNoteIds));
+    exitMultiSelectMode();
+  }, [selectedNoteIds, multiSelectOps, exitMultiSelectMode]);
+
+  const handleBatchUnpin = useCallback(async () => {
+    if (selectedNoteIds.size === 0) return;
+    await multiSelectOps.batchUnpin(Array.from(selectedNoteIds));
+    exitMultiSelectMode();
+  }, [selectedNoteIds, multiSelectOps, exitMultiSelectMode]);
 
   // Click outside to close user menu
   useCallback(() => {
@@ -362,6 +411,17 @@ function MainWindow() {
           onCreateNewNote={handleCreateNewNote}
           isCreateMode={!viewingNoteId}
           isEditorEmpty={editorContent.isEmpty}
+          isMultiSelectMode={isMultiSelectMode}
+          selectedNoteIds={selectedNoteIds}
+          onToggleNoteSelection={toggleNoteSelection}
+          onEnterMultiSelectMode={enterMultiSelectMode}
+          onExitMultiSelect={exitMultiSelectMode}
+          onSelectAll={selectAll}
+          onDeselectAll={deselectAll}
+          onBatchDelete={handleBatchDelete}
+          onBatchArchive={handleBatchArchive}
+          onBatchPin={handleBatchPin}
+          onBatchUnpin={handleBatchUnpin}
         />
       }
       editor={

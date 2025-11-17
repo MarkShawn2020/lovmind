@@ -15,6 +15,18 @@ interface NotesSidebarContainerProps {
   onCreateNewNote?: () => void;
   isCreateMode?: boolean;
   isEditorEmpty?: boolean;
+  // Multi-select props
+  isMultiSelectMode?: boolean;
+  selectedNoteIds?: Set<string>;
+  onToggleNoteSelection?: (noteId: string) => void;
+  onEnterMultiSelectMode?: () => void;
+  onExitMultiSelect?: () => void;
+  onSelectAll?: (noteIds: string[]) => void;
+  onDeselectAll?: () => void;
+  onBatchDelete?: () => void;
+  onBatchArchive?: () => void;
+  onBatchPin?: () => void;
+  onBatchUnpin?: () => void;
 }
 
 /**
@@ -36,6 +48,18 @@ export const NotesSidebarContainer = forwardRef<HTMLDivElement, NotesSidebarCont
       onCreateNewNote,
       isCreateMode,
       isEditorEmpty,
+      // Multi-select props
+      isMultiSelectMode,
+      selectedNoteIds,
+      onToggleNoteSelection,
+      onEnterMultiSelectMode,
+      onExitMultiSelect,
+      onSelectAll,
+      onDeselectAll,
+      onBatchDelete,
+      onBatchArchive,
+      onBatchPin,
+      onBatchUnpin,
     } = props;
 
     const sidebarContent = useMemo(
@@ -53,6 +77,17 @@ export const NotesSidebarContainer = forwardRef<HTMLDivElement, NotesSidebarCont
           onCreateNewNote={onCreateNewNote}
           isCreateMode={isCreateMode}
           isEditorEmpty={isEditorEmpty}
+          isMultiSelectMode={isMultiSelectMode}
+          selectedNoteIds={selectedNoteIds}
+          onToggleNoteSelection={onToggleNoteSelection}
+          onEnterMultiSelectMode={onEnterMultiSelectMode}
+          onExitMultiSelect={onExitMultiSelect}
+          onSelectAll={onSelectAll}
+          onDeselectAll={onDeselectAll}
+          onBatchDelete={onBatchDelete}
+          onBatchArchive={onBatchArchive}
+          onBatchPin={onBatchPin}
+          onBatchUnpin={onBatchUnpin}
         />
       ),
       [
@@ -68,6 +103,17 @@ export const NotesSidebarContainer = forwardRef<HTMLDivElement, NotesSidebarCont
         onCreateNewNote,
         isCreateMode,
         isEditorEmpty,
+        isMultiSelectMode,
+        selectedNoteIds,
+        onToggleNoteSelection,
+        onEnterMultiSelectMode,
+        onExitMultiSelect,
+        onSelectAll,
+        onDeselectAll,
+        onBatchDelete,
+        onBatchArchive,
+        onBatchPin,
+        onBatchUnpin,
       ]
     );
 

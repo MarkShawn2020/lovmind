@@ -1,4 +1,4 @@
-import { Archive, Copy, Crown, Maximize2, Pin, Sparkles, Trash2, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { Archive, Copy, Crown, Maximize2, Pin, Sparkles, Trash2, ChevronDown, ChevronUp, Plus, CheckSquare, Square } from 'lucide-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -12,6 +12,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { MultiSelectToolbar } from '@/components/MultiSelectToolbar';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -29,6 +30,18 @@ interface NotesSidebarProps {
   onCreateNewNote?: () => void;
   isCreateMode?: boolean;
   isEditorEmpty?: boolean;
+  // Multi-select props
+  isMultiSelectMode?: boolean;
+  selectedNoteIds?: Set<string>;
+  onToggleNoteSelection?: (noteId: string) => void;
+  onEnterMultiSelectMode?: () => void;
+  onExitMultiSelect?: () => void;
+  onSelectAll?: (noteIds: string[]) => void;
+  onDeselectAll?: () => void;
+  onBatchDelete?: () => void;
+  onBatchArchive?: () => void;
+  onBatchPin?: () => void;
+  onBatchUnpin?: () => void;
 }
 
 const NotesSidebarComponent = ({
@@ -44,6 +57,18 @@ const NotesSidebarComponent = ({
   onCreateNewNote,
   isCreateMode = false,
   isEditorEmpty = true,
+  // Multi-select props
+  isMultiSelectMode = false,
+  selectedNoteIds = new Set(),
+  onToggleNoteSelection,
+  onEnterMultiSelectMode,
+  onExitMultiSelect,
+  onSelectAll,
+  onDeselectAll,
+  onBatchDelete,
+  onBatchArchive,
+  onBatchPin,
+  onBatchUnpin,
 }: NotesSidebarProps) => {
   const [isPinnedCollapsed, setIsPinnedCollapsed] = useState(false);
 
@@ -152,6 +177,28 @@ const NotesSidebarComponent = ({
   const renderNoteItem = (note: Note) => {
     const rank = note.rank ?? noteRanks.get(note.id)!;
     const isTopThree = rank <= 3;
+    const isSelected = selectedNoteIds.has(note.id);
+
+    // Handle click in multi-select mode
+    const handleClick = (e: React.MouseEvent) => {
+      // Support Cmd/Ctrl+Click for multi-select
+      if ((e.metaKey || e.ctrlKey) && onEnterMultiSelectMode && onToggleNoteSelection) {
+        if (!isMultiSelectMode) {
+          onEnterMultiSelectMode();
+        }
+        onToggleNoteSelection(note.id);
+        return;
+      }
+
+      // In multi-select mode, clicking toggles selection
+      if (isMultiSelectMode && onToggleNoteSelection) {
+        onToggleNoteSelection(note.id);
+        return;
+      }
+
+      // Normal mode: open note
+      onOpenNote(note);
+    };
 
     return (
       <ContextMenu key={note.id}>
@@ -159,20 +206,33 @@ const NotesSidebarComponent = ({
           <div
             className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary active:scale-[0.98] touch-manipulation group ${
               currentNoteId === note.id ? 'active' : ''
-            } ${note.pinned ? 'pinned' : ''}`}
-            onClick={() => onOpenNote(note)}
+            } ${note.pinned ? 'pinned' : ''} ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}`}
+            onClick={handleClick}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                onOpenNote(note);
+                if (isMultiSelectMode && onToggleNoteSelection) {
+                  onToggleNoteSelection(note.id);
+                } else {
+                  onOpenNote(note);
+                }
               }
             }}
           >
             <div className="flex flex-col h-full">
               <div className="flex justify-between mb-0.5 gap-2">
                 <div className="text-sm font-semibold text-[var(--card-foreground)] flex items-center gap-1 min-w-0">
+                  {isMultiSelectMode && (
+                    <div className="flex-shrink-0">
+                      {isSelected ? (
+                        <CheckSquare size={16} className="text-primary" />
+                      ) : (
+                        <Square size={16} className="text-muted-foreground" />
+                      )}
+                    </div>
+                  )}
                   {isTopThree && <Crown className={`inline-flex align-middle rank-badge rank-${rank} flex-shrink-0`} size={16} fill="currentColor" />}
                   {note.pinned && <Pin className="inline-flex align-middle text-[var(--primary)] flex-shrink-0" size={14} />}
                   <span className="truncate">
@@ -196,6 +256,23 @@ const NotesSidebarComponent = ({
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-48">
+          {!isMultiSelectMode && onEnterMultiSelectMode && (
+            <>
+              <ContextMenuItem
+                onClick={e => {
+                  e.stopPropagation();
+                  onEnterMultiSelectMode();
+                  if (onToggleNoteSelection) {
+                    onToggleNoteSelection(note.id);
+                  }
+                }}
+              >
+                <CheckSquare className="mr-2 h-4 w-4" />
+                选择多个
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+            </>
+          )}
           {onOpenNoteInNewWindow && (
             <>
               <ContextMenuItem
@@ -311,8 +388,21 @@ const NotesSidebarComponent = ({
         )}
       </div>
 
-      {/* New Note Button - Fixed at bottom, always visible in main window */}
-      {onCreateNewNote && (
+      {/* Bottom section: Multi-select toolbar or New Note Button */}
+      {isMultiSelectMode && onExitMultiSelect && onSelectAll && onDeselectAll && onBatchDelete && onBatchArchive && onBatchPin && onBatchUnpin ? (
+        <MultiSelectToolbar
+          selectedCount={selectedNoteIds.size}
+          totalCount={filteredNotes.length}
+          onSelectAll={() => onSelectAll(filteredNotes.map(n => n.id))}
+          onDeselectAll={onDeselectAll}
+          onBatchDelete={onBatchDelete}
+          onBatchArchive={onBatchArchive}
+          onBatchPin={onBatchPin}
+          onBatchUnpin={onBatchUnpin}
+          onExitMultiSelect={onExitMultiSelect}
+          showArchived={showArchived}
+        />
+      ) : onCreateNewNote ? (
         <div className="flex-shrink-0 p-[var(--spacing-s)] pt-2 border-t border-border/40 bg-muted">
           <button
             onClick={onCreateNewNote}
@@ -330,7 +420,7 @@ const NotesSidebarComponent = ({
             <span>新建笔记</span>
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
