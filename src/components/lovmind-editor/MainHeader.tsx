@@ -21,16 +21,16 @@ export const MainHeader = ({
   onUserMenuToggle,
   userButtonRef,
 }: MainHeaderProps) => {
-  // iOS: No top border radius + safe area top padding (for status bar overlay)
+  // iOS: No top border radius + extra vertical padding for better spacing
   // Desktop: Rounded top corners (floating window aesthetic)
   const headerClassName = isIOS()
-    ? "h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center select-none flex-shrink-0 cursor-move"
+    ? "px-[var(--spacing-text)] pb-4 bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center select-none flex-shrink-0 cursor-move"
     : "h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center rounded-t-xl select-none flex-shrink-0 cursor-move";
 
-  // iOS: Add safe area top padding to header content (not container) to avoid notch overlap
+  // iOS: Add safe area top padding + extra top padding for better spacing
   const headerStyle = isIOS()
     ? {
-        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)',
       }
     : {};
 
