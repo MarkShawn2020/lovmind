@@ -227,6 +227,10 @@ const NotesSidebarComponent = ({
       }
 
       // Normal mode: open note
+      // Also set anchor for potential future Shift+Click
+      if (onSetLastClickedNote) {
+        onSetLastClickedNote(note.id);
+      }
       onOpenNote(note);
     };
 
