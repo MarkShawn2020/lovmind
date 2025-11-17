@@ -178,6 +178,14 @@ export const imageMaxHeightAtom = atomWithStorage<number>(
   { getOnInit: true }
 );
 
+// Pinned notes section collapse state
+export const isPinnedCollapsedAtom = atomWithStorage<boolean>(
+  'lovpen-pinned-collapsed',
+  false, // Default: expanded
+  createTauriStorage<boolean>(),
+  { getOnInit: true }
+);
+
 // Derived atom for note statistics
 export const noteStatsAtom = atom((get) => {
   const notes = get(notesAtom);

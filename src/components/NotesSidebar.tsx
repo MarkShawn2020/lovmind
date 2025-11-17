@@ -2,9 +2,11 @@ import { Archive, Copy, Crown, Maximize2, Pin, Sparkles, Trash2, ChevronDown, Ch
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
-import { memo, useState, useEffect } from 'react';
+import { memo, useEffect } from 'react';
+import { useAtom } from 'jotai';
 
 import type { Note } from '@/store';
+import { isPinnedCollapsedAtom } from '@/store';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -72,7 +74,8 @@ const NotesSidebarComponent = ({
   onBatchDelete,
   onBatchArchive,
 }: NotesSidebarProps) => {
-  const [isPinnedCollapsed, setIsPinnedCollapsed] = useState(false);
+  // Use persisted atom for collapse state (global shared state across views)
+  const [isPinnedCollapsed, setIsPinnedCollapsed] = useAtom(isPinnedCollapsedAtom);
 
   // Auto-expand pinned section if current note is pinned
   useEffect(() => {
@@ -82,7 +85,7 @@ const NotesSidebarComponent = ({
         setIsPinnedCollapsed(false);
       }
     }
-  }, [currentNoteId, notes, isPinnedCollapsed]);
+  }, [currentNoteId, notes, isPinnedCollapsed, setIsPinnedCollapsed]);
 
   // Empty state content
   const emptyStateContent = (
