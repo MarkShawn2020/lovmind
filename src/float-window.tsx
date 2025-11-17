@@ -30,13 +30,8 @@ function FloatWindowInner() {
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false);
   const [isTogglingAlwaysOnTop, setIsTogglingAlwaysOnTop] = useState(false);
 
-  // Event sync hooks
-  useNoteEventSync();
-  useImageHeightSync();
-  const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
-
-  // Extract noteId from URL
-  const noteId = useMemo(() => {
+  // Extract initial noteId from URL
+  const initialNoteId = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('noteId');
     if (!id) {
@@ -46,6 +41,15 @@ function FloatWindowInner() {
     console.log('[FloatWindow] Loading note with ID:', id);
     return id;
   }, []);
+
+  // Active noteId (can change after reset)
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(initialNoteId);
+  const noteId = activeNoteId;
+
+  // Event sync hooks
+  useNoteEventSync();
+  useImageHeightSync();
+  const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
 
   // Load note into atoms (CRITICAL: Must be called before checking currentNote)
   // Note: LovmindEditor also calls useNoteLoader internally, but this is fine
@@ -80,6 +84,11 @@ function FloatWindowInner() {
     editorRef,
     // Reset editor after creating new note, unless window is pinned on top
     resetEditorAfterCreate: () => !isAlwaysOnTop,
+    // Update activeNoteId when creating a new note after reset
+    onNoteIdChange: (newNoteId) => {
+      console.log('[FloatWindow] Switching to new noteId:', newNoteId);
+      setActiveNoteId(newNoteId);
+    },
   });
 
   // Use withSidebarClose to auto-close mobile sidebar after opening note
@@ -190,9 +199,13 @@ function FloatWindowInner() {
   // Create a fallback note object for blank notes
   // Check if note exists in notes array (may have been created but not yet synced to currentNote)
   const existingNoteInArray = notes.find(n => n.id === noteId);
+
+  // Check if this is a temporary noteId (created after reset)
+  const isTempNote = noteId?.startsWith('temp-');
+
   const displayNote = currentNote || existingNoteInArray || {
     id: noteId!,
-    title: 'New Note',
+    title: isTempNote ? '新笔记' : 'New Note',
     text: '',
     time: new Date().toISOString(),
     tags: [],

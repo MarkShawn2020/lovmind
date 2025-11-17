@@ -30,6 +30,13 @@ interface UseNoteSubmitOptions {
    * @default false
    */
   resetEditorAfterCreate?: boolean | (() => boolean);
+
+  /**
+   * Callback to change the active noteId after creating a new note
+   * Used by float-window to switch to a new note after reset
+   * @param newNoteId - The ID of the newly created note
+   */
+  onNoteIdChange?: (newNoteId: string | null) => void;
 }
 
 /**
@@ -37,7 +44,7 @@ interface UseNoteSubmitOptions {
  * Provides unified submit handling across main window and float windows
  */
 export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
-  const { noteId, editorRef, resetEditorAfterCreate = false } = options;
+  const { noteId, editorRef, resetEditorAfterCreate = false, onNoteIdChange } = options;
 
   // Read from atoms
   const editorContent = useAtomValue(editorContentAtom);
@@ -152,6 +159,12 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
             : resetEditorAfterCreate;
 
           if (shouldReset) {
+            // Generate new noteId for next input
+            const nextNoteId = `temp-${Date.now()}`;
+
+            // Notify parent component (e.g., float-window) to update activeNoteId
+            onNoteIdChange?.(nextNoteId);
+
             editorRef.current?.resetAndFocus();
           }
         }
@@ -206,13 +219,19 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           : resetEditorAfterCreate;
 
         if (shouldReset) {
+          // Generate new noteId for next input
+          const nextNoteId = `temp-${Date.now()}`;
+
+          // Notify parent component (e.g., float-window) to update activeNoteId
+          onNoteIdChange?.(nextNoteId);
+
           editorRef.current?.resetAndFocus();
         }
       }
     } catch (error) {
       console.error('Failed to submit note:', error);
     }
-  }, [editorContent, noteId, notes, setNotes, updateNote, editorRef, resetEditorAfterCreate]);
+  }, [editorContent, noteId, notes, setNotes, updateNote, editorRef, resetEditorAfterCreate, onNoteIdChange]);
 
   return { handleSubmit };
 };
