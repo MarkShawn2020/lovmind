@@ -209,6 +209,30 @@ const EditorToolbar = memo(({
         </Popover>
       </div>
 
+      {/* Right side: Submit button */}
+      {!hideSubmitButton && (
+        <button
+          onClick={onSubmit}
+          disabled={submitDisabled}
+          className={`
+            w-10 h-10 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0
+            rounded-xl
+            border border-border/50
+            flex items-center justify-center
+            cursor-pointer
+            transition-all duration-200 ease-out
+            touch-manipulation
+            ${submitDisabled
+              ? 'bg-transparent text-muted-foreground/40 border-border/30 cursor-not-allowed'
+              : 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20 hover:border-primary/50 hover:shadow-sm active:scale-[0.96]'
+            }
+          `}
+          title={mode === 'main' ? 'Submit note (Cmd+Enter)' : 'Save changes (Cmd+Enter)'}
+          type="button"
+        >
+          <Send size={16} strokeWidth={2} />
+        </button>
+      )}
     </div>
   );
 });
