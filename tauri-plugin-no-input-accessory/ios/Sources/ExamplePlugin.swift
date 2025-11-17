@@ -2,60 +2,82 @@ import SwiftRs
 import Tauri
 import UIKit
 import WebKit
+import ObjectiveC
 
 @objc(NoInputAccessoryPlugin)
 public class NoInputAccessoryPlugin: Plugin {
-    @objc public override func load(webview: WKWebView) {
-        print("[NoInputAccessory] Plugin loading - removing keyboard input accessory view")
+    private static var hasSwizzled = false
+    private static let swizzleLock = NSLock()
 
-        // Delay execution slightly to ensure WebView is fully initialized
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak webview] in
-            guard let webview = webview else {
-                print("[NoInputAccessory] ERROR: WebView is nil")
-                return
-            }
-
-            self.removeInputAccessoryView(from: webview)
-        }
+    @objc public override init() {
+        super.init()
+        Self.removeInputAccessoryView()
     }
 
-    private func removeInputAccessoryView(from webview: WKWebView) {
-        // Create an empty view to replace the default input accessory view
-        let emptyView = UIView(frame: .zero)
-        emptyView.backgroundColor = .clear
+    private static func removeInputAccessoryView() {
+        swizzleLock.lock()
+        defer { swizzleLock.unlock() }
 
-        // Find WKContentView within the WKWebView's scroll view
-        guard let wkContentView = webview.scrollView.subviews.first(where: {
-            String(describing: type(of: $0)).hasPrefix("WKContent")
-        }) else {
-            print("[NoInputAccessory] WARNING: Could not find WKContentView")
+        guard !hasSwizzled else {
+            print("[NoInputAccessory] Already patched, skipping")
             return
         }
 
-        print("[NoInputAccessory] Found WKContentView: \(type(of: wkContentView))")
+        print("[NoInputAccessory] Removing input accessory view from WKWebView")
 
-        // Iterate through all subviews of WKContentView
-        var replacedCount = 0
-        for subview in wkContentView.subviews {
-            // Only process views that can become first responder (input views)
-            guard subview.canBecomeFirstResponder else {
-                continue
-            }
+        // Method 1: Direct extension override (works in some iOS versions)
+        // This is already defined below in the extension
 
-            // Use Objective-C runtime to set inputAccessoryView
-            let selector = Selector(("setInputAccessoryView:"))
-            if subview.responds(to: selector) {
-                subview.perform(selector, with: emptyView)
-                replacedCount += 1
-                print("[NoInputAccessory] Replaced input accessory view for subview: \(type(of: subview))")
-            }
+        // Method 2: Swizzle to ensure it works across all WKWebView instances
+        swizzleWKWebView()
+
+        // Method 3: Also handle WKContentView (the actual input container)
+        swizzleWKContentView()
+
+        hasSwizzled = true
+        print("[NoInputAccessory] SUCCESS: Input accessory view removal completed")
+    }
+
+    private static func swizzleWKWebView() {
+        guard let wkClass = NSClassFromString("WKWebView") else { return }
+
+        let originalSelector = NSSelectorFromString("inputAccessoryView")
+        let swizzledSelector = #selector(WKWebView.noAccessory_inputAccessoryView)
+
+        if let originalMethod = class_getInstanceMethod(wkClass, originalSelector),
+           let swizzledMethod = class_getInstanceMethod(WKWebView.self, swizzledSelector) {
+            method_exchangeImplementations(originalMethod, swizzledMethod)
+            print("[NoInputAccessory] Swizzled WKWebView.inputAccessoryView")
+        }
+    }
+
+    private static func swizzleWKContentView() {
+        // WKContentView is the internal view that actually handles input
+        guard let contentViewClass = NSClassFromString("WKContentView") else {
+            print("[NoInputAccessory] WKContentView class not found (might be normal)")
+            return
         }
 
-        if replacedCount > 0 {
-            print("[NoInputAccessory] SUCCESS: Replaced \(replacedCount) input accessory view(s)")
-        } else {
-            print("[NoInputAccessory] INFO: No input accessory views found to replace")
+        let originalSelector = NSSelectorFromString("inputAccessoryView")
+
+        // Create a method that returns nil
+        let block: @convention(block) (AnyObject) -> UIView? = { _ in nil }
+        let implementation = imp_implementationWithBlock(block as Any)
+
+        // Replace the method implementation
+        if let originalMethod = class_getInstanceMethod(contentViewClass, originalSelector) {
+            method_setImplementation(originalMethod, implementation)
+            print("[NoInputAccessory] Patched WKContentView.inputAccessoryView")
         }
+    }
+}
+
+// Extension to provide swizzled implementation
+extension WKWebView {
+    @objc dynamic func noAccessory_inputAccessoryView() -> UIView? {
+        // This swizzled method returns nil instead of the original inputAccessoryView
+        // After swizzling, calling inputAccessoryView will execute this method
+        return nil
     }
 }
 

@@ -78,7 +78,7 @@ export function IOSEditorSheet({
     return calculatedTop;
   });
 
-  // Track keyboard height for bottom positioning
+  // Track keyboard height from visualViewport
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   // Monitor visualViewport for keyboard changes
@@ -88,10 +88,9 @@ export function IOSEditorSheet({
 
     const handleResize = () => {
       const newViewportHeight = visualViewport.height;
-      const viewportOffsetTop = visualViewport.offsetTop;
       setViewportHeight(newViewportHeight);
 
-      // Calculate keyboard height
+      // Calculate keyboard height (screen height - visible viewport height)
       const calcKeyboardHeight = window.innerHeight - newViewportHeight;
       setKeyboardHeight(calcKeyboardHeight);
 
@@ -106,10 +105,9 @@ export function IOSEditorSheet({
 
       console.log('[IOSEditorSheet] Viewport changed:', {
         viewportHeight: newViewportHeight,
-        viewportOffsetTop,
         windowHeight: window.innerHeight,
-        calculatedSheetHeight: maxHeight,
         keyboardHeight: calcKeyboardHeight,
+        calculatedSheetHeight: maxHeight,
       });
     };
 
@@ -169,17 +167,20 @@ export function IOSEditorSheet({
       <div
         className="fixed left-0 right-0 z-50 flex flex-col bg-background shadow-2xl ease-out overflow-hidden"
         style={{
-          // Push sheet up when keyboard appears
-          bottom: keyboardHeight > 0 ? `${keyboardHeight}px` : '0',
-          // No fixed height - let content determine height
+          // Stick to bottom of screen
+          bottom: 0,
+          // Control height via maxHeight
           maxHeight: `${sheetHeight}px`,
           borderTopLeftRadius: '20px',
           borderTopRightRadius: '20px',
-          // Smooth transition for keyboard appearance (iOS native feel)
+          // Smooth transition
           transition: isOpen
-            ? 'bottom 0.3s ease-out, max-height 0.3s ease-out, transform 0.3s ease-out'
+            ? 'max-height 0.3s ease-out, transform 0.3s ease-out'
             : 'transform 0.3s ease-out',
-          transform: isOpen ? 'translateY(0)' : `translateY(100%)`,
+          // Combine slide-up animation + keyboard offset
+          transform: isOpen
+            ? (keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : 'translateY(0)')
+            : 'translateY(100%)',
         }}
       >
         {/* Drag Handle */}

@@ -137,8 +137,21 @@ Notes are synchronized between windows using:
 ## Important Technical Details
 - **App identifier**: `app.lovpen.mind` (configured in `src-tauri/tauri.conf.json`)
 - **Frontend dev server**: `http://localhost:1420` (fixed port, fails if unavailable)
-- **Tauri plugins**: `global-shortcut`, `opener`, `store`, `dialog`
+- **Tauri plugins**: `global-shortcut`, `opener`, `store`, `dialog`, `no-input-accessory` (iOS-only)
 - **Rust dependencies**: `serde`, `serde_json`, `chrono`, `uuid`, `once_cell` (for global state)
 - **Testing framework**: Vitest with jsdom, React Testing Library
 - **File uploads**: Stored in `$APPDATA/uploads/` with UUID-prefixed filenames
 - **Asset protocol**: Enabled for `$APPDATA/uploads/**` scope
+
+### iOS-Specific Implementation
+- **Keyboard Input Accessory Removal**: Custom plugin (`tauri-plugin-no-input-accessory/`) removes the iOS keyboard's "Done" button toolbar
+  - Located in: `tauri-plugin-no-input-accessory/`
+  - Uses Objective-C runtime method swizzling to override `WKWebView.inputAccessoryView`
+  - Targets both `WKWebView` and `WKContentView` (internal input container)
+  - Registered iOS-only in `src-tauri/Cargo.toml` via `[target.'cfg(target_os = "ios")'.dependencies]`
+  - **Technical approach**: Since Tauri doesn't expose WebView creation hooks, the plugin uses method swizzling to:
+    1. Exchange `WKWebView.inputAccessoryView` implementation with custom nil-returning method
+    2. Patch `WKContentView.inputAccessoryView` using `imp_implementationWithBlock`
+    3. Execute during plugin initialization (before WebView displays keyboard)
+  - **Testing**: Check Xcode console for `[NoInputAccessory]` logs when building iOS app
+  - **Known limitation**: Method swizzling is a runtime hack; may break in future iOS versions

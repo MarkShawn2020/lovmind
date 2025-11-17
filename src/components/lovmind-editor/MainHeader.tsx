@@ -27,10 +27,10 @@ export const MainHeader = ({
     ? "px-[var(--spacing-text)] pb-4 bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center select-none flex-shrink-0 cursor-move"
     : "h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center rounded-t-xl select-none flex-shrink-0 cursor-move";
 
-  // iOS: Add safe area top padding + extra top padding for better spacing
+  // iOS: Add top padding for status bar (44px) + extra spacing (1rem)
   const headerStyle = isIOS()
     ? {
-        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)',
+        paddingTop: 'calc(44px + 1rem)', // Status bar height + spacing
       }
     : {};
 

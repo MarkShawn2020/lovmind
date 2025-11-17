@@ -143,7 +143,7 @@ const EditorToolbar = memo(({
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   // Platform-specific padding
-  // iOS: Minimal vertical padding (keyboard is directly below, no safe area needed)
+  // iOS: No extra padding - sheet container handles safe area and keyboard positioning
   // Desktop: Standard vertical padding
   const iosMode = isIOS();
   const toolbarStyle: React.CSSProperties = iosMode

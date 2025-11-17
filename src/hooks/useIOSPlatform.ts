@@ -106,9 +106,8 @@ export function useIOSViewport() {
   // Container styles for iOS viewport
   const containerStyles: CSSProperties = isIOS()
     ? {
-        // Apply safe area padding (left/right only, top/bottom handled by components)
-        paddingRight: `env(safe-area-inset-right, ${safeAreaInsets.right}px)`,
-        paddingLeft: `env(safe-area-inset-left, ${safeAreaInsets.left}px)`,
+        // DO NOT add safe area padding to container - this causes black bars
+        // Safe area should be handled by individual UI components (header, FAB, etc.)
         // Use visualViewport height when available (keyboard adjustments)
         ...(viewportHeight !== null && {
           height: `${viewportHeight}px`,

@@ -3,7 +3,6 @@ import { useCallback } from 'react';
 import { BaseMainWindow } from './components/shared/BaseMainWindow';
 import { IOSEditorSheet } from './components/ios/IOSEditorSheet';
 import { useMainWindowLogic } from './hooks/useMainWindowLogic';
-import { useIOSViewport } from './hooks/useIOSPlatform';
 import LovmindEditor from '@/components/lovmind-editor/lovmind-editor';
 import EditorToolbar from './components/EditorToolbar';
 
@@ -11,8 +10,8 @@ import EditorToolbar from './components/EditorToolbar';
  * MainWindowIOS - Platform wrapper for BaseMainWindow on iOS
  *
  * iOS-specific features:
- * - Safe area handling (notch, home indicator) via useIOSViewport
- * - Keyboard resize detection via visualViewport API
+ * - Fixed 100vh container (no dynamic viewport adjustments)
+ * - Keyboard handling delegated to IOSEditorSheet
  * - Bottom sheet for editor (iOS-native UX)
  * - Auto-focus editor when sheet appears (triggers keyboard)
  * - FAB (Floating Action Button) for quick note creation
@@ -29,8 +28,6 @@ function MainWindowIOS() {
     enableBroadcastChannel: true,
   });
 
-  // iOS-specific viewport handling
-  const { containerStyles, containerClassName } = useIOSViewport();
 
   // iOS: Show FAB when in list view and sidebar is closed
   // Always show in list view since we're always in mobile mode
@@ -42,12 +39,13 @@ function MainWindowIOS() {
   /**
    * Auto-focus editor when sheet becomes ready (after animation)
    * Uses retry mechanism to handle async editor initialization
+   * Also tries to focus contenteditable directly for iOS keyboard
    */
   const handleSheetReady = useCallback(() => {
     console.log('[MainWindowIOS] Sheet ready, attempting to focus editor');
 
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 15;
     let rafId: number | null = null;
 
     const tryFocus = () => {
@@ -58,7 +56,18 @@ function MainWindowIOS() {
         // Editor ref is available, call focus
         try {
           editorInstance.focus();
-          console.log('[MainWindowIOS] ✅ Editor focused successfully (attempt', attempts, ')');
+          console.log('[MainWindowIOS] ✅ Editor focused via ref (attempt', attempts, ')');
+
+          // For iOS: also try to focus contenteditable element directly
+          // This ensures keyboard is triggered
+          setTimeout(() => {
+            const editableEl = document.querySelector('[contenteditable="true"]') as HTMLElement;
+            if (editableEl) {
+              editableEl.focus();
+              console.log('[MainWindowIOS] ✅ Also focused contenteditable element');
+            }
+          }, 50);
+
           return; // Success, stop retrying
         } catch (error) {
           console.error('[MainWindowIOS] ❌ Failed to focus editor:', error);
@@ -70,6 +79,12 @@ function MainWindowIOS() {
         rafId = requestAnimationFrame(tryFocus);
       } else {
         console.warn('[MainWindowIOS] ⚠️ Failed to focus editor after', maxAttempts, 'attempts');
+        // Last resort: try to focus contenteditable directly
+        const editableEl = document.querySelector('[contenteditable="true"]') as HTMLElement;
+        if (editableEl) {
+          editableEl.focus();
+          console.log('[MainWindowIOS] Last resort: focused contenteditable element');
+        }
       }
     };
 
@@ -85,7 +100,24 @@ function MainWindowIOS() {
   }, [logic.editorRef]);
 
   return (
-    <div className={containerClassName} style={containerStyles}>
+    <div className="h-screen w-screen overflow-hidden">
+      {/* Hidden input to maintain keyboard in user gesture context (iOS workaround) */}
+      <input
+        id="ios-keyboard-anchor"
+        type="text"
+        inputMode="text"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '1px',
+          height: '1px',
+          opacity: 0,
+          pointerEvents: 'none',
+        }}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
       <BaseMainWindow
         logic={logic}
         // iOS: No window dragging support
@@ -105,13 +137,34 @@ function MainWindowIOS() {
       {/* FAB (Floating Action Button) for quick note creation on iOS */}
       {showFAB && (
         <button
-          onClick={logic.handleCreateNewNote}
+          onClick={() => {
+            // iOS Keyboard Workaround:
+            // 1. Immediately focus hidden input in user gesture context
+            const anchor = document.getElementById('ios-keyboard-anchor') as HTMLInputElement;
+            if (anchor) {
+              anchor.focus();
+              console.log('[MainWindowIOS FAB] Focused keyboard anchor to maintain gesture');
+            }
+
+            // 2. Open sheet
+            logic.handleCreateNewNote();
+
+            // 3. Transfer focus to real editor when it's ready
+            // Use RAF chain to wait for DOM update
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  const editableEl = document.querySelector('[contenteditable="true"]') as HTMLElement;
+                  if (editableEl) {
+                    editableEl.focus();
+                    console.log('[MainWindowIOS FAB] Transferred focus from anchor to editor');
+                  }
+                });
+              });
+            });
+          }}
           className="fixed bottom-8 right-8 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-95 z-50 sm:hidden"
           aria-label="新建笔记"
-          style={{
-            // iOS safe area bottom padding
-            bottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))',
-          }}
         >
           <Plus size={24} />
         </button>
