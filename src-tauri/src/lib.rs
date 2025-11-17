@@ -310,9 +310,15 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
 
     #[cfg(target_os = "ios")]
     {
+        // iOS: Create settings window with full screen and standard decorations
         WebviewWindowBuilder::new(&app, "settings", webview_url)
+            .title("Settings")
+            .resizable(true)
+            .focused(true)
             .build()
             .map_err(|e| e.to_string())?;
+
+        println!("[iOS] Created settings window");
     }
 
     Ok(())
@@ -395,9 +401,15 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
 
         #[cfg(target_os = "ios")]
         {
+            // iOS: Create window with safe defaults (no transparency, with decorations)
             let _window = WebviewWindowBuilder::new(&app, window_label, webview_url)
+                .title("New Note")
+                .resizable(true)
+                .focused(true)
                 .build()
                 .map_err(|e| e.to_string())?;
+
+            println!("[iOS] Created editor window: {}", window_label);
         }
 
         return Ok(());

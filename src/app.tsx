@@ -1,16 +1,19 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import MainWindow from './main-window.tsx';
+import MainWindowIOS from './main-window-ios.tsx';
 import FloatWindow from './float-window.tsx';
 import SettingsWindow from './settings-window.tsx';
+import { isIOS } from './utils/platform';
 import './index.css';
 
 console.time('[Perf] Window load to React render');
 
-// iOS debugging: log platform and user agent
+// Platform detection
+const platformIsIOS = isIOS();
 console.log('[Platform] User Agent:', navigator.userAgent);
 console.log('[Platform] Platform:', navigator.platform);
-console.log('[Platform] Is iOS:', /iPad|iPhone|iPod/.test(navigator.userAgent));
+console.log('[Platform] Is iOS:', platformIsIOS);
 
 // 根据 URL 参数决定渲染哪个组件
 const params = new URLSearchParams(window.location.search);
@@ -23,13 +26,20 @@ if (rootElement) {
   let component;
   if (windowType === 'editor') {
     console.log('[Perf] Creating FloatWindow component');
-    component = <FloatWindow />;
+    // On iOS, editor windows are handled by navigation stack, not separate windows
+    if (platformIsIOS) {
+      console.warn('[iOS] Editor window requested, but iOS uses navigation stack. Rendering main window instead.');
+      component = <MainWindowIOS />;
+    } else {
+      component = <FloatWindow />;
+    }
   } else if (windowType === 'settings') {
     console.log('[Perf] Creating SettingsWindow component');
     component = <SettingsWindow />;
   } else {
     console.log('[Perf] Creating App component (main window)');
-    component = <MainWindow />;
+    // Use iOS-specific component on iOS devices
+    component = platformIsIOS ? <MainWindowIOS /> : <MainWindow />;
   }
 
   console.time('[Perf] ReactDOM.createRoot');
