@@ -414,7 +414,7 @@ const NotesSidebarComponent = ({
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable Notes Area */}
-      <div className="flex-1 overflow-y-auto p-[var(--spacing-s)] flex flex-col gap-2">
+      <div className={`flex-1 overflow-y-auto p-[var(--spacing-s)] flex flex-col gap-2 ${notes.length === 0 ? 'justify-center' : ''}`}>
         {notes.length === 0 ? (
           emptyStateContent
         ) : (
