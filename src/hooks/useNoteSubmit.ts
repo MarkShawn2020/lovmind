@@ -192,6 +192,10 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
             onNoteIdChange?.(nextNoteId);
 
             editorRef.current?.resetAndFocus();
+          } else if (onCloseWindow) {
+            // Close window after successful creation (for float window normal mode)
+            await onCloseWindow();
+            return; // Early return to prevent further execution
           }
         }
       } else {
@@ -257,12 +261,16 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           onNoteIdChange?.(nextNoteId);
 
           editorRef.current?.resetAndFocus();
+        } else if (onCloseWindow) {
+          // Close window after successful creation (for float window normal mode)
+          await onCloseWindow();
+          return; // Early return to prevent further execution
         }
       }
     } catch (error) {
       console.error('Failed to submit note:', error);
     }
-  }, [editorContent, noteId, notes, setNotes, updateNote, editorRef, resetEditorAfterCreate, onNoteIdChange]);
+  }, [editorContent, noteId, notes, setNotes, updateNote, editorRef, resetEditorAfterCreate, onNoteIdChange, onCloseWindow]);
 
   return { handleSubmit };
 };
