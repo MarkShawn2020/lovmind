@@ -142,12 +142,21 @@ const EditorToolbar = memo(({
 }: EditorToolbarProps) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
-  // iOS: Add safe area bottom padding + extra spacing
-  const toolbarStyle = isIOS()
+  // Platform-specific padding
+  // iOS: Minimal vertical padding (keyboard is directly below, no safe area needed)
+  // Desktop: Standard vertical padding
+  const iosMode = isIOS();
+  const toolbarStyle: React.CSSProperties = iosMode
     ? {
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)',
+        paddingTop: '0.5rem',
+        paddingBottom: '0.5rem',
       }
-    : {};
+    : {
+        paddingTop: '1rem',
+        paddingBottom: '1rem',
+      };
+
+  console.log('[EditorToolbar] Platform:', { iosMode, toolbarStyle });
 
   return (
     <div
@@ -157,7 +166,6 @@ const EditorToolbar = memo(({
         border-t border-border/40
         flex justify-between items-center
         px-4 sm:px-6
-        py-4
         z-10
         ${mode === 'float' ? '' : ''}
       `}
