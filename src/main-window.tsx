@@ -1,117 +1,49 @@
-import { useState, useCallback, useRef } from "react";
-import { useAtomValue } from 'jotai';
-import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
+import { useState, useCallback, useRef } from 'react';
+import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
 
-import { isTauri } from "./utils/tauri";
-import { Note } from "./store";
-import LovmindEditor from "@/components/lovmind-editor/lovmind-editor.tsx";
-import EditorToolbar from "./components/EditorToolbar";
-import ProfileModal from "./components/ProfileModal";
-import { EditorLayout } from "@/components/lovmind-editor/EditorLayout";
-import { MainHeader } from "@/components/lovmind-editor/MainHeader";
-import { NotesSidebarContainer } from "./components/shared/NotesSidebarContainer";
-import { useNoteEventSync } from "./hooks/useNoteEventSync";
-import { useImageHeightSync } from "./hooks/useImageHeightSync";
-import { useTauriWindowEvents } from "./hooks/useTauriWindowEvents";
-import { useMobileSidebarState } from "./hooks/useMobileSidebarState";
-import { useNoteOperations } from "./hooks/useNoteOperations";
-import { useWindowOperations } from "./hooks/useWindowOperations";
-import { useUserProfile } from "./hooks/useUserProfile";
-import { useNoteSubmit } from "./hooks/useNoteSubmit";
-import { useMultiSelect } from "./hooks/useMultiSelect";
-import { useMultiSelectOperations } from "./hooks/useMultiSelectOperations.tsx";
-import { editorContentAtom, notesAtom } from "./atoms/noteAtoms";
-import { noteStatsAtom } from "./store";
-import type { LovmindEditorRef } from "@/components/lovmind-editor/lovmind-editor.tsx";
-import { useIsMobile } from "./hooks/useIsMobile";
-import lovpenLogo from "./assets/lovpen-logo.svg";
-import packageJson from "../package.json";
+import { isTauri } from './utils/tauri';
+import { Note } from './store';
+import { BaseMainWindow } from './components/shared/BaseMainWindow';
+import { useMainWindowLogic } from './hooks/useMainWindowLogic';
+import { useTauriWindowEvents } from './hooks/useTauriWindowEvents';
+import { useWindowOperations } from './hooks/useWindowOperations';
+import lovpenLogo from './assets/lovpen-logo.svg';
+import packageJson from '../package.json';
 
 /**
- * App Component (Refactored)
+ * MainWindow (Desktop) - Platform wrapper for BaseMainWindow
  *
- * Main window - thin wrapper that provides UI state and routing.
- * All editor logic is handled by RenderingWysiwygEditor internally.
+ * Desktop-specific features:
+ * - Window dragging support
+ * - User menu dropdown (profile, settings, archive toggle, about, contact, quit)
+ * - About modal dialog
+ * - Multi-window support (float windows)
+ * - Floating Action Button (FAB) for mobile responsive layout
+ * - Tauri window events integration
  */
 function MainWindow() {
-  // Local state: which note we're viewing (null = create mode)
-  const [viewingNoteId, setViewingNoteId] = useState<string | null>(null);
+  // Get shared business logic
+  const logic = useMainWindowLogic({
+    useMobileView: true,
+    enableTauriEvents: false, // Handled separately below
+    enableBroadcastChannel: true,
+  });
 
-  // Mobile view state: 'list' shows notes sidebar, 'editor' shows editor
-  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
-
-  // Local UI state
-  const [showArchived, setShowArchived] = useState(false);
+  // Desktop-specific state
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
 
-  // Refs
-  const editorRef = useRef<LovmindEditorRef | null>(null);
+  // Desktop-specific refs
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const userButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Detect mobile screen size
-  const isMobile = useIsMobile();
-
-  // Event sync hooks
-  useNoteEventSync({ enableBroadcastChannel: true });
-  useImageHeightSync();
+  // Desktop-specific hooks
   useTauriWindowEvents();
-  const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
+  const { openNoteInNewWindow } = useWindowOperations(logic.notes, () => {});
 
-  // Read from atoms (for UI display only)
-  const editorContent = useAtomValue(editorContentAtom);
-  const notes = useAtomValue(notesAtom);
-  const noteStats = useAtomValue(noteStatsAtom);
-
-  // Business logic hooks (for toolbar and sidebar)
-  const { deleteNote, togglePin, toggleArchive } = useNoteOperations();
-  const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
-  const { userProfile } = useUserProfile();
-  const { handleSubmit: originalHandleSubmit } = useNoteSubmit({
-    noteId: viewingNoteId,
-    editorRef,
-    resetEditorAfterCreate: true,
-  });
-
-  // Wrap handleSubmit to auto-return to list on mobile after submission
-  const handleSubmit = useCallback(async () => {
-    await originalHandleSubmit();
-    // On mobile, return to list view after submitting
-    if (isMobile) {
-      setMobileView('list');
-    }
-  }, [originalHandleSubmit, isMobile]);
-
-  // Multi-select hooks
-  const {
-    isMultiSelectMode,
-    selectedNoteIds,
-    lastClickedNoteId,
-    toggleNoteSelection,
-    enterMultiSelectMode,
-    exitMultiSelectMode,
-    selectAll,
-    deselectAll,
-    selectRange,
-    setLastClickedNote,
-  } = useMultiSelect();
-
-  const multiSelectOps = useMultiSelectOperations({
-    onTogglePin: togglePin,
-    onToggleArchive: toggleArchive,
-    onDeleteNote: deleteNote,
-    notes,
-  });
-
-  // Handlers
-  const handleViewingModeChange = useCallback((noteId: string | null) => {
-    setViewingNoteId(noteId);
-  }, []);
-
+  // Desktop-specific handlers
   const handleUserMenuToggle = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     if (userButtonRef.current) {
@@ -131,66 +63,25 @@ function MainWindow() {
       const appWindow = getCurrentWindow();
       await appWindow.startDragging();
     } catch (error) {
-      console.error("Failed to start dragging:", error);
+      console.error('Failed to start dragging:', error);
     }
   }, []);
 
-  const handleBackToCreate = useCallback(async () => {
-    // Auto-save is handled by useAutoSave hook in RenderingWysiwygEditor
-    // Just return to create mode
-    setViewingNoteId(null);
-    editorRef.current?.resetAndFocus();
-    // On mobile, switch to editor view
-    if (isMobile) {
-      setMobileView('editor');
+  const handleBackToList = useCallback(() => {
+    if (logic.isMobile) {
+      logic.setMobileView('list');
     }
-  }, [isMobile]);
-
-  // Use withSidebarClose to auto-close mobile sidebar
-  const handleOpenNoteInCurrentWindow = useCallback(
-    withSidebarClose((note: Note) => {
-      setViewingNoteId(note.id);
-      // On mobile, switch to editor view when opening a note
-      if (isMobile) {
-        setMobileView('editor');
-      }
-    }),
-    [withSidebarClose, isMobile]
-  );
+  }, [logic]);
 
   const handleOpenNoteInNewWindow = useCallback(
-    withSidebarClose(openNoteInNewWindow),
-    [withSidebarClose, openNoteInNewWindow]
+    logic.isMobileSidebarOpen
+      ? async (note: Note) => {
+          logic.setIsMobileSidebarOpen(false);
+          await openNoteInNewWindow(note);
+        }
+      : openNoteInNewWindow,
+    [logic, openNoteInNewWindow]
   );
-
-  const handleCreateNewNote = useCallback(
-    withSidebarClose(handleBackToCreate),
-    [withSidebarClose, handleBackToCreate]
-  );
-
-  // Handler to return to list view on mobile
-  const handleBackToList = useCallback(() => {
-    if (isMobile) {
-      setMobileView('list');
-    }
-  }, [isMobile]);
-
-  // Batch operation handlers
-  const handleBatchDelete = useCallback(async () => {
-    if (selectedNoteIds.size === 0) return;
-    await multiSelectOps.batchDelete(Array.from(selectedNoteIds));
-    exitMultiSelectMode();
-  }, [selectedNoteIds, multiSelectOps, exitMultiSelectMode]);
-
-  const handleBatchArchive = useCallback(async () => {
-    if (selectedNoteIds.size === 0) return;
-    if (showArchived) {
-      await multiSelectOps.batchUnarchive(Array.from(selectedNoteIds));
-    } else {
-      await multiSelectOps.batchArchive(Array.from(selectedNoteIds));
-    }
-    exitMultiSelectMode();
-  }, [selectedNoteIds, showArchived, multiSelectOps, exitMultiSelectMode]);
 
   // Click outside to close user menu
   useCallback(() => {
@@ -211,6 +102,7 @@ function MainWindow() {
     }
   }, [isUserMenuOpen]);
 
+  // Desktop-specific UI: User menu dropdown
   const userMenuNode = !isUserMenuOpen ? null : (
     <div
       ref={userMenuRef}
@@ -225,7 +117,7 @@ function MainWindow() {
         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
         onClick={() => {
           setIsUserMenuOpen(false);
-          setIsProfileModalOpen(true);
+          logic.setIsProfileModalOpen(true);
         }}
       >
         <UserCircle size={16} />
@@ -238,9 +130,9 @@ function MainWindow() {
           setIsUserMenuOpen(false);
           if (isTauri()) {
             try {
-              await invoke("open_settings_window");
+              await invoke('open_settings_window');
             } catch (error) {
-              console.error("Failed to open settings window:", error);
+              console.error('Failed to open settings window:', error);
             }
           }
         }}
@@ -253,11 +145,11 @@ function MainWindow() {
         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 border-none bg-transparent cursor-pointer transition-colors"
         onClick={() => {
           setIsUserMenuOpen(false);
-          setShowArchived(!showArchived);
+          logic.setShowArchived(!logic.showArchived);
         }}
       >
         <Archive size={16} />
-        {showArchived ? "Active Notes" : "Archive"}
+        {logic.showArchived ? 'Active Notes' : 'Archive'}
       </button>
 
       <div className="border-t border-gray-200 my-1" />
@@ -290,13 +182,13 @@ function MainWindow() {
           setIsUserMenuOpen(false);
           if (isTauri()) {
             try {
-              const { openUrl } = await import("@tauri-apps/plugin-opener");
-              await openUrl("mailto:shawninjuly@gmail.com");
+              const { openUrl } = await import('@tauri-apps/plugin-opener');
+              await openUrl('mailto:shawninjuly@gmail.com');
             } catch (error) {
-              console.error("Failed to open email client:", error);
+              console.error('Failed to open email client:', error);
             }
           } else {
-            window.open("mailto:shawninjuly@gmail.com", "_blank");
+            window.open('mailto:shawninjuly@gmail.com', '_blank');
           }
         }}
       >
@@ -311,9 +203,9 @@ function MainWindow() {
           setIsUserMenuOpen(false);
           if (isTauri()) {
             try {
-              await invoke("quit_app");
+              await invoke('quit_app');
             } catch (error) {
-              console.error("Failed to exit:", error);
+              console.error('Failed to exit:', error);
             }
           }
         }}
@@ -324,8 +216,7 @@ function MainWindow() {
     </div>
   );
 
-  const profileModalNode = <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />;
-
+  // Desktop-specific UI: About modal
   const aboutModalNode = !isAboutModalOpen ? null : (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100000]"
@@ -405,96 +296,39 @@ function MainWindow() {
     </div>
   );
 
-  // Mobile: show FAB when in list view, hide when in editor view
-  const showFAB = isMobile && mobileView === 'list';
+  // Desktop: show FAB when in list view on mobile screens
+  const showFAB = logic.isMobile && logic.mobileView === 'list';
 
   return (
     <>
-      <EditorLayout
-        header={
-          <MainHeader
-            noteStats={noteStats}
-            userProfile={userProfile}
-            onHeaderMouseDown={handleHeaderMouseDown}
-            onUserMenuToggle={handleUserMenuToggle}
-            userButtonRef={userButtonRef}
-          />
+      <BaseMainWindow
+        logic={logic}
+        onHeaderMouseDown={handleHeaderMouseDown}
+        onOpenNoteInNewWindow={handleOpenNoteInNewWindow}
+        mobileView={logic.mobileView}
+        onBackToList={handleBackToList}
+        additionalModals={
+          <>
+            {userMenuNode}
+            {aboutModalNode}
+          </>
         }
-        sidebar={
-          <NotesSidebarContainer
-            notes={notes}
-            currentNoteId={viewingNoteId ?? undefined}
-            showArchived={showArchived}
-            onOpenNote={handleOpenNoteInCurrentWindow}
-            onOpenNoteInNewWindow={handleOpenNoteInNewWindow}
-            onTogglePin={togglePin}
-            onToggleArchive={toggleArchive}
-            onDeleteNote={deleteNote}
-            onDuplicateNote={async (note) => {
-              // TODO: Implement duplicate
-              console.log('Duplicate:', note);
-            }}
-            onCreateNewNote={handleCreateNewNote}
-            isCreateMode={!viewingNoteId}
-            isEditorEmpty={editorContent.isEmpty}
-            isMultiSelectMode={isMultiSelectMode}
-            selectedNoteIds={selectedNoteIds}
-            lastClickedNoteId={lastClickedNoteId}
-            onToggleNoteSelection={toggleNoteSelection}
-            onEnterMultiSelectMode={enterMultiSelectMode}
-            onExitMultiSelect={exitMultiSelectMode}
-            onSelectAll={selectAll}
-            onDeselectAll={deselectAll}
-            onSelectRange={selectRange}
-            onSetLastClickedNote={setLastClickedNote}
-            onBatchDelete={handleBatchDelete}
-            onBatchArchive={handleBatchArchive}
-          />
-        }
-        editor={
-          <LovmindEditor
-            key={viewingNoteId || 'create-mode'}
-            noteId={viewingNoteId}
-            onSubmit={handleSubmit}
-            placeholder="此时此刻，你在想什么呢？"
-            ref={editorRef}
-          />
-        }
-        toolbar={
-          <EditorToolbar
-            mode="main"
-            onSubmit={handleSubmit}
-            submitDisabled={editorContent.isEmpty}
-            currentTags={editorContent.tags}
-            allNotes={notes}
-            editorRef={editorRef}
-            onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-            hideSubmitButton={false}
-            // Mobile: show back button when in editor view
-            onBackToList={isMobile && mobileView === 'editor' ? handleBackToList : undefined}
-          />
-        }
-        userMenu={userMenuNode}
-        profileModal={profileModalNode}
-        aboutModal={aboutModalNode}
-        isMobileSidebarOpen={isMobileSidebarOpen}
-        onMobileSidebarChange={setIsMobileSidebarOpen}
-        // Mobile view control: hide sidebar when showing editor, hide editor when showing list
-        mobileView={mobileView}
+        mobileDrawerVariant="default"
+        editorPlaceholder="此时此刻，你在想什么呢？"
       />
 
-      {/* FAB (Floating Action Button) for quick note creation on mobile */}
+      {/* FAB (Floating Action Button) for quick note creation on mobile responsive layout */}
       {showFAB && (
         <button
-          onClick={handleCreateNewNote}
+          onClick={logic.handleCreateNewNote}
           className="fixed bottom-8 left-1/2 -translate-x-1/2 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-95 z-50 sm:hidden"
           aria-label="新建笔记"
         >
           <svg viewBox="-98.605 -108 1183.26 1296" className="w-7 h-7 fill-current">
             <g>
-              <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z"/>
-              <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z"/>
-              <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z"/>
+              <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z" />
+              <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z" />
+              <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z" />
             </g>
           </svg>
         </button>
