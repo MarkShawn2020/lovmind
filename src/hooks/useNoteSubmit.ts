@@ -119,13 +119,19 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           await updateNote(updatedNote);
           console.log('✅ Note updated:', updatedNote.id);
 
-          // If this was an edit (not a reset scenario), close window if callback provided
+          // Check if we should reset editor or close window
           const shouldReset = typeof resetEditorAfterCreate === 'function'
             ? resetEditorAfterCreate()
             : resetEditorAfterCreate;
 
-          if (!shouldReset && onCloseWindow) {
-            // Close window after successful update (for float window normal mode)
+          if (shouldReset) {
+            // Pinned mode: reset editor for continuous capture
+            const nextNoteId = `temp-${Date.now()}`;
+            onNoteIdChange?.(nextNoteId);
+            editorRef.current?.resetAndFocus();
+            console.log('[Submit] Editor reset for continuous capture (pinned mode)');
+          } else if (onCloseWindow) {
+            // Normal mode: close window after successful update
             await onCloseWindow();
             return; // Early return to prevent further execution
           }
