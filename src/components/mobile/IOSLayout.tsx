@@ -8,9 +8,11 @@ interface IOSLayoutProps {
 /**
  * iOS-specific layout wrapper
  * Handles safe area insets, viewport meta tag, and iOS-specific styling
+ * Also handles keyboard resize using visualViewport API
  */
 export function IOSLayout({ children }: IOSLayoutProps) {
   const [safeAreaInsets, setSafeAreaInsets] = useState(getIOSSafeAreaInsets());
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isIOS()) return;
@@ -35,6 +37,41 @@ export function IOSLayout({ children }: IOSLayoutProps) {
     };
   }, [safeAreaInsets]);
 
+  // Handle keyboard appearance using visualViewport API
+  useEffect(() => {
+    if (!isIOS()) return;
+
+    const visualViewport = window.visualViewport;
+    if (!visualViewport) {
+      console.warn('[IOSLayout] visualViewport API not available');
+      return;
+    }
+
+    const handleViewportResize = () => {
+      // visualViewport.height gives us the visible height accounting for keyboard
+      const newHeight = visualViewport.height;
+      setViewportHeight(newHeight);
+
+      console.log('[IOSLayout] Viewport resized:', {
+        height: newHeight,
+        windowInnerHeight: window.innerHeight,
+        diff: window.innerHeight - newHeight,
+      });
+    };
+
+    // Initial measurement
+    handleViewportResize();
+
+    // Listen to viewport changes (triggered by keyboard show/hide)
+    visualViewport.addEventListener('resize', handleViewportResize);
+    visualViewport.addEventListener('scroll', handleViewportResize);
+
+    return () => {
+      visualViewport.removeEventListener('resize', handleViewportResize);
+      visualViewport.removeEventListener('scroll', handleViewportResize);
+    };
+  }, []);
+
   // Apply iOS-specific styles
   const containerStyle = isIOS()
     ? {
@@ -42,11 +79,19 @@ export function IOSLayout({ children }: IOSLayoutProps) {
         paddingRight: `env(safe-area-inset-right, ${safeAreaInsets.right}px)`,
         paddingBottom: `env(safe-area-inset-bottom, ${safeAreaInsets.bottom}px)`,
         paddingLeft: `env(safe-area-inset-left, ${safeAreaInsets.left}px)`,
+        // Use visualViewport height when available (keyboard adjustments)
+        ...(viewportHeight !== null && {
+          height: `${viewportHeight}px`,
+          maxHeight: `${viewportHeight}px`,
+        }),
       }
     : {};
 
   return (
-    <div className="h-screen w-screen overflow-hidden" style={containerStyle}>
+    <div
+      className={viewportHeight !== null ? "w-screen overflow-hidden" : "h-screen w-screen overflow-hidden"}
+      style={containerStyle}
+    >
       {children}
     </div>
   );
