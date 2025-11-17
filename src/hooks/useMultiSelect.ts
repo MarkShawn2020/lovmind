@@ -88,6 +88,14 @@ export const useMultiSelect = (): UseMultiSelectReturn => {
     const fromIndex = allNoteIds.indexOf(fromNoteId);
     const toIndex = allNoteIds.indexOf(toNoteId);
 
+    console.log('[selectRange] called with:', {
+      fromNoteId,
+      toNoteId,
+      fromIndex,
+      toIndex,
+      allNoteIdsLength: allNoteIds.length
+    });
+
     if (fromIndex === -1 || toIndex === -1) {
       console.warn('selectRange: note not found in list', { fromNoteId, toNoteId, allNoteIds });
       return;
@@ -99,9 +107,18 @@ export const useMultiSelect = (): UseMultiSelectReturn => {
 
     // Select all notes in range
     const rangeNoteIds = allNoteIds.slice(startIndex, endIndex + 1);
+
+    console.log('[selectRange] range calculated:', {
+      startIndex,
+      endIndex,
+      rangeNoteIds,
+      rangeLength: rangeNoteIds.length
+    });
+
     setSelectedNoteIds(prev => {
       const next = new Set(prev);
       rangeNoteIds.forEach(id => next.add(id));
+      console.log('[selectRange] selected note IDs after update:', Array.from(next));
       return next;
     });
   }, []);

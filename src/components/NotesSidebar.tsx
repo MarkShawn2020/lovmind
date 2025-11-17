@@ -189,6 +189,13 @@ const NotesSidebarComponent = ({
     const handleClick = (e: React.MouseEvent) => {
       // Support Shift+Click for range selection
       if (e.shiftKey && onEnterMultiSelectMode && onSelectRange && onSetLastClickedNote) {
+        console.log('[NotesSidebar] Shift+Click detected:', {
+          noteId: note.id,
+          isMultiSelectMode,
+          lastClickedNoteId,
+          sortedNotesCount: sortedNotes.length
+        });
+
         if (!isMultiSelectMode) {
           onEnterMultiSelectMode();
         }
@@ -196,9 +203,15 @@ const NotesSidebarComponent = ({
         // If there's a last clicked note, select range between them
         if (lastClickedNoteId) {
           const allNoteIds = sortedNotes.map(n => n.id);
+          console.log('[NotesSidebar] Calling selectRange:', {
+            from: lastClickedNoteId,
+            to: note.id,
+            allNoteIds
+          });
           onSelectRange(lastClickedNoteId, note.id, allNoteIds);
         } else {
           // No anchor, just select this note
+          console.log('[NotesSidebar] No anchor, selecting current note only');
           if (onToggleNoteSelection) {
             onToggleNoteSelection(note.id);
           }
