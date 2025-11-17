@@ -35,17 +35,21 @@ const memoryCache = new Map<string, string>();
 const initStore = async () => {
   if (!store && isTauri()) {
     try {
+      console.log('[Store] Initializing Tauri Store...');
       store = await Store.load('lovpen-notes.json');
       storeReady = true;
 
       // Load existing data into memory cache
       const keys = await store.keys();
+      console.log('[Store] Loading', keys.length, 'keys from store:', keys);
       for (const key of keys) {
         const value = await store.get<string>(key);
         if (value !== null && value !== undefined) {
           memoryCache.set(key, value);
+          console.log(`[Store] Loaded "${key}":`, value);
         }
       }
+      console.log('[Store] Initialization complete. Memory cache size:', memoryCache.size);
     } catch (error) {
       console.error('Failed to initialize Tauri Store:', error);
     }
@@ -85,9 +89,13 @@ const migrateNotesData = (rawData: string): string => {
 const createTauriStorage = <T>() => {
   return createJSONStorage<T>(() => ({
     getItem: (key: string) => {
+      console.log(`[Storage getItem] Requesting key "${key}", cache has it:`, memoryCache.has(key), ', store ready:', storeReady);
+
       // Use memory cache for sync access
       if (memoryCache.has(key)) {
-        return memoryCache.get(key) || null;
+        const value = memoryCache.get(key) || null;
+        console.log(`[Storage getItem] Returning from cache for "${key}":`, value);
+        return value;
       }
 
       // Fallback to localStorage if not in cache
@@ -108,6 +116,22 @@ const createTauriStorage = <T>() => {
         }
 
         return rawValue;
+      }
+
+      // For Tauri: If not in memory cache, try lazy-loading from store
+      // This helps with race conditions where atoms initialize before full store load
+      console.warn(`[Storage getItem] Key "${key}" not in memory cache (Tauri env), returning null. Store ready:`, storeReady);
+      if (storeReady && store) {
+        console.warn(`[Storage] Key "${key}" not in memory cache, attempting lazy load from store`);
+        // Schedule async load to populate cache for next access
+        store.get<string>(key).then(value => {
+          if (value !== null && value !== undefined) {
+            console.log(`[Storage] Lazy loaded "${key}" from store:`, value);
+            memoryCache.set(key, value);
+          }
+        }).catch(error => {
+          console.error(`[Storage] Failed to lazy load "${key}":`, error);
+        });
       }
 
       return null;

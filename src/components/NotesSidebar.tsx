@@ -3,10 +3,12 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
 import { memo, useEffect } from 'react';
-import { useAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
+import { Store } from '@tauri-apps/plugin-store';
 
 import type { Note } from '@/store';
 import { isPinnedCollapsedAtom } from '@/store';
+import { isTauri } from '@/utils/tauri';
 import {
   ContextMenu,
   ContextMenuContent,
@@ -76,6 +78,38 @@ const NotesSidebarComponent = ({
 }: NotesSidebarProps) => {
   // Use persisted atom for collapse state (global shared state across views)
   const [isPinnedCollapsed, setIsPinnedCollapsed] = useAtom(isPinnedCollapsedAtom);
+
+  // Force re-sync from Tauri store on mount to handle race condition
+  // where atom initializes before Tauri store finishes loading
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    let isMounted = true;
+
+    const loadFromStore = async () => {
+      try {
+        const store = await Store.load('lovpen-notes.json');
+        const value = await store.get<string>('lovpen-pinned-collapsed');
+
+        if (isMounted && value !== null && value !== undefined) {
+          console.log('[NotesSidebar] Loaded isPinnedCollapsed from store on mount:', value);
+          // Parse string to boolean (Tauri store returns strings)
+          const boolValue = typeof value === 'string' ? value === 'true' : Boolean(value);
+          setIsPinnedCollapsed(boolValue);
+        }
+      } catch (error) {
+        console.error('[NotesSidebar] Failed to load isPinnedCollapsed from store:', error);
+      }
+    };
+
+    // Small delay to ensure store initialization completes
+    const timeoutId = setTimeout(loadFromStore, 50);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-expand pinned section if current note is pinned
   useEffect(() => {
