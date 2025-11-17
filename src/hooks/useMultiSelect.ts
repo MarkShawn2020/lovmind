@@ -42,10 +42,12 @@ export const useMultiSelect = (): UseMultiSelectReturn => {
   }, []);
 
   const enterMultiSelectMode = useCallback(() => {
+    console.log('[useMultiSelect] enterMultiSelectMode called');
     setIsMultiSelectMode(true);
   }, []);
 
   const exitMultiSelectMode = useCallback(() => {
+    console.log('[useMultiSelect] exitMultiSelectMode called - clearing anchor');
     setIsMultiSelectMode(false);
     setSelectedNoteIds(new Set());
     setLastClickedNoteId(null);
@@ -124,6 +126,7 @@ export const useMultiSelect = (): UseMultiSelectReturn => {
   }, []);
 
   const setLastClickedNote = useCallback((noteId: string) => {
+    console.log('[useMultiSelect] setLastClickedNote called with:', noteId);
     setLastClickedNoteId(noteId);
   }, []);
 

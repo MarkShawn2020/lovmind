@@ -241,6 +241,11 @@ const NotesSidebarComponent = ({
 
       // Normal mode: open note
       // Also set anchor for potential future Shift+Click
+      console.log('[NotesSidebar] Normal click:', {
+        noteId: note.id,
+        isMultiSelectMode,
+        willSetAnchor: !!onSetLastClickedNote
+      });
       if (onSetLastClickedNote) {
         onSetLastClickedNote(note.id);
       }
