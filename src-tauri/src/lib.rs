@@ -570,6 +570,10 @@ pub fn run() {
     let builder = builder
         .plugin(tauri_plugin_global_shortcut::Builder::new().build());
 
+    #[cfg(target_os = "ios")]
+    let builder = builder
+        .plugin(tauri_plugin_no_input_accessory::init());
+
     builder
         .invoke_handler(tauri::generate_handler![
             toggle_window,

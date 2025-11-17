@@ -32,3 +32,6 @@ once_cell = "1.18"
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 tauri-plugin-global-shortcut = "2.3"
 
+[target.'cfg(target_os = "ios")'.dependencies]
+tauri-plugin-no-input-accessory = { path = "../tauri-plugin-no-input-accessory" }
+
