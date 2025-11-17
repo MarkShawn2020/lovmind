@@ -64,7 +64,7 @@ export const EditorLayout = ({
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background">
+          <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background rounded-b-3xl sm:rounded-b-none">
             {editor}
           </div>
           {toolbar}

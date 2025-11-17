@@ -3,6 +3,7 @@ import { Send, Pin, Tag, Menu } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { TagManagerPopover } from '@/components/TagManagerPopover';
 import { EditableTag } from '@/components/ui/editable-tag';
+import { useKeyboardAwarePosition } from '@/hooks/useKeyboardAwarePosition';
 import type { Note } from '@/store';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
 
@@ -138,21 +139,29 @@ const EditorToolbar = memo(({
   hideSubmitButton = false,
 }: EditorToolbarProps) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const keyboard = useKeyboardAwarePosition();
 
   return (
     <div
       className={`
         flex-shrink-0
-        bg-background
+        bg-background/95
+        backdrop-blur-xl
         border-t border-border/40
         flex justify-between items-center
         px-4 sm:px-6
         py-3
         z-10
+        transition-all duration-300 ease-out
       `}
       style={{
         paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
         minHeight: mode === 'float' ? '3.5rem' : '4rem',
+        // iOS: Push toolbar above keyboard
+        transform: keyboard.isVisible ? `translateY(-${keyboard.height}px)` : 'translateY(0)',
+        // iOS 26 Liquid Glass: Rounded top corners for concentric design
+        borderTopLeftRadius: '24px',
+        borderTopRightRadius: '24px',
       }}
     >
       <div className="flex gap-3 sm:gap-4 items-center">
