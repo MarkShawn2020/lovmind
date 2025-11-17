@@ -4,6 +4,7 @@ import { User } from 'lucide-react';
 import lovpenLogo from '@/assets/lovpen-logo.svg';
 import type { UserProfile } from '@/hooks/useUserProfile';
 import type { NoteStatsSummary } from '@/features/note/types';
+import { isIOS } from '@/utils/platform';
 
 interface MainHeaderProps {
   noteStats: NoteStatsSummary;
@@ -19,12 +20,19 @@ export const MainHeader = ({
   onHeaderMouseDown,
   onUserMenuToggle,
   userButtonRef,
-}: MainHeaderProps) => (
-  <div
-    className="h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center rounded-t-xl select-none flex-shrink-0 cursor-move"
-    onMouseDown={onHeaderMouseDown}
-  >
-    <div className="flex items-center gap-2">
+}: MainHeaderProps) => {
+  // iOS: No top border radius (full-screen native aesthetic)
+  // Desktop: Rounded top corners (floating window aesthetic)
+  const headerClassName = isIOS()
+    ? "h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center select-none flex-shrink-0 cursor-move"
+    : "h-[60px] px-[var(--spacing-text)] py-[var(--spacing-s)] bg-primary text-primary-foreground shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex justify-between items-center rounded-t-xl select-none flex-shrink-0 cursor-move";
+
+  return (
+    <div
+      className={headerClassName}
+      onMouseDown={onHeaderMouseDown}
+    >
+      <div className="flex items-center gap-2">
       <img
         src={lovpenLogo}
         alt="Lovmind"
@@ -32,8 +40,8 @@ export const MainHeader = ({
         draggable={false}
       />
       <h1 className="text-lg font-semibold tracking-tight">Lovmind ({noteStats.total})</h1>
-    </div>
-    <div className="flex gap-2 items-center">
+      </div>
+      <div className="flex gap-2 items-center">
       {noteStats.streak > 2 && (
         <span
           className="px-2.5 py-1 bg-gradient-to-br from-[#ff6b6b] to-[#ffd93d] text-white rounded-xl text-xs font-medium tracking-tight backdrop-blur-lg streak-badge"
@@ -59,6 +67,7 @@ export const MainHeader = ({
           <User size={18} className="text-white" />
         )}
       </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};

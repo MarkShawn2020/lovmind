@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
+import { isIOS } from '@/utils/platform';
 
 interface EditorLayoutProps {
   header: ReactNode;
@@ -39,8 +40,14 @@ export const EditorLayout = ({
     ? "w-screen h-full max-h-screen flex flex-col"
     : "h-full max-h-screen flex flex-col";
 
+  // iOS: No rounded corners (full-screen native aesthetic)
+  // Desktop: Rounded corners (floating window aesthetic)
+  const containerClassName = isIOS()
+    ? "h-full flex flex-col relative overflow-hidden bg-transparent"
+    : "h-full flex flex-col relative overflow-hidden bg-transparent rounded-xl";
+
   return (
-    <div className="h-full flex flex-col relative overflow-hidden bg-transparent rounded-xl">
+    <div className={containerClassName}>
       {header}
 
       <div className="flex-1 flex min-h-0">
