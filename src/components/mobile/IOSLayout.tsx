@@ -36,11 +36,12 @@ export function IOSLayout({ children }: IOSLayoutProps) {
   }, [safeAreaInsets]);
 
   // Apply iOS-specific styles
+  // Note: Bottom padding is handled by individual components (e.g., EditorToolbar)
+  // to avoid layout conflicts with fixed-height containers
   const containerStyle = isIOS()
     ? {
         paddingTop: `env(safe-area-inset-top, ${safeAreaInsets.top}px)`,
         paddingRight: `env(safe-area-inset-right, ${safeAreaInsets.right}px)`,
-        paddingBottom: `env(safe-area-inset-bottom, ${safeAreaInsets.bottom}px)`,
         paddingLeft: `env(safe-area-inset-left, ${safeAreaInsets.left}px)`,
       }
     : {};

@@ -147,9 +147,13 @@ const EditorToolbar = memo(({
         border-t border-border/40
         flex justify-between items-center
         px-4 sm:px-6
+        py-3
         z-10
-        ${mode === 'float' ? 'h-14' : 'h-16'}
       `}
+      style={{
+        paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
+        minHeight: mode === 'float' ? '3.5rem' : '4rem',
+      }}
     >
       <div className="flex gap-3 sm:gap-4 items-center">
         {/* Mobile Sidebar Toggle - Only visible on small screens */}
