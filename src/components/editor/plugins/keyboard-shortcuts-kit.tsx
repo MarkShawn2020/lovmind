@@ -12,6 +12,11 @@ import {createSlatePlugin} from 'platejs';
  * Emits events for parent components to handle UI feedback.
  */
 
+// Global deduplication state (shared across all plugin instances)
+// This prevents duplicate events even if the plugin is initialized multiple times
+let globalLastSubmitTimestamp = -1;
+let globalLastSaveTimestamp = -1;
+
 export const KeyboardShortcutsPlugin = createSlatePlugin({
     key: 'keyboard-shortcuts',
     extendEditor: ({editor}) => {
@@ -45,31 +50,24 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
             return false;
         };
 
-        // Deduplication: Prevent rapid duplicate events
-        let lastSubmitTime = 0;
-        let lastSaveTime = 0;
-        const DEBOUNCE_MS = 300;
-
         // Cmd+Enter Handler: Submit shortcut
         const handleSubmit = (event: KeyboardEvent) => {
             if (!event || !(event.metaKey || event.ctrlKey)) return;
             if (event.key !== 'Enter') return;
             if (!isEventFromEditor(event)) return;
 
-            // Deduplication check
-            const now = Date.now();
-            if (now - lastSubmitTime < DEBOUNCE_MS) {
-                console.log('[KeyboardShortcuts] Ignoring duplicate Cmd+Enter (debounced)');
+            // Deduplication: Check if this is the same event (by timestamp)
+            // Use GLOBAL state to deduplicate across multiple plugin instances
+            if (event.timeStamp === globalLastSubmitTimestamp) {
                 return;
             }
-            lastSubmitTime = now;
+            globalLastSubmitTimestamp = event.timeStamp;
 
             event.preventDefault();
             event.stopPropagation(); // Prevent event from reaching other handlers
 
             // Emit submit event for parent components
             if (typeof editor.emit === 'function') {
-                console.log('[KeyboardShortcuts] Emitting submit-shortcut');
                 editor.emit('submit-shortcut');
             }
         };
@@ -80,20 +78,18 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
             if (event.key.toLowerCase() !== 's') return;
             if (!isEventFromEditor(event)) return;
 
-            // Deduplication check
-            const now = Date.now();
-            if (now - lastSaveTime < DEBOUNCE_MS) {
-                console.log('[KeyboardShortcuts] Ignoring duplicate Cmd+S (debounced)');
+            // Deduplication: Check if this is the same event (by timestamp)
+            // Use GLOBAL state to deduplicate across multiple plugin instances
+            if (event.timeStamp === globalLastSaveTimestamp) {
                 return;
             }
-            lastSaveTime = now;
+            globalLastSaveTimestamp = event.timeStamp;
 
             event.preventDefault();
             event.stopPropagation(); // Prevent event from reaching other handlers
 
             // Emit save event for parent components to show feedback
             if (typeof editor.emit === 'function') {
-                console.log('[KeyboardShortcuts] Emitting save-shortcut');
                 editor.emit('save-shortcut');
             }
         };
@@ -106,8 +102,6 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
 
         // Register event listener on document (capture phase)
         document.addEventListener('keydown', handleKeyDown, true);
-
-        console.log('[KeyboardShortcutsPlugin] Initialized, registered document listener');
 
         return editor;
     },

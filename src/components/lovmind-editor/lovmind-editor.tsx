@@ -70,6 +70,7 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
     // Track which note content has been loaded into editor
     const loadedSourceNoteIdRef = useRef<string | null | undefined>(undefined);
 
+
     // Update editor value ONLY when editorContent matches the current noteId
     // This ensures we wait for async note loading to complete before setValue
     useEffect(() => {
