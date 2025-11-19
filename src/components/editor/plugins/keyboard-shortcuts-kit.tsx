@@ -12,89 +12,121 @@ import {createSlatePlugin} from 'platejs';
  * Emits events for parent components to handle UI feedback.
  */
 
-// Global registry to prevent duplicate listeners across StrictMode remounts
-let globalHandlerInstalled = false;
-let activeEditors = new Set<any>();
-
-// Helper: Check if element is Slate shadow input
-const isSlateShadowInput = (node: EventTarget | null): node is HTMLElement => {
-    return !!(node && node instanceof HTMLElement && node.classList.contains('slate-shadow-input'));
-};
-
-// Helper: Check if event is from any active editor
-const isEventFromAnyEditor = (event: Event): boolean => {
-    const targetNode = event.target instanceof Node ? event.target : null;
-    const activeElement = document.activeElement;
-
-    // Check if target or active element is related to any editor
-    return !!(targetNode || activeElement || isSlateShadowInput(targetNode) || isSlateShadowInput(activeElement));
-};
-
-// Global keydown handler (single instance shared across all editors)
-// IMPORTANT: Defined outside extendEditor to maintain stable reference
-const globalHandleKeyDown = (event: KeyboardEvent) => {
-    // Check for Cmd+Enter or Ctrl+Enter
-    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-        if (!isEventFromAnyEditor(event)) return;
-        event.preventDefault();
-
-        console.log('[KeyboardShortcutsPlugin] Cmd+Enter detected, active editors:', activeEditors.size);
-
-        // Emit to all active editors (only the focused one will handle it)
-        activeEditors.forEach(ed => {
-            if (typeof ed.emit === 'function') {
-                console.log('[KeyboardShortcutsPlugin] Emitting to editor:', ed);
-                ed.emit('submit-shortcut');
-                console.log('[KeyboardShortcutsPlugin] Emitted submit-shortcut');
-            } else {
-                console.warn('[KeyboardShortcutsPlugin] Editor has no emit function:', ed);
-            }
-        });
-    }
-
-    // Check for Cmd+S or Ctrl+S
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
-        if (!isEventFromAnyEditor(event)) return;
-        event.preventDefault();
-
-        // Emit to all active editors (only the focused one will handle it)
-        activeEditors.forEach(ed => {
-            if (typeof ed.emit === 'function') {
-                ed.emit('save-shortcut');
-            }
-        });
-    }
-};
-
 export const KeyboardShortcutsPlugin = createSlatePlugin({
     key: 'keyboard-shortcuts',
     extendEditor: ({editor}) => {
-        // Install global handler only once (uses stable function reference)
-        if (!globalHandlerInstalled) {
-            document.addEventListener('keydown', globalHandleKeyDown, true);
-            globalHandlerInstalled = true;
-            console.log('[KeyboardShortcutsPlugin] Global handler installed');
-        }
+        // Get the editor's root DOM element for proper event scoping
+        const getEditorRootElement = (): HTMLElement | null => {
+            // Try to find the editor container via data-slate-editor attribute
+            const slateEditor = document.querySelector(`[data-slate-editor="true"]`) as HTMLElement;
+            return slateEditor || null;
+        };
 
-        // Register this editor instance
-        activeEditors.add(editor);
-        console.log('[KeyboardShortcutsPlugin] Registered editor, total active:', activeEditors.size);
+        // Helper: Check if element is Slate shadow input
+        const isSlateShadowInput = (node: EventTarget | null): node is HTMLElement => {
+            return !!(node && node instanceof HTMLElement && node.classList.contains('slate-shadow-input'));
+        };
 
-        // Cleanup function: unregister this editor
-        const cleanup = () => {
-            activeEditors.delete(editor);
-            console.log('[KeyboardShortcutsPlugin] Unregistered editor, remaining:', activeEditors.size);
+        // Helper: Check if event is from this editor (FIXED VERSION)
+        const isEventFromEditor = (event: Event): boolean => {
+            const target = event.target;
+            if (!(target instanceof Node)) return false;
 
-            // If no editors remain, remove global handler
-            if (activeEditors.size === 0) {
-                document.removeEventListener('keydown', globalHandleKeyDown, true);
-                globalHandlerInstalled = false;
-                console.log('[KeyboardShortcutsPlugin] Global handler removed');
+            const activeElement = document.activeElement;
+
+            // Check if target is a Slate shadow input (iOS/mobile specific)
+            if (isSlateShadowInput(target) || isSlateShadowInput(activeElement)) {
+                return true;
             }
+
+            // Check if the event target is within any Slate editor container
+            // We use a more permissive check since there might be multiple editors
+            // but we trust that only the focused one will emit events
+            const isInSlateEditor = !!(
+                target instanceof Element &&
+                (target.closest('[data-slate-editor]') || target.closest('[role="textbox"]'))
+            );
+
+            const isActiveElementInEditor = !!(
+                activeElement instanceof Element &&
+                (activeElement.closest('[data-slate-editor]') || activeElement.closest('[role="textbox"]'))
+            );
+
+            return isInSlateEditor || isActiveElementInEditor;
+        };
+
+        // Deduplication: Track last event timestamp to prevent double-firing
+        let lastSubmitTime = 0;
+        let lastSaveTime = 0;
+        const DEBOUNCE_MS = 300; // 300ms debounce window
+
+        // Cmd+Enter Handler: Submit shortcut
+        const handleSubmit = (event: KeyboardEvent) => {
+            if (!event || !(event.metaKey || event.ctrlKey)) return;
+            if (event.key !== 'Enter') return;
+            if (!isEventFromEditor(event)) return;
+
+            // Deduplication check
+            const now = Date.now();
+            if (now - lastSubmitTime < DEBOUNCE_MS) {
+                console.log('[KeyboardShortcuts] Ignoring duplicate Cmd+Enter (debounced)');
+                return;
+            }
+            lastSubmitTime = now;
+
+            event.preventDefault();
+            event.stopPropagation(); // Prevent event from bubbling
+
+            // Emit submit event for parent components
+            if (typeof editor.emit === 'function') {
+                console.log('[KeyboardShortcuts] Emitting submit-shortcut');
+                editor.emit('submit-shortcut');
+            }
+        };
+
+        // Cmd+S Handler: Save shortcut
+        const handleSave = (event: KeyboardEvent) => {
+            if (!event || !(event.metaKey || event.ctrlKey)) return;
+            if (event.key.toLowerCase() !== 's') return;
+            if (!isEventFromEditor(event)) return;
+
+            // Deduplication check
+            const now = Date.now();
+            if (now - lastSaveTime < DEBOUNCE_MS) {
+                console.log('[KeyboardShortcuts] Ignoring duplicate Cmd+S (debounced)');
+                return;
+            }
+            lastSaveTime = now;
+
+            event.preventDefault();
+            event.stopPropagation(); // Prevent event from bubbling
+
+            // Emit save event for parent components to show feedback
+            if (typeof editor.emit === 'function') {
+                console.log('[KeyboardShortcuts] Emitting save-shortcut');
+                editor.emit('save-shortcut');
+            }
+        };
+
+        // Global keydown handler
+        const handleKeyDown = (event: KeyboardEvent) => {
+            handleSubmit(event);
+            handleSave(event);
+        };
+
+        // Register event listener on document (capture phase)
+        document.addEventListener('keydown', handleKeyDown, true);
+
+        // Cleanup function
+        const cleanup = () => {
+            document.removeEventListener('keydown', handleKeyDown, true);
+            console.log('[KeyboardShortcutsPlugin] Cleaned up');
         };
 
         // Store cleanup for unmount
         (editor as any).__keyboardShortcutsCleanup = cleanup;
+
+        console.log('[KeyboardShortcutsPlugin] Initialized');
 
         return editor;
     },

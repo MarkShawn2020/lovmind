@@ -21,15 +21,22 @@ export function useEditorEventBridge(
   onChange?: (payload: EditorContentChange) => void,
   onSubmit?: () => void
 ) {
-  // Use refs to avoid re-registering listeners when callbacks change
+  // Use refs to store latest callbacks to avoid re-registering listeners
   const onChangeRef = useRef(onChange);
   const onSubmitRef = useRef(onSubmit);
 
-  // Update refs when callbacks change
+  // Update refs when callbacks change (no effect re-run needed)
   useEffect(() => {
     onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
     onSubmitRef.current = onSubmit;
-  }, [onChange, onSubmit]);
+  }, [onSubmit]);
+
+  // Deduplication: Prevent duplicate submit calls within short time window
+  const lastSubmitTime = useRef(0);
+  const SUBMIT_DEBOUNCE_MS = 300;
 
   useEffect(() => {
     const handleInputStateChange = (state: any) => {
@@ -48,22 +55,30 @@ export function useEditorEventBridge(
     };
 
     const handleSubmitShortcut = () => {
-      console.log('[useEditorEventBridge] handleSubmitShortcut called, onSubmit exists:', !!onSubmitRef.current);
+      // Deduplication check to prevent duplicate submissions
+      const now = Date.now();
+      if (now - lastSubmitTime.current < SUBMIT_DEBOUNCE_MS) {
+        console.log('[EventBridge] Ignoring duplicate submit-shortcut (debounced within 300ms)');
+        return;
+      }
+      lastSubmitTime.current = now;
+
+      console.log('[EventBridge] Handling submit-shortcut');
       onSubmitRef.current?.();
     };
 
     if (typeof editor.on === 'function') {
       editor.on('input-state-changed', handleInputStateChange);
       editor.on('submit-shortcut', handleSubmitShortcut);
-      console.log('[useEditorEventBridge] Registered listeners for editor');
+      console.log('[EventBridge] Registered event listeners');
     }
 
     return () => {
       if (typeof editor.off === 'function') {
         editor.off('input-state-changed', handleInputStateChange);
         editor.off('submit-shortcut', handleSubmitShortcut);
-        console.log('[useEditorEventBridge] Unregistered listeners for editor');
+        console.log('[EventBridge] Unregistered event listeners');
       }
     };
-  }, [editor]); // Only depend on editor, not callbacks
+  }, [editor]); // Only depend on editor, not on callbacks
 }
