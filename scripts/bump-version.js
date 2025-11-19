@@ -91,4 +91,19 @@ tauriConf.version = version;
 fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + '\n');
 console.log('✓ Updated tauri.conf.json');
 
+// Update Cargo.toml
+const cargoTomlPath = path.join(__dirname, '..', 'src-tauri', 'Cargo.toml');
+let cargoToml = fs.readFileSync(cargoTomlPath, 'utf8');
+cargoToml = cargoToml.replace(/^version = "[^"]*"$/m, `version = "${version}"`);
+fs.writeFileSync(cargoTomlPath, cargoToml);
+console.log('✓ Updated Cargo.toml');
+
+// Update Cargo.lock via cargo update
+try {
+  execSync('cargo update -p lovmind', { cwd: path.join(__dirname, '..', 'src-tauri'), stdio: 'inherit' });
+  console.log('✓ Updated Cargo.lock');
+} catch (error) {
+  console.warn('⚠ Warning: Could not update Cargo.lock automatically. Run `cd src-tauri && cargo update -p lovmind` manually.');
+}
+
 console.log('✨ Version bump complete!');
