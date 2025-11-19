@@ -106,9 +106,15 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
     useAutoSave();
 
     // Handle submit shortcut (Cmd+Enter)
+    // Use ref to avoid re-registering listener when onSubmit changes
+    const onSubmitRef = useRef(onSubmit);
+    useEffect(() => {
+      onSubmitRef.current = onSubmit;
+    }, [onSubmit]);
+
     useEffect(() => {
       const handleSubmitShortcut = () => {
-        onSubmit?.();
+        onSubmitRef.current?.();
       };
 
       if (typeof editor.on === 'function') {
@@ -120,7 +126,7 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
           editor.off('submit-shortcut', handleSubmitShortcut);
         }
       };
-    }, [editor, onSubmit]);
+    }, [editor]); // Only depend on editor, not onSubmit
 
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => (editor.api as any).commands.resetAndFocus(),
