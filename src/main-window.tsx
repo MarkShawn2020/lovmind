@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -84,7 +84,7 @@ function MainWindow() {
   );
 
   // Click outside to close user menu
-  useCallback(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         userMenuRef.current &&
