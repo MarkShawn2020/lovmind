@@ -77,7 +77,9 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       // Wait until editorContent.sourceNoteId matches the noteId we want to display
       // This prevents setting old content when switching notes
       if (editorContent.sourceNoteId !== noteId) {
-        console.log('[LovmindEditor] Waiting for content to load. Current sourceNoteId:', editorContent.sourceNoteId, 'Expected:', noteId);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[LovmindEditor] Waiting for content to load. Current:', editorContent.sourceNoteId, 'Expected:', noteId);
+        }
         return;
       }
 
@@ -97,7 +99,9 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       // Update editor value using Plate's API
       editor.tf.setValue(newValue);
 
-      console.log('[LovmindEditor] Loaded note with sourceNoteId:', editorContent.sourceNoteId);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[LovmindEditor] Loaded note with sourceNoteId:', editorContent.sourceNoteId);
+      }
     }, [noteId, editorContent.sourceNoteId, editorContent.richContent, editor]);
 
     // Sync editor content to atoms (subscribes to input-state-changed event)

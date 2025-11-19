@@ -27,6 +27,7 @@ export default defineConfig(async () => ({
       "@/components": path.resolve(__dirname, "./src/components"),
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ['jotai', 'react', 'react-dom'],
   },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`

@@ -42,12 +42,16 @@ export function useNoteEventSync(options?: { enableBroadcastChannel?: boolean })
     syncWithBackend();
 
     // Listen for global note updates
-    console.log('Setting up global note update listener...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[NoteEventSync] Setting up global note update listener');
+    }
     const unlistenNoteUpdate = listen<Note>(
       'global-note-updated',
       async (event) => {
         const updatedNote = event.payload;
-        console.log('Received global note update:', updatedNote);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[NoteEventSync] Received global note update:', updatedNote.id);
+        }
 
         setNotes((prevNotes) => {
           const existingNoteIndex = prevNotes.findIndex(

@@ -32,6 +32,14 @@ interface EventEmitterApi {
 export const EventEmitterPlugin = createSlatePlugin({
   key: 'event-emitter',
   extendEditor: ({ editor }) => {
+    // Skip if already initialized
+    if ((editor as any).__eventEmitterInitialized) {
+      return editor;
+    }
+
+    // Mark as initialized
+    (editor as any).__eventEmitterInitialized = true;
+
     // Event handlers storage
     const eventHandlers = new Map<string, Set<EventHandler>>();
 
@@ -68,7 +76,9 @@ export const EventEmitterPlugin = createSlatePlugin({
       }
     };
 
-    console.log('[EventEmitterPlugin] Initialized');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[EventEmitterPlugin] Initialized');
+    }
 
     return editor;
   },

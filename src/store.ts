@@ -30,31 +30,64 @@ const isTauri = () => {
 // Create Tauri Store instance (with in-memory cache)
 let store: Store | null = null;
 let storeReady = false;
+let isInitializing = false;
+let initializationPromise: Promise<Store | null> | null = null;
 const memoryCache = new Map<string, string>();
 
-const initStore = async () => {
-  if (!store && isTauri()) {
+// Truncate log output for large data
+const truncateLog = (value: string, maxLength = 200): string => {
+  if (value.length <= maxLength) return value;
+  return value.substring(0, maxLength) + `... (${value.length} chars total)`;
+};
+
+const initStore = async (): Promise<Store | null> => {
+  // Return existing store if already initialized
+  if (storeReady && store) {
+    return store;
+  }
+
+  // Return in-flight initialization promise to prevent duplicate initialization
+  if (isInitializing && initializationPromise) {
+    return initializationPromise;
+  }
+
+  // Only initialize in Tauri environment
+  if (!isTauri()) {
+    return null;
+  }
+
+  isInitializing = true;
+  initializationPromise = (async () => {
     try {
       console.log('[Store] Initializing Tauri Store...');
       store = await Store.load('lovpen-notes.json');
-      storeReady = true;
 
       // Load existing data into memory cache
       const keys = await store.keys();
-      console.log('[Store] Loading', keys.length, 'keys from store:', keys);
+      console.log('[Store] Loading', keys.length, 'keys from store');
+
       for (const key of keys) {
         const value = await store.get<string>(key);
         if (value !== null && value !== undefined) {
           memoryCache.set(key, value);
-          console.log(`[Store] Loaded "${key}":`, value);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[Store] Loaded "${key}":`, truncateLog(value));
+          }
         }
       }
-      console.log('[Store] Initialization complete. Memory cache size:', memoryCache.size);
+
+      storeReady = true;
+      console.log('[Store] Initialization complete. Cache size:', memoryCache.size);
+      return store;
     } catch (error) {
-      console.error('Failed to initialize Tauri Store:', error);
+      console.error('[Store] Failed to initialize:', error);
+      return null;
+    } finally {
+      isInitializing = false;
     }
-  }
-  return store;
+  })();
+
+  return initializationPromise;
 };
 
 // Initialize store on module load
@@ -89,12 +122,12 @@ const migrateNotesData = (rawData: string): string => {
 const createTauriStorage = <T>() => {
   return createJSONStorage<T>(() => ({
     getItem: (key: string) => {
-      console.log(`[Storage getItem] Requesting key "${key}", cache has it:`, memoryCache.has(key), ', store ready:', storeReady);
-
       // Use memory cache for sync access
       if (memoryCache.has(key)) {
         const value = memoryCache.get(key) || null;
-        console.log(`[Storage getItem] Returning from cache for "${key}":`, value);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Storage] Cache hit for "${key}":`, truncateLog(value || ''));
+        }
         return value;
       }
 
@@ -109,7 +142,9 @@ const createTauriStorage = <T>() => {
           // Update localStorage with migrated data if it changed
           if (migratedValue !== rawValue) {
             localStorage.setItem(key, migratedValue);
-            console.log('Notes data migrated and saved to localStorage');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[Storage] Notes data migrated in localStorage');
+            }
           }
 
           return migratedValue;
@@ -120,14 +155,17 @@ const createTauriStorage = <T>() => {
 
       // For Tauri: If not in memory cache, try lazy-loading from store
       // This helps with race conditions where atoms initialize before full store load
-      console.warn(`[Storage getItem] Key "${key}" not in memory cache (Tauri env), returning null. Store ready:`, storeReady);
       if (storeReady && store) {
-        console.warn(`[Storage] Key "${key}" not in memory cache, attempting lazy load from store`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Storage] Cache miss for "${key}", attempting lazy load`);
+        }
         // Schedule async load to populate cache for next access
         store.get<string>(key).then(value => {
           if (value !== null && value !== undefined) {
-            console.log(`[Storage] Lazy loaded "${key}" from store:`, value);
             memoryCache.set(key, value);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`[Storage] Lazy loaded "${key}":`, truncateLog(value));
+            }
           }
         }).catch(error => {
           console.error(`[Storage] Failed to lazy load "${key}":`, error);

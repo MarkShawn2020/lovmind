@@ -21,10 +21,18 @@ const isTauriEnvironment = (): boolean => {
 export const TauriClipboardPlugin = createSlatePlugin({
   key: 'tauri-clipboard',
   extendEditor: ({ editor }) => {
+    // Skip if not in Tauri environment
     if (!isTauriEnvironment()) {
-      console.log('[TauriClipboardPlugin] Not in Tauri environment, skipping');
       return editor;
     }
+
+    // Skip if already initialized
+    if ((editor as any).__tauriClipboardInitialized) {
+      return editor;
+    }
+
+    // Mark as initialized
+    (editor as any).__tauriClipboardInitialized = true;
 
     const handleCopy = async (e: ClipboardEvent) => {
       // Check if event is from this editor
@@ -51,7 +59,9 @@ export const TauriClipboardPlugin = createSlatePlugin({
           if (textData || htmlData) {
             const { writeText } = await import('@tauri-apps/plugin-clipboard-manager');
             await writeText(textData || htmlData);
-            console.log('[TauriClipboardPlugin] Mirrored copy to system clipboard');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[TauriClipboardPlugin] Mirrored copy to system clipboard');
+            }
           }
         } catch (error) {
           console.error('[TauriClipboardPlugin] Failed to mirror copy:', error);
@@ -73,7 +83,9 @@ export const TauriClipboardPlugin = createSlatePlugin({
           if (textData || htmlData) {
             const { writeText } = await import('@tauri-apps/plugin-clipboard-manager');
             await writeText(textData || htmlData);
-            console.log('[TauriClipboardPlugin] Mirrored cut to system clipboard');
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[TauriClipboardPlugin] Mirrored cut to system clipboard');
+            }
           }
         } catch (error) {
           console.error('[TauriClipboardPlugin] Failed to mirror cut:', error);
@@ -92,7 +104,9 @@ export const TauriClipboardPlugin = createSlatePlugin({
 
         if (text) {
           editor.tf.insertText(text);
-          console.log('[TauriClipboardPlugin] Pasted from system clipboard');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[TauriClipboardPlugin] Pasted from system clipboard');
+          }
         }
       } catch (error) {
         console.error('[TauriClipboardPlugin] Failed to paste from clipboard:', error);
@@ -114,7 +128,9 @@ export const TauriClipboardPlugin = createSlatePlugin({
     // Store cleanup for unmount
     (editor as any).__tauriClipboardCleanup = cleanup;
 
-    console.log('[TauriClipboardPlugin] Initialized');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[TauriClipboardPlugin] Initialized');
+    }
 
     return editor;
   },

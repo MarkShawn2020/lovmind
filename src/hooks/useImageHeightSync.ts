@@ -14,12 +14,16 @@ export function useImageHeightSync() {
   useEffect(() => {
     if (!isTauri()) return;
 
-    console.log('Setting up image max height listener...');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[ImageHeightSync] Setting up image max height listener');
+    }
     const unlistenImageHeight = listen<{ value: number }>(
       'image-max-height-changed',
       (event) => {
         const newHeight = event.payload.value;
-        console.log('Received image-max-height-changed:', newHeight);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[ImageHeightSync] Received image-max-height-changed:', newHeight);
+        }
         setImageMaxHeight(newHeight);
       }
     );
