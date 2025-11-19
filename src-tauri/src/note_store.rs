@@ -32,7 +32,8 @@ pub fn store_temp_note(app: AppHandle, note: TempNote) -> Result<(), String> {
     let store = app.store("notes.json").map_err(|e| e.to_string())?;
 
     // Get existing notes
-    let mut notes: Vec<TempNote> = store.get("notes")
+    let mut notes: Vec<TempNote> = store
+        .get("notes")
         .and_then(|v| serde_json::from_value(v.clone()).ok())
         .unwrap_or_else(Vec::new);
 
@@ -44,7 +45,10 @@ pub fn store_temp_note(app: AppHandle, note: TempNote) -> Result<(), String> {
     }
 
     // Save back to store
-    store.set("notes", serde_json::to_value(&notes).map_err(|e| e.to_string())?);
+    store.set(
+        "notes",
+        serde_json::to_value(&notes).map_err(|e| e.to_string())?,
+    );
     store.save().map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -52,7 +56,8 @@ pub fn store_temp_note(app: AppHandle, note: TempNote) -> Result<(), String> {
 #[tauri::command]
 pub fn get_temp_note(app: AppHandle, id: String) -> Result<Option<TempNote>, String> {
     let store = app.store("notes.json").map_err(|e| e.to_string())?;
-    let notes: Vec<TempNote> = store.get("notes")
+    let notes: Vec<TempNote> = store
+        .get("notes")
         .and_then(|v| serde_json::from_value(v.clone()).ok())
         .unwrap_or_else(Vec::new);
 
@@ -62,13 +67,17 @@ pub fn get_temp_note(app: AppHandle, id: String) -> Result<Option<TempNote>, Str
 #[tauri::command]
 pub fn remove_temp_note(app: AppHandle, id: String) -> Result<(), String> {
     let store = app.store("notes.json").map_err(|e| e.to_string())?;
-    let mut notes: Vec<TempNote> = store.get("notes")
+    let mut notes: Vec<TempNote> = store
+        .get("notes")
         .and_then(|v| serde_json::from_value(v.clone()).ok())
         .unwrap_or_else(Vec::new);
 
     notes.retain(|n| n.id != id);
 
-    store.set("notes", serde_json::to_value(&notes).map_err(|e| e.to_string())?);
+    store.set(
+        "notes",
+        serde_json::to_value(&notes).map_err(|e| e.to_string())?,
+    );
     store.save().map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -76,7 +85,8 @@ pub fn remove_temp_note(app: AppHandle, id: String) -> Result<(), String> {
 #[tauri::command]
 pub fn get_all_temp_notes(app: AppHandle) -> Result<Vec<TempNote>, String> {
     let store = app.store("notes.json").map_err(|e| e.to_string())?;
-    let notes: Vec<TempNote> = store.get("notes")
+    let notes: Vec<TempNote> = store
+        .get("notes")
         .and_then(|v| serde_json::from_value(v.clone()).ok())
         .unwrap_or_else(Vec::new);
 

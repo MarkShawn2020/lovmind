@@ -1,18 +1,23 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
 use std::sync::Mutex;
-use tauri::{Emitter, Manager};
 #[cfg(not(target_os = "ios"))]
-use tauri::{WindowEvent, menu::{MenuBuilder, CheckMenuItemBuilder, SubmenuBuilder, PredefinedMenuItem, MenuItem}};
+use tauri::{
+    menu::{CheckMenuItemBuilder, MenuBuilder, MenuItem, PredefinedMenuItem, SubmenuBuilder},
+    WindowEvent,
+};
+use tauri::{Emitter, Manager};
 #[cfg(not(target_os = "ios"))]
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
-use std::fs;
 
 mod note_store;
-use note_store::{store_temp_note, get_temp_note, remove_temp_note, get_all_temp_notes, clear_temp_notes};
+use note_store::{
+    clear_temp_notes, get_all_temp_notes, get_temp_note, remove_temp_note, store_temp_note,
+};
 
 // Global state to hold reference to the main window menu item
 #[cfg(not(target_os = "ios"))]
@@ -56,7 +61,7 @@ async fn toggle_window(window: tauri::Window) -> Result<(), String> {
     #[cfg(target_os = "ios")]
     {
         let _ = window; // Suppress unused variable warning
-        // iOS doesn't support hide/show/set_focus
+                        // iOS doesn't support hide/show/set_focus
     }
     Ok(())
 }
@@ -77,9 +82,9 @@ async fn create_note(
         version: 1,
         parent_id: None,
     };
-    
+
     // TODO: Save to database
-    
+
     Ok(note)
 }
 
@@ -148,7 +153,8 @@ async fn open_devtools(_window: tauri::WebviewWindow) -> Result<(), String> {
 #[tauri::command]
 async fn get_tag_merge_strategy(app: tauri::AppHandle) -> Result<String, String> {
     let store = app.store("settings.json").map_err(|e| e.to_string())?;
-    let strategy = store.get("tag_merge_strategy")
+    let strategy = store
+        .get("tag_merge_strategy")
         .and_then(|v| v.as_str().map(String::from))
         .unwrap_or_else(|| "union".to_string());
     Ok(strategy)
@@ -157,23 +163,33 @@ async fn get_tag_merge_strategy(app: tauri::AppHandle) -> Result<String, String>
 #[tauri::command]
 async fn save_tag_merge_strategy(app: tauri::AppHandle, strategy: String) -> Result<(), String> {
     let store = app.store("settings.json").map_err(|e| e.to_string())?;
-    store.set("tag_merge_strategy", serde_json::Value::String(strategy.clone()));
+    store.set(
+        "tag_merge_strategy",
+        serde_json::Value::String(strategy.clone()),
+    );
     store.save().map_err(|e| e.to_string())?;
 
     // Broadcast to all windows for cross-window sync
-    app.emit("tag-merge-strategy-changed", &strategy).map_err(|e| e.to_string())?;
+    app.emit("tag-merge-strategy-changed", &strategy)
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-async fn broadcast_note_update(app: tauri::AppHandle, note: note_store::TempNote) -> Result<(), String> {
+async fn broadcast_note_update(
+    app: tauri::AppHandle,
+    note: note_store::TempNote,
+) -> Result<(), String> {
     // Emit specifically to the main window
     if let Some(main_window) = app.get_webview_window("main") {
-        main_window.emit("global-note-updated", &note).map_err(|e| e.to_string())?;
+        main_window
+            .emit("global-note-updated", &note)
+            .map_err(|e| e.to_string())?;
         println!("Emitted note update to main window: {}", note.id);
     } else {
         println!("Main window not found, broadcasting to all windows");
-        app.emit("global-note-updated", &note).map_err(|e| e.to_string())?;
+        app.emit("global-note-updated", &note)
+            .map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -205,7 +221,8 @@ async fn save_uploaded_file(
 #[tauri::command]
 async fn is_ai_enabled(app: tauri::AppHandle) -> Result<bool, String> {
     let store = app.store("settings.json").map_err(|e| e.to_string())?;
-    let enabled = store.get("ai_enabled")
+    let enabled = store
+        .get("ai_enabled")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
     Ok(enabled)
@@ -218,7 +235,8 @@ async fn set_ai_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), Stri
     store.save().map_err(|e| e.to_string())?;
 
     // Broadcast to all windows
-    app.emit("ai-enabled-changed", enabled).map_err(|e| e.to_string())?;
+    app.emit("ai-enabled-changed", enabled)
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -257,7 +275,7 @@ async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
-    use tauri::{Manager, WebviewWindowBuilder, WebviewUrl};
+    use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
     // Check if settings window already exists
     if let Some(existing_window) = app.get_webview_window("settings") {
@@ -289,21 +307,17 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
     // Create settings window
     #[cfg(not(target_os = "ios"))]
     {
-        let window_builder = WebviewWindowBuilder::new(
-            &app,
-            "settings",
-            webview_url
-        )
-        .title("Keyboard Shortcuts")
-        .inner_size(750.0, 600.0)
-        .min_inner_size(650.0, 500.0)
-        .resizable(true)
-        .center()
-        .always_on_top(false)
-        .focused(true)
-        .skip_taskbar(false)
-        .decorations(true)
-        .transparent(false);
+        let window_builder = WebviewWindowBuilder::new(&app, "settings", webview_url)
+            .title("Keyboard Shortcuts")
+            .inner_size(750.0, 600.0)
+            .min_inner_size(650.0, 500.0)
+            .resizable(true)
+            .center()
+            .always_on_top(false)
+            .focused(true)
+            .skip_taskbar(false)
+            .decorations(true)
+            .transparent(false);
 
         window_builder.build().map_err(|e| e.to_string())?;
     }
@@ -324,7 +338,7 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
-    use tauri::{Manager, WebviewWindowBuilder, WebviewUrl};
+    use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
 
     println!("[toggle_float_windows] Function called");
 
@@ -333,12 +347,16 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
     println!("[toggle_float_windows] Total windows: {}", windows.len());
 
     // Filter for float windows (those starting with "note-editor-")
-    let float_windows: Vec<_> = windows.iter()
+    let float_windows: Vec<_> = windows
+        .iter()
         .filter(|(label, _)| label.starts_with("note-editor-"))
         .map(|(_, window)| window.clone())
         .collect();
 
-    println!("[toggle_float_windows] Float windows count: {}", float_windows.len());
+    println!(
+        "[toggle_float_windows] Float windows count: {}",
+        float_windows.len()
+    );
 
     if float_windows.is_empty() {
         println!("[toggle_float_windows] No float windows, creating new one...");
@@ -348,10 +366,7 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
 
         // Calculate rank: max existing rank + 1
         let all_notes = get_all_temp_notes(app.clone())?;
-        let max_rank = all_notes.iter()
-            .filter_map(|n| n.rank)
-            .max()
-            .unwrap_or(0);
+        let max_rank = all_notes.iter().filter_map(|n| n.rank).max().unwrap_or(0);
         let new_rank = std::cmp::max(max_rank + 1, all_notes.len() as i32 + 1);
 
         println!("[toggle_float_windows] Creating new note with rank (not persisted yet): id={}, rank={}", note_id, new_rank);
@@ -361,36 +376,38 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
         // Determine URL and WebviewUrl type based on environment
         #[cfg(debug_assertions)]
         let webview_url = {
-            let url_str = format!("http://localhost:1420/?window=editor&noteId={}&rank={}", note_id, new_rank);
+            let url_str = format!(
+                "http://localhost:1420/?window=editor&noteId={}&rank={}",
+                note_id, new_rank
+            );
             WebviewUrl::External(url_str.parse().expect("Invalid URL format"))
         };
 
         #[cfg(not(debug_assertions))]
         let webview_url = {
-            let url_str = format!("index.html?window=editor&noteId={}&rank={}", note_id, new_rank);
+            let url_str = format!(
+                "index.html?window=editor&noteId={}&rank={}",
+                note_id, new_rank
+            );
             WebviewUrl::App(url_str.into())
         };
 
         // Create new float window
         #[cfg(not(target_os = "ios"))]
         {
-            let window = WebviewWindowBuilder::new(
-                &app,
-                window_label,
-                webview_url
-            )
-            .title("New Note")
-            .inner_size(360.0, 480.0)
-            .min_inner_size(320.0, 240.0)
-            .resizable(true)
-            .center()
-            .always_on_top(false)
-            .focused(true)
-            .skip_taskbar(false)
-            .decorations(false)
-            .transparent(true)
-            .build()
-            .map_err(|e| e.to_string())?;
+            let window = WebviewWindowBuilder::new(&app, window_label, webview_url)
+                .title("New Note")
+                .inner_size(360.0, 480.0)
+                .min_inner_size(320.0, 240.0)
+                .resizable(true)
+                .center()
+                .always_on_top(false)
+                .focused(true)
+                .skip_taskbar(false)
+                .decorations(false)
+                .transparent(true)
+                .build()
+                .map_err(|e| e.to_string())?;
 
             // Ensure window is shown and focused
             let _ = window.show();
@@ -414,7 +431,8 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
     // Float windows exist, toggle their visibility
     #[cfg(not(target_os = "ios"))]
     {
-        let any_visible = float_windows.iter()
+        let any_visible = float_windows
+            .iter()
             .any(|w| w.is_visible().unwrap_or(false));
 
         // Toggle all float windows based on current state
@@ -510,7 +528,8 @@ impl Default for ShortcutSettings {
 #[tauri::command]
 async fn get_user_profile(app: tauri::AppHandle) -> Result<Option<UserProfile>, String> {
     let store = app.store("settings.json").map_err(|e| e.to_string())?;
-    let profile = store.get("user_profile")
+    let profile = store
+        .get("user_profile")
         .and_then(|v| serde_json::from_value::<UserProfile>(v.clone()).ok());
     Ok(profile)
 }
@@ -518,7 +537,10 @@ async fn get_user_profile(app: tauri::AppHandle) -> Result<Option<UserProfile>, 
 #[tauri::command]
 async fn save_user_profile(app: tauri::AppHandle, profile: UserProfile) -> Result<(), String> {
     let store = app.store("settings.json").map_err(|e| e.to_string())?;
-    store.set("user_profile", serde_json::to_value(&profile).map_err(|e| e.to_string())?);
+    store.set(
+        "user_profile",
+        serde_json::to_value(&profile).map_err(|e| e.to_string())?,
+    );
     store.save().map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -526,20 +548,28 @@ async fn save_user_profile(app: tauri::AppHandle, profile: UserProfile) -> Resul
 #[tauri::command]
 async fn get_shortcut_settings(app: tauri::AppHandle) -> Result<ShortcutSettings, String> {
     let store = app.store("settings.json").map_err(|e| e.to_string())?;
-    let settings = store.get("shortcut_settings")
+    let settings = store
+        .get("shortcut_settings")
         .and_then(|v| serde_json::from_value::<ShortcutSettings>(v.clone()).ok())
         .unwrap_or_default();
     Ok(settings)
 }
 
 #[tauri::command]
-async fn save_shortcut_settings(app: tauri::AppHandle, settings: ShortcutSettings) -> Result<(), String> {
+async fn save_shortcut_settings(
+    app: tauri::AppHandle,
+    settings: ShortcutSettings,
+) -> Result<(), String> {
     let store = app.store("settings.json").map_err(|e| e.to_string())?;
-    store.set("shortcut_settings", serde_json::to_value(&settings).map_err(|e| e.to_string())?);
+    store.set(
+        "shortcut_settings",
+        serde_json::to_value(&settings).map_err(|e| e.to_string())?,
+    );
     store.save().map_err(|e| e.to_string())?;
 
     // Broadcast settings change to all windows
-    app.emit("shortcut-settings-changed", &settings).map_err(|e| e.to_string())?;
+    app.emit("shortcut-settings-changed", &settings)
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -547,17 +577,22 @@ async fn save_shortcut_settings(app: tauri::AppHandle, settings: ShortcutSetting
 async fn reset_shortcut_settings(app: tauri::AppHandle) -> Result<ShortcutSettings, String> {
     let default_settings = ShortcutSettings::default();
     let store = app.store("settings.json").map_err(|e| e.to_string())?;
-    store.set("shortcut_settings", serde_json::to_value(&default_settings).map_err(|e| e.to_string())?);
+    store.set(
+        "shortcut_settings",
+        serde_json::to_value(&default_settings).map_err(|e| e.to_string())?,
+    );
     store.save().map_err(|e| e.to_string())?;
 
     // Broadcast settings change to all windows
-    app.emit("shortcut-settings-changed", &default_settings).map_err(|e| e.to_string())?;
+    app.emit("shortcut-settings-changed", &default_settings)
+        .map_err(|e| e.to_string())?;
     Ok(default_settings)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::new().build())
         .manage(MainWindowMenuItem(Mutex::new(None)))
         .plugin(tauri_plugin_opener::init());
 
@@ -567,12 +602,10 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init());
 
     #[cfg(not(target_os = "ios"))]
-    let builder = builder
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build());
+    let builder = builder.plugin(tauri_plugin_global_shortcut::Builder::new().build());
 
     #[cfg(target_os = "ios")]
-    let builder = builder
-        .plugin(tauri_plugin_no_input_accessory::init());
+    let builder = builder.plugin(tauri_plugin_no_input_accessory::init());
 
     builder
         .invoke_handler(tauri::generate_handler![
