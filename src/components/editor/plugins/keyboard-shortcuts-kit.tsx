@@ -12,6 +12,10 @@ import {createSlatePlugin} from 'platejs';
  * Emits events for parent components to handle UI feedback.
  */
 
+// Global registry to prevent duplicate listeners across StrictMode remounts
+let globalHandlerInstalled = false;
+let activeEditors = new Set<any>();
+
 export const KeyboardShortcutsPlugin = createSlatePlugin({
     key: 'keyboard-shortcuts',
     extendEditor: ({editor}) => {
@@ -20,64 +24,70 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
             return !!(node && node instanceof HTMLElement && node.classList.contains('slate-shadow-input'));
         };
 
-        // Helper: Check if event is from this editor
-        const isEventFromEditor = (event: Event): boolean => {
+        // Helper: Check if event is from any active editor
+        const isEventFromAnyEditor = (event: Event): boolean => {
             const targetNode = event.target instanceof Node ? event.target : null;
             const activeElement = document.activeElement;
 
-            // Check if target or active element is related to this editor
-            // Note: This is a simplified check. In production, you might want to check
-            // if the element is within the editor's DOM container
+            // Check if target or active element is related to any editor
             return !!(targetNode || activeElement || isSlateShadowInput(targetNode) || isSlateShadowInput(activeElement));
         };
 
+        // Global keydown handler (shared across all editor instances)
+        const globalHandleKeyDown = (event: KeyboardEvent) => {
+            // Check for Cmd+Enter or Ctrl+Enter
+            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                if (!isEventFromAnyEditor(event)) return;
+                event.preventDefault();
 
-        // Cmd+Enter Handler: Submit shortcut
-        const handleSubmit = (event: KeyboardEvent) => {
-            if (!event || !(event.metaKey || event.ctrlKey)) return;
-            if (event.key !== 'Enter') return;
-            if (!isEventFromEditor(event)) return;
+                // Emit to all active editors (only the focused one will handle it)
+                activeEditors.forEach(ed => {
+                    if (typeof ed.emit === 'function') {
+                        ed.emit('submit-shortcut');
+                    }
+                });
+            }
 
-            event.preventDefault();
+            // Check for Cmd+S or Ctrl+S
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+                if (!isEventFromAnyEditor(event)) return;
+                event.preventDefault();
 
-            // Emit submit event for parent components
-            if (typeof editor.emit === 'function') {
-                editor.emit('submit-shortcut');
+                // Emit to all active editors (only the focused one will handle it)
+                activeEditors.forEach(ed => {
+                    if (typeof ed.emit === 'function') {
+                        ed.emit('save-shortcut');
+                    }
+                });
             }
         };
 
-        // Cmd+S Handler: Save shortcut
-        const handleSave = (event: KeyboardEvent) => {
-            if (!event || !(event.metaKey || event.ctrlKey)) return;
-            if (event.key.toLowerCase() !== 's') return;
-            if (!isEventFromEditor(event)) return;
+        // Install global handler only once
+        if (!globalHandlerInstalled) {
+            document.addEventListener('keydown', globalHandleKeyDown, true);
+            globalHandlerInstalled = true;
+            console.log('[KeyboardShortcutsPlugin] Global handler installed');
+        }
 
-            event.preventDefault();
+        // Register this editor instance
+        activeEditors.add(editor);
+        console.log('[KeyboardShortcutsPlugin] Registered editor, total active:', activeEditors.size);
 
-            // Emit save event for parent components to show feedback
-            if (typeof editor.emit === 'function') {
-                editor.emit('save-shortcut');
-            }
-        };
-
-        // Global keydown handler
-        const handleKeyDown = (event: KeyboardEvent) => {
-            handleSubmit(event);
-            handleSave(event);
-        };
-
-        // Register event listener on document (capture phase for Cmd+A)
-        document.addEventListener('keydown', handleKeyDown, true);
-
-        // Cleanup function
+        // Cleanup function: unregister this editor
         const cleanup = () => {
-            document.removeEventListener('keydown', handleKeyDown, true);
+            activeEditors.delete(editor);
+            console.log('[KeyboardShortcutsPlugin] Unregistered editor, remaining:', activeEditors.size);
+
+            // If no editors remain, remove global handler
+            if (activeEditors.size === 0) {
+                document.removeEventListener('keydown', globalHandleKeyDown, true);
+                globalHandlerInstalled = false;
+                console.log('[KeyboardShortcutsPlugin] Global handler removed');
+            }
         };
 
         // Store cleanup for unmount
         (editor as any).__keyboardShortcutsCleanup = cleanup;
-
-        console.log('[KeyboardShortcutsPlugin] Initialized');
 
         return editor;
     },
