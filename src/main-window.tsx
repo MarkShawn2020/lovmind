@@ -307,6 +307,8 @@ function MainWindow() {
         onOpenNoteInNewWindow={handleOpenNoteInNewWindow}
         mobileView={logic.mobileView}
         onBackToList={handleBackToList}
+        onUserMenuToggle={handleUserMenuToggle}
+        userButtonRef={userButtonRef}
         additionalModals={
           <>
             {userMenuNode}

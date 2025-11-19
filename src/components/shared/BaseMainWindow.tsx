@@ -52,6 +52,16 @@ export interface BaseMainWindowProps {
    * Optional: Custom placeholder text for editor
    */
   editorPlaceholder?: string;
+
+  /**
+   * Optional: User menu toggle handler (desktop: opens dropdown, iOS: may differ)
+   */
+  onUserMenuToggle?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+
+  /**
+   * Optional: User button ref (desktop: for positioning dropdown menu)
+   */
+  userButtonRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 /**
@@ -76,6 +86,8 @@ export function BaseMainWindow({
   additionalModals,
   mobileDrawerVariant = 'default',
   editorPlaceholder = '此时此刻，你在想什么呢？',
+  onUserMenuToggle,
+  userButtonRef,
 }: BaseMainWindowProps) {
   const {
     // State
@@ -137,8 +149,8 @@ export function BaseMainWindow({
             noteStats={noteStats}
             userProfile={userProfile}
             onHeaderMouseDown={onHeaderMouseDown}
-            onUserMenuToggle={() => {}} // Desktop handles this differently
-            userButtonRef={{ current: null }} // Desktop provides actual ref
+            onUserMenuToggle={onUserMenuToggle ?? (() => {})}
+            userButtonRef={userButtonRef ?? { current: null }}
           />
         }
         sidebar={
