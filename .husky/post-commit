@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # Check if version files were modified (not staged but changed in working directory)
-if ! git diff --quiet package.json src-tauri/tauri.conf.json 2>/dev/null; then
+if ! git diff --quiet package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock 2>/dev/null; then
   # Version files were modified during prepare-commit-msg, amend to include them
-  git add package.json src-tauri/tauri.conf.json
+  git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
   git commit --amend --no-edit --no-verify
 fi
