@@ -25,12 +25,30 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
             const targetNode = event.target instanceof Node ? event.target : null;
             const activeElement = document.activeElement;
 
-            // Check if target or active element is related to this editor
-            // Note: This is a simplified check. In production, you might want to check
-            // if the element is within the editor's DOM container
-            return !!(targetNode || activeElement || isSlateShadowInput(targetNode) || isSlateShadowInput(activeElement));
+            // Check if target or active element is Slate shadow input
+            if (isSlateShadowInput(targetNode) || isSlateShadowInput(activeElement)) {
+                return true;
+            }
+
+            // Check if target is within a Slate editor
+            if (targetNode instanceof Element) {
+                const isInEditor = targetNode.closest('[data-slate-editor="true"]') !== null;
+                if (isInEditor) return true;
+            }
+
+            // Check if active element is within a Slate editor
+            if (activeElement instanceof Element) {
+                const isInEditor = activeElement.closest('[data-slate-editor="true"]') !== null;
+                if (isInEditor) return true;
+            }
+
+            return false;
         };
 
+        // Deduplication: Prevent rapid duplicate events
+        let lastSubmitTime = 0;
+        let lastSaveTime = 0;
+        const DEBOUNCE_MS = 300;
 
         // Cmd+Enter Handler: Submit shortcut
         const handleSubmit = (event: KeyboardEvent) => {
@@ -38,10 +56,20 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
             if (event.key !== 'Enter') return;
             if (!isEventFromEditor(event)) return;
 
+            // Deduplication check
+            const now = Date.now();
+            if (now - lastSubmitTime < DEBOUNCE_MS) {
+                console.log('[KeyboardShortcuts] Ignoring duplicate Cmd+Enter (debounced)');
+                return;
+            }
+            lastSubmitTime = now;
+
             event.preventDefault();
+            event.stopPropagation(); // Prevent event from reaching other handlers
 
             // Emit submit event for parent components
             if (typeof editor.emit === 'function') {
+                console.log('[KeyboardShortcuts] Emitting submit-shortcut');
                 editor.emit('submit-shortcut');
             }
         };
@@ -52,10 +80,20 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
             if (event.key.toLowerCase() !== 's') return;
             if (!isEventFromEditor(event)) return;
 
+            // Deduplication check
+            const now = Date.now();
+            if (now - lastSaveTime < DEBOUNCE_MS) {
+                console.log('[KeyboardShortcuts] Ignoring duplicate Cmd+S (debounced)');
+                return;
+            }
+            lastSaveTime = now;
+
             event.preventDefault();
+            event.stopPropagation(); // Prevent event from reaching other handlers
 
             // Emit save event for parent components to show feedback
             if (typeof editor.emit === 'function') {
+                console.log('[KeyboardShortcuts] Emitting save-shortcut');
                 editor.emit('save-shortcut');
             }
         };
@@ -66,18 +104,10 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
             handleSave(event);
         };
 
-        // Register event listener on document (capture phase for Cmd+A)
+        // Register event listener on document (capture phase)
         document.addEventListener('keydown', handleKeyDown, true);
 
-        // Cleanup function
-        const cleanup = () => {
-            document.removeEventListener('keydown', handleKeyDown, true);
-        };
-
-        // Store cleanup for unmount
-        (editor as any).__keyboardShortcutsCleanup = cleanup;
-
-        console.log('[KeyboardShortcutsPlugin] Initialized');
+        console.log('[KeyboardShortcutsPlugin] Initialized, registered document listener');
 
         return editor;
     },
