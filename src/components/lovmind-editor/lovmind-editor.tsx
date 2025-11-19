@@ -119,6 +119,17 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
     // Bridge plugin events to React callbacks
     useEditorEventBridge(editor, handleContentChange, onSubmit);
 
+    // Cleanup KeyboardShortcutsPlugin document listener on unmount
+    useEffect(() => {
+      return () => {
+        const cleanup = (editor as any).__keyboardShortcutsCleanup;
+        if (typeof cleanup === 'function') {
+          cleanup();
+          console.log('[LovmindEditor] Cleaned up KeyboardShortcutsPlugin');
+        }
+      };
+    }, [editor]);
+
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => (editor.api as any).commands.resetAndFocus(),
       focus: () => editor.tf.focus(),
