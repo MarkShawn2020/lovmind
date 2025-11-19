@@ -16,53 +16,57 @@ import {createSlatePlugin} from 'platejs';
 let globalHandlerInstalled = false;
 let activeEditors = new Set<any>();
 
+// Helper: Check if element is Slate shadow input
+const isSlateShadowInput = (node: EventTarget | null): node is HTMLElement => {
+    return !!(node && node instanceof HTMLElement && node.classList.contains('slate-shadow-input'));
+};
+
+// Helper: Check if event is from any active editor
+const isEventFromAnyEditor = (event: Event): boolean => {
+    const targetNode = event.target instanceof Node ? event.target : null;
+    const activeElement = document.activeElement;
+
+    // Check if target or active element is related to any editor
+    return !!(targetNode || activeElement || isSlateShadowInput(targetNode) || isSlateShadowInput(activeElement));
+};
+
+// Global keydown handler (single instance shared across all editors)
+// IMPORTANT: Defined outside extendEditor to maintain stable reference
+const globalHandleKeyDown = (event: KeyboardEvent) => {
+    // Check for Cmd+Enter or Ctrl+Enter
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        if (!isEventFromAnyEditor(event)) return;
+        event.preventDefault();
+
+        console.log('[KeyboardShortcutsPlugin] Cmd+Enter detected, active editors:', activeEditors.size);
+
+        // Emit to all active editors (only the focused one will handle it)
+        activeEditors.forEach(ed => {
+            if (typeof ed.emit === 'function') {
+                ed.emit('submit-shortcut');
+                console.log('[KeyboardShortcutsPlugin] Emitted submit-shortcut');
+            }
+        });
+    }
+
+    // Check for Cmd+S or Ctrl+S
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
+        if (!isEventFromAnyEditor(event)) return;
+        event.preventDefault();
+
+        // Emit to all active editors (only the focused one will handle it)
+        activeEditors.forEach(ed => {
+            if (typeof ed.emit === 'function') {
+                ed.emit('save-shortcut');
+            }
+        });
+    }
+};
+
 export const KeyboardShortcutsPlugin = createSlatePlugin({
     key: 'keyboard-shortcuts',
     extendEditor: ({editor}) => {
-        // Helper: Check if element is Slate shadow input
-        const isSlateShadowInput = (node: EventTarget | null): node is HTMLElement => {
-            return !!(node && node instanceof HTMLElement && node.classList.contains('slate-shadow-input'));
-        };
-
-        // Helper: Check if event is from any active editor
-        const isEventFromAnyEditor = (event: Event): boolean => {
-            const targetNode = event.target instanceof Node ? event.target : null;
-            const activeElement = document.activeElement;
-
-            // Check if target or active element is related to any editor
-            return !!(targetNode || activeElement || isSlateShadowInput(targetNode) || isSlateShadowInput(activeElement));
-        };
-
-        // Global keydown handler (shared across all editor instances)
-        const globalHandleKeyDown = (event: KeyboardEvent) => {
-            // Check for Cmd+Enter or Ctrl+Enter
-            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-                if (!isEventFromAnyEditor(event)) return;
-                event.preventDefault();
-
-                // Emit to all active editors (only the focused one will handle it)
-                activeEditors.forEach(ed => {
-                    if (typeof ed.emit === 'function') {
-                        ed.emit('submit-shortcut');
-                    }
-                });
-            }
-
-            // Check for Cmd+S or Ctrl+S
-            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
-                if (!isEventFromAnyEditor(event)) return;
-                event.preventDefault();
-
-                // Emit to all active editors (only the focused one will handle it)
-                activeEditors.forEach(ed => {
-                    if (typeof ed.emit === 'function') {
-                        ed.emit('save-shortcut');
-                    }
-                });
-            }
-        };
-
-        // Install global handler only once
+        // Install global handler only once (uses stable function reference)
         if (!globalHandlerInstalled) {
             document.addEventListener('keydown', globalHandleKeyDown, true);
             globalHandlerInstalled = true;
