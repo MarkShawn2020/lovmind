@@ -7,8 +7,8 @@ import type { PlateEditor } from 'platejs/react';
  * Tauri Clipboard Plugin
  *
  * Handles clipboard operations in Tauri environment:
- * - Mirrors copy/cut operations to Tauri system clipboard
- * - Reads from Tauri clipboard on paste
+ * - Mirrors copy/cut operations to Tauri system clipboard (for cross-app paste)
+ * - Paste: Uses Plate's built-in handlers (no custom handling needed)
  *
  * Note: This plugin only activates in Tauri environment.
  * In browser mode, native clipboard behavior is preserved.
@@ -93,36 +93,16 @@ export const TauriClipboardPlugin = createSlatePlugin({
       }, 0);
     };
 
-    const handlePaste = async (e: ClipboardEvent) => {
-      if (!e.target || !(e.target instanceof Node)) return;
-
-      e.preventDefault();
-
-      try {
-        const { readText } = await import('@tauri-apps/plugin-clipboard-manager');
-        const text = await readText();
-
-        if (text) {
-          editor.tf.insertText(text);
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[TauriClipboardPlugin] Pasted from system clipboard');
-          }
-        }
-      } catch (error) {
-        console.error('[TauriClipboardPlugin] Failed to paste from clipboard:', error);
-      }
-    };
-
     // Register event listeners on document (capture phase)
+    // Note: Only handle copy/cut to mirror to Tauri system clipboard
+    // DO NOT handle paste - let Plate's built-in handlers work naturally
     document.addEventListener('copy', handleCopy, true);
     document.addEventListener('cut', handleCut, true);
-    document.addEventListener('paste', handlePaste, true);
 
     // Cleanup function
     const cleanup = () => {
       document.removeEventListener('copy', handleCopy, true);
       document.removeEventListener('cut', handleCut, true);
-      document.removeEventListener('paste', handlePaste, true);
     };
 
     // Store cleanup for unmount
