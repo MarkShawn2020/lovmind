@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import LovmindEditor, { type EditorContentChange, type LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
+import LovmindEditor, { type LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
 import { createRef } from 'react';
 
 // Mock Jotai atoms and hooks
@@ -10,7 +10,7 @@ vi.mock('@/hooks/useNoteLoader', () => ({
 }));
 
 vi.mock('@/hooks/useEditorSync', () => ({
-  useEditorSync: vi.fn(() => ({ handleContentChange: vi.fn() })),
+  useEditorSync: vi.fn(),
 }));
 
 vi.mock('@/hooks/useAutoSave', () => ({
@@ -18,7 +18,13 @@ vi.mock('@/hooks/useAutoSave', () => ({
 }));
 
 vi.mock('jotai', () => ({
-  useAtomValue: vi.fn(() => null),
+  useAtomValue: vi.fn(() => ({
+    text: '',
+    tags: [],
+    richContent: null,
+    isEmpty: true,
+    sourceNoteId: null,
+  })),
   useSetAtom: vi.fn(() => vi.fn()),
   atom: vi.fn((val) => val),
 }));

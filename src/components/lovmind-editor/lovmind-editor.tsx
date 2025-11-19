@@ -12,7 +12,6 @@ import {FixedToolbarButtons} from '@/components/ui/fixed-toolbar-buttons.tsx';
 import {EditorContextMenu} from '@/components/editor/EditorContextMenu.tsx';
 import {isEditorContentEmpty} from "@/utils/is-editor-content-empty.ts";
 import {createInitialValue} from "@/utils/create-initial-value.ts";
-import {useEditorEventBridge} from "@/hooks/useEditorEventBridge.ts";
 import {useNoteLoader} from "@/hooks/useNoteLoader.ts";
 import {useEditorSync} from "@/hooks/useEditorSync.ts";
 import {useAutoSave} from "@/hooks/useAutoSave.ts";
@@ -31,16 +30,6 @@ export type InputStateReason =
   | 'composition-end'   // IME input ended
   | 'focus-lost'        // Editor lost focus
   | 'focus-only';       // Editor focused but no typing yet
-
-export interface EditorContentChange {
-  text: string;
-  tags: string[];
-  richContent: Value;
-  isEmpty: boolean;
-  isFocused: boolean;
-  isInputting: boolean;
-  inputStateReason: InputStateReason;
-}
 
 export interface LovmindEditorRef {
   resetAndFocus: () => void;
@@ -110,14 +99,28 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       console.log('[LovmindEditor] Loaded note with sourceNoteId:', editorContent.sourceNoteId);
     }, [noteId, editorContent.sourceNoteId, editorContent.richContent, editor]);
 
-    // Sync editor content to atoms
-    const { handleContentChange } = useEditorSync();
+    // Sync editor content to atoms (subscribes to input-state-changed event)
+    useEditorSync(editor);
 
     // Auto-save on typing stop
     useAutoSave();
 
-    // Bridge plugin events to React callbacks
-    useEditorEventBridge(editor, handleContentChange, onSubmit);
+    // Handle submit shortcut (Cmd+Enter)
+    useEffect(() => {
+      const handleSubmitShortcut = () => {
+        onSubmit?.();
+      };
+
+      if (typeof editor.on === 'function') {
+        editor.on('submit-shortcut', handleSubmitShortcut);
+      }
+
+      return () => {
+        if (typeof editor.off === 'function') {
+          editor.off('submit-shortcut', handleSubmitShortcut);
+        }
+      };
+    }, [editor, onSubmit]);
 
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => (editor.api as any).commands.resetAndFocus(),
