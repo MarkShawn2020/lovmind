@@ -319,7 +319,14 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
             .decorations(true)
             .transparent(false);
 
-        window_builder.build().map_err(|e| e.to_string())?;
+        let window = window_builder.build().map_err(|e| e.to_string())?;
+
+        // Auto-open DevTools for settings window in debug mode
+        #[cfg(debug_assertions)]
+        {
+            println!("[DevTools] Auto-opening DevTools for settings window");
+            window.open_devtools();
+        }
     }
 
     #[cfg(target_os = "ios")]
@@ -408,6 +415,13 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
                 .transparent(true)
                 .build()
                 .map_err(|e| e.to_string())?;
+
+            // Auto-open DevTools for editor window in debug mode
+            #[cfg(debug_assertions)]
+            {
+                println!("[DevTools] Auto-opening DevTools for editor window");
+                window.open_devtools();
+            }
 
             // Ensure window is shown and focused
             let _ = window.show();
@@ -829,6 +843,13 @@ pub fn run() {
             let window = app.get_webview_window("main").unwrap();
             let window_clone_main = window.clone();
             let app_handle_editors = app.handle().clone();
+
+            // Auto-open DevTools for main window in debug mode
+            #[cfg(debug_assertions)]
+            {
+                println!("[DevTools] Auto-opening DevTools for main window");
+                window.open_devtools();
+            }
 
             // Setup main window close behavior: hide instead of destroy
             // This allows the window to be reopened via Dock icon or Cmd+Tab

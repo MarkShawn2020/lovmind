@@ -156,7 +156,7 @@ const EditorToolbar = memo(({
         paddingBottom: '1rem',
       };
 
-  console.log('[EditorToolbar] Platform:', { iosMode, toolbarStyle });
+  // console.log('[EditorToolbar] Platform:', { iosMode, toolbarStyle });
 
   return (
     <div
