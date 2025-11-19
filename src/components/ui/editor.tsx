@@ -93,8 +93,8 @@ export type EditorProps = PlateContentProps &
   };
 
 export const Editor = React.forwardRef<HTMLDivElement, EditorProps>(
-  ({ className, disabled, focused, variant, children, ...props }, ref) => {
-    const plateContent = (
+  ({ className, disabled, focused, variant, ...props }, ref) => {
+    return (
       <PlateContent
         ref={ref}
         className={cn(
@@ -109,15 +109,6 @@ export const Editor = React.forwardRef<HTMLDivElement, EditorProps>(
         disableDefaultStyles
         {...props}
       />
-    );
-
-    // Always render wrapper to maintain consistent DOM structure
-    // This prevents scroll position loss when children (like toast) appear/disappear
-    return (
-      <div className="relative h-full w-full">
-        {plateContent}
-        {children}
-      </div>
     );
   }
 );
