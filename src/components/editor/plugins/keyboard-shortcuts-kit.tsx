@@ -43,8 +43,11 @@ const globalHandleKeyDown = (event: KeyboardEvent) => {
         // Emit to all active editors (only the focused one will handle it)
         activeEditors.forEach(ed => {
             if (typeof ed.emit === 'function') {
+                console.log('[KeyboardShortcutsPlugin] Emitting to editor:', ed);
                 ed.emit('submit-shortcut');
                 console.log('[KeyboardShortcutsPlugin] Emitted submit-shortcut');
+            } else {
+                console.warn('[KeyboardShortcutsPlugin] Editor has no emit function:', ed);
             }
         });
     }

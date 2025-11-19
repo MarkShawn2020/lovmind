@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { Value } from 'platejs';
 import type { MyEditor } from '@/components/editor/editor-kit';
 import type { EditorContentChange } from '@/components/lovmind-editor/lovmind-editor.tsx';
@@ -21,12 +21,22 @@ export function useEditorEventBridge(
   onChange?: (payload: EditorContentChange) => void,
   onSubmit?: () => void
 ) {
+  // Use refs to avoid re-registering listeners when callbacks change
+  const onChangeRef = useRef(onChange);
+  const onSubmitRef = useRef(onSubmit);
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onChangeRef.current = onChange;
+    onSubmitRef.current = onSubmit;
+  }, [onChange, onSubmit]);
+
   useEffect(() => {
     const handleInputStateChange = (state: any) => {
-      if (!onChange) return;
+      if (!onChangeRef.current) return;
 
       const { text, tags } = extractTextContent(editor.children as Value);
-      onChange({
+      onChangeRef.current({
         text,
         tags,
         richContent: editor.children as Value,
@@ -38,19 +48,22 @@ export function useEditorEventBridge(
     };
 
     const handleSubmitShortcut = () => {
-      onSubmit?.();
+      console.log('[useEditorEventBridge] handleSubmitShortcut called, onSubmit exists:', !!onSubmitRef.current);
+      onSubmitRef.current?.();
     };
 
     if (typeof editor.on === 'function') {
       editor.on('input-state-changed', handleInputStateChange);
       editor.on('submit-shortcut', handleSubmitShortcut);
+      console.log('[useEditorEventBridge] Registered listeners for editor');
     }
 
     return () => {
       if (typeof editor.off === 'function') {
         editor.off('input-state-changed', handleInputStateChange);
         editor.off('submit-shortcut', handleSubmitShortcut);
+        console.log('[useEditorEventBridge] Unregistered listeners for editor');
       }
     };
-  }, [editor, onChange, onSubmit]);
+  }, [editor]); // Only depend on editor, not callbacks
 }
