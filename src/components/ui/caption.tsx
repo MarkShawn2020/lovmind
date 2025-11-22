@@ -82,6 +82,12 @@ export const CaptionTextarea = React.forwardRef<
 
   const handleKeyDown = React.useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Skip all navigation handlers during IME composition (e.g., Chinese input)
+      // to allow users to select candidates with Enter/Arrow keys
+      if (e.nativeEvent.isComposing) {
+        return;
+      }
+
       const textarea = e.currentTarget;
 
       // Handle Backspace on empty caption: select parent image
