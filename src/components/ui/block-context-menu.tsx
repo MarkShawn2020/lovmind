@@ -13,6 +13,19 @@ import { useEditorPlugin, usePlateState } from 'platejs/react';
 
 import { useIsTouchDevice } from '@/hooks/use-is-touch-device';
 
+// Helper function to extract text from Slate nodes (same as in block-selection-kit)
+function getNodeString(node: any): string {
+  if ('text' in node && typeof node.text === 'string') {
+    return node.text;
+  }
+
+  if ('children' in node && Array.isArray(node.children)) {
+    return node.children.map((child: any) => getNodeString(child)).join('');
+  }
+
+  return '';
+}
+
 export function BlockContextMenu() {
   const { api, editor } = useEditorPlugin(BlockMenuPlugin);
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -165,7 +178,41 @@ export function BlockContextMenu() {
       >
         Ask AI
       </button>
-      
+
+      <button
+        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
+        onClick={() => {
+          const selectedBlocks = editor
+            .getApi(BlockSelectionPlugin)
+            .blockSelection.getNodes();
+
+          if (selectedBlocks.length === 0) return;
+
+          // Extract text from selected nodes
+          const nodes = selectedBlocks.map(([node]) => node);
+          const plainText = nodes
+            .map((node) => {
+              try {
+                return getNodeString(node);
+              } catch {
+                return '';
+              }
+            })
+            .filter(Boolean)
+            .join('\n\n');
+
+          // Write to clipboard
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(plainText).catch((err) => {
+              console.error('Failed to copy:', err);
+            });
+          }
+          setMenuOpen(false);
+        }}
+      >
+        Copy
+      </button>
+
       <button
         className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
         onClick={() => {
