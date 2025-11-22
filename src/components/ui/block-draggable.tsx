@@ -118,6 +118,36 @@ function Draggable(props: PlateElementProps) {
 
   const [dragButtonTop, setDragButtonTop] = React.useState(0);
 
+  // Fallback keyboard shortcut handler for Cmd+Enter submit
+  // This ensures submit works even if the main KeyboardShortcutsPlugin detection fails
+  // (e.g., due to contentEditable=false barriers or complex nesting)
+  const handleKeyDown = React.useCallback((event: React.KeyboardEvent) => {
+    // Cmd+Enter (Mac) or Ctrl+Enter (Windows/Linux)
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      const isDev = process.env.NODE_ENV === 'development';
+
+      if (isDev) {
+        console.log('[BlockDraggable] Fallback handler caught Cmd+Enter:', {
+          elementType: element.type,
+          path: path,
+          targetClass: (event.target as HTMLElement)?.className,
+        });
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      // Emit submit event via editor's event system
+      if (typeof editor.emit === 'function') {
+        editor.emit('submit-shortcut');
+
+        if (isDev) {
+          console.log('[BlockDraggable] ✅ Emitted submit-shortcut via fallback handler');
+        }
+      }
+    }
+  }, [editor, element.type, path]);
+
   return (
     <div
       className={cn(
@@ -136,6 +166,7 @@ function Draggable(props: PlateElementProps) {
       onMouseLeave={() => {
         setIsMouseOver(false);
       }}
+      onKeyDown={handleKeyDown}
     >
       {!isInTable && (
         <Gutter visible={isMouseOver && !isDragging}>

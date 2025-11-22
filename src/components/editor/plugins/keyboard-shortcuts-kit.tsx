@@ -30,19 +30,39 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
             const targetNode = event.target instanceof Node ? event.target : null;
             const activeElement = document.activeElement;
 
-            // Check if target or active element is Slate shadow input
+            // Priority 1: Check if target or active element is Slate shadow input (most reliable)
             if (isSlateShadowInput(targetNode) || isSlateShadowInput(activeElement)) {
                 return true;
             }
 
-            // Check if target is within a Slate editor
+            // Priority 2: Check if target is within a Slate editor
+            // Traverse up DOM tree, skipping contentEditable=false barriers
             if (targetNode instanceof Element) {
-                const isInEditor = targetNode.closest('[data-slate-editor="true"]') !== null;
-                if (isInEditor) return true;
+                let current: Element | null = targetNode;
+                while (current) {
+                    // Check for editor marker at this level
+                    if (current.hasAttribute('data-slate-editor')) {
+                        return true;
+                    }
+                    // Check if any ancestor is an editor (handles nested structures)
+                    const editorAncestor = current.closest('[data-slate-editor="true"]');
+                    if (editorAncestor) {
+                        return true;
+                    }
+                    // Move up one level (handles contentEditable=false barriers)
+                    current = current.parentElement;
+                }
             }
 
-            // Check if active element is within a Slate editor
+            // Priority 3: Check if active element is within a Slate editor or block wrapper
             if (activeElement instanceof Element) {
+                // Check for block-draggable wrapper (fallback for complex nesting)
+                const inBlockWrapper = activeElement.closest('.slate-blockWrapper');
+                if (inBlockWrapper?.closest('[data-slate-editor="true"]')) {
+                    return true;
+                }
+
+                // Standard editor check
                 const isInEditor = activeElement.closest('[data-slate-editor="true"]') !== null;
                 if (isInEditor) return true;
             }
@@ -52,19 +72,50 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
 
         // Cmd+Enter Handler: Submit shortcut
         const handleSubmit = (event: KeyboardEvent) => {
+            const isDev = process.env.NODE_ENV === 'development';
+
             if (!event || !(event.metaKey || event.ctrlKey)) return;
             if (event.key !== 'Enter') return;
-            if (!isEventFromEditor(event)) return;
+
+            const fromEditor = isEventFromEditor(event);
+
+            // Development debugging
+            if (isDev) {
+                console.log('[KeyboardShortcuts] Cmd+Enter detected:', {
+                    timestamp: event.timeStamp,
+                    targetClass: (event.target as Element)?.className,
+                    targetTag: (event.target as Element)?.tagName,
+                    activeElementClass: document.activeElement?.className,
+                    activeElementTag: document.activeElement?.tagName,
+                    isFromEditor: fromEditor,
+                    metaKey: event.metaKey,
+                    ctrlKey: event.ctrlKey,
+                });
+            }
+
+            if (!fromEditor) {
+                if (isDev) {
+                    console.log('[KeyboardShortcuts] Event not from editor, ignoring');
+                }
+                return;
+            }
 
             // Deduplication: Check if this is the same event (by timestamp)
             // Use GLOBAL state to deduplicate across multiple plugin instances
             if (event.timeStamp === globalLastSubmitTimestamp) {
+                if (isDev) {
+                    console.log('[KeyboardShortcuts] Duplicate event detected, ignoring');
+                }
                 return;
             }
             globalLastSubmitTimestamp = event.timeStamp;
 
             event.preventDefault();
             event.stopPropagation(); // Prevent event from reaching other handlers
+
+            if (isDev) {
+                console.log('[KeyboardShortcuts] ✅ Emitting submit-shortcut event');
+            }
 
             // Emit submit event for parent components
             if (typeof editor.emit === 'function') {
