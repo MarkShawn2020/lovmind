@@ -46,6 +46,16 @@ export const HashtagTransformsPlugin = createSlatePlugin({
           );
 
           editor.tf.focus();
+
+          // Manually emit input-state-changed event to trigger sync
+          // This is necessary because insertNodes bypasses insertText interception
+          if (typeof editor.emit === 'function') {
+            editor.emit('input-state-changed', {
+              isInputting: false,
+              reason: 'typing-stop' as const,
+              isFocused: true,
+            });
+          }
         } catch (error) {
           console.error('[HashtagTransforms] Failed to insert tag:', error);
         }
@@ -71,6 +81,15 @@ export const HashtagTransformsPlugin = createSlatePlugin({
           }
 
           editor.tf.focus();
+
+          // Manually emit input-state-changed event to trigger sync
+          if (typeof editor.emit === 'function') {
+            editor.emit('input-state-changed', {
+              isInputting: false,
+              reason: 'typing-stop' as const,
+              isFocused: true,
+            });
+          }
         } catch (error) {
           console.error('[HashtagTransforms] Failed to remove tag:', error);
         }
@@ -114,6 +133,15 @@ export const HashtagTransformsPlugin = createSlatePlugin({
           }
 
           editor.tf.focus();
+
+          // Manually emit input-state-changed event to trigger sync
+          if (typeof editor.emit === 'function') {
+            editor.emit('input-state-changed', {
+              isInputting: false,
+              reason: 'typing-stop' as const,
+              isFocused: true,
+            });
+          }
         } catch (error) {
           console.error('[HashtagTransforms] Failed to rename tag:', error);
         }
