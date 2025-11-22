@@ -18,6 +18,7 @@ import {
 } from 'platejs/react';
 
 import { cn } from '@/lib/utils';
+import { blockMenuState } from '@/lib/block-menu-state';
 
 import { Toolbar } from './toolbar';
 
@@ -34,10 +35,16 @@ export function FloatingToolbar({
   const isFloatingLinkOpen = !!usePluginOption({ key: KEYS.link }, 'mode');
   const isAIChatOpen = usePluginOption({ key: KEYS.aiChat }, 'open');
 
+  // Subscribe to block menu state changes
+  const [isBlockMenuOpen, setIsBlockMenuOpen] = React.useState(blockMenuState.isOpen);
+  React.useEffect(() => {
+    return blockMenuState.subscribe(setIsBlockMenuOpen);
+  }, []);
+
   const floatingToolbarState = useFloatingToolbarState({
     editorId,
     focusedEditorId,
-    hideToolbar: isFloatingLinkOpen || isAIChatOpen,
+    hideToolbar: isFloatingLinkOpen || isAIChatOpen || isBlockMenuOpen,
     ...state,
     floatingOptions: {
       middleware: [
