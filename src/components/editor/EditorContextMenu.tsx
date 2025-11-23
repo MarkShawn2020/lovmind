@@ -221,7 +221,7 @@ export function EditorContextMenu({ editor, children, targetElement }: EditorCon
 
   return (
     <>
-      <div ref={containerRef} className="min-w-0 w-full">
+      <div ref={containerRef} className="min-w-0 w-full h-full min-h-0">
         {children}
       </div>
       {menuOpen && (
