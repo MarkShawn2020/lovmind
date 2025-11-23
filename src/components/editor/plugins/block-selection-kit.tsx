@@ -2,7 +2,17 @@
 
 import { AIChatPlugin } from '@platejs/ai/react';
 import { BlockSelectionPlugin } from '@platejs/selection/react';
-import { getPluginTypes, isHotkey, KEYS, type TElement, type TText } from 'platejs';
+import {
+  createSlatePlugin,
+  getPluginTypes,
+  isHotkey,
+  KEYS,
+  PathApi,
+  type Path,
+  type TElement,
+  type TText,
+} from 'platejs';
+import { ReactEditor } from 'slate-react';
 
 import { BlockSelection } from '@/components/ui/block-selection';
 
@@ -20,6 +30,268 @@ function getNodeString(node: any): string {
 
   return '';
 }
+
+const BlockSelectionDragPlugin = createSlatePlugin({
+  key: 'block-selection-drag',
+  extendEditor: ({ editor }) => {
+    if (typeof window === 'undefined') return editor;
+    if ((editor as any).__blockSelectionDragInitialized) return editor;
+
+    (editor as any).__blockSelectionDragInitialized = true;
+
+    const state = {
+      startedInEditor: false,
+      hasTriggered: false,
+      anchorPath: null as Path | null,
+      lastFocusPath: null as Path | null,
+    };
+
+    let rafId: number | null = null;
+
+    const getEditableElement = (): HTMLElement | null => {
+      try {
+        return editor.api.toDOMNode(editor) as HTMLElement;
+      } catch {
+        return null;
+      }
+    };
+
+    const getSlateRangeFromDomSelection = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+        return null;
+      }
+
+      try {
+        const domRange = selection.getRangeAt(0);
+        return ReactEditor.toSlateRange(editor as any, domRange, {
+          exactMatch: false,
+          suppressThrow: true,
+        });
+      } catch {
+        return null;
+      }
+    };
+
+    const getBlockEntryFromSelection = () => {
+      const slateRange =
+        (editor.selection && !editor.api.isCollapsed()
+          ? editor.selection
+          : null) || getSlateRangeFromDomSelection();
+
+      if (!slateRange) return null;
+
+      const anchorBlock = editor.api.block({ at: slateRange.anchor });
+      const focusBlock = editor.api.block({ at: slateRange.focus });
+
+      if (!anchorBlock || !focusBlock) return null;
+
+      return { anchorBlock, focusBlock };
+    };
+
+    const clearBlockSelection = () => {
+      if (!state.hasTriggered) return;
+
+      try {
+        const api = editor.getApi(BlockSelectionPlugin).blockSelection;
+        api.unselect();
+        editor.setOption(BlockSelectionPlugin, 'anchorId', null);
+        editor.setOption(BlockSelectionPlugin, 'isSelecting', false);
+      } catch {
+        // Ignore if plugin API is unavailable
+      }
+
+      state.hasTriggered = false;
+    };
+
+    const updateBlockSelection = (
+      anchorPath: Path,
+      focusPath: Path,
+      finalize = false
+    ) => {
+      const blockSelectionApi =
+        editor.getApi(BlockSelectionPlugin)?.blockSelection;
+      if (!blockSelectionApi) return;
+
+      const targetDepth = Math.min(anchorPath.length, focusPath.length);
+      const anchorPathAtDepth = anchorPath.slice(0, targetDepth);
+      const focusPathAtDepth = focusPath.slice(0, targetDepth);
+
+      const [startPath, endPath] =
+        PathApi.compare(anchorPathAtDepth, focusPathAtDepth) <= 0
+          ? [anchorPathAtDepth, focusPathAtDepth]
+          : [focusPathAtDepth, anchorPathAtDepth];
+
+      const candidates = editor.api.blocks({
+        at: [],
+        mode: 'lowest',
+        match: (node, path) =>
+          !!(node as any).id &&
+          path.length === targetDepth &&
+          blockSelectionApi.isSelectable(node as TElement, path),
+      });
+
+      const blocksInRange = candidates
+        .filter(([, path]) => {
+          const beforeStart = PathApi.compare(path, startPath) < 0;
+          const afterEnd = PathApi.compare(path, endPath) > 0;
+          return !beforeStart && !afterEnd;
+        })
+        .sort(([, pathA], [, pathB]) => PathApi.compare(pathA, pathB));
+
+      if (!blocksInRange || blocksInRange.length <= 1) {
+        clearBlockSelection();
+        return;
+      }
+
+      const ids: string[] = [];
+      blocksInRange.forEach(([node]) => {
+        const id = (node as any).id as string | undefined;
+        if (id && !ids.includes(id)) {
+          ids.push(id);
+        }
+      });
+
+      const prevSelectedIds = editor.getOption(
+        BlockSelectionPlugin,
+        'selectedIds'
+      );
+      const hasSameSelection =
+        prevSelectedIds &&
+        ids.length === prevSelectedIds.size &&
+        ids.every((id) => prevSelectedIds.has(id));
+
+      if (!hasSameSelection) {
+        blockSelectionApi.setSelectedIds({ ids });
+      } else {
+        editor.setOption(BlockSelectionPlugin, 'isSelecting', true);
+      }
+
+      editor.setOption(BlockSelectionPlugin, 'anchorId', ids[0]);
+      state.hasTriggered = true;
+
+      if (finalize) {
+        blockSelectionApi.focus();
+        const domSelection = window.getSelection();
+        domSelection?.removeAllRanges();
+      }
+    };
+
+    const applyBlockSelectionFromSelection = (finalize = false) => {
+      const blockEntry = getBlockEntryFromSelection();
+      if (!blockEntry) {
+        clearBlockSelection();
+        return;
+      }
+
+      updateBlockSelection(
+        blockEntry.anchorBlock[1],
+        blockEntry.focusBlock[1],
+        finalize
+      );
+    };
+
+    const getBlockPathFromEvent = (event: MouseEvent): Path | null => {
+      try {
+        const range = ReactEditor.findEventRange(editor as any, event);
+        const block = editor.api.block({ at: range.anchor });
+        if (block) return block[1];
+      } catch {
+        // ignore and fallback
+      }
+
+      const target = event.target as Node;
+      if (ReactEditor.hasDOMNode(editor as any, target)) {
+        try {
+          const slateNode = ReactEditor.toSlateNode(editor as any, target);
+          const path = ReactEditor.findPath(editor as any, slateNode);
+          const block = editor.api.block({ at: path });
+          if (block) return block[1];
+        } catch {
+          // ignore
+        }
+      }
+
+      return null;
+    };
+
+    const scheduleUpdate = (finalize = false) => {
+      if (!state.startedInEditor && !finalize) return;
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (state.anchorPath && state.lastFocusPath) {
+          updateBlockSelection(state.anchorPath, state.lastFocusPath, finalize);
+        } else {
+          applyBlockSelectionFromSelection(finalize);
+        }
+      });
+    };
+
+    const handleMouseDown = (event: MouseEvent) => {
+      if (event.button !== 0) return;
+
+      const editable = getEditableElement();
+      if (!editable || !(event.target instanceof Node)) return;
+      if (!editable.contains(event.target)) return;
+
+      state.startedInEditor = true;
+      state.hasTriggered = false;
+      const anchorPath = getBlockPathFromEvent(event);
+      state.anchorPath = anchorPath;
+      state.lastFocusPath = anchorPath;
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!state.startedInEditor) return;
+      if (event.buttons !== 1) return;
+
+      const focusPath = getBlockPathFromEvent(event);
+      if (focusPath) {
+        state.lastFocusPath = focusPath;
+      }
+
+      scheduleUpdate(false);
+    };
+
+    const handleSelectionChange = () => {
+      if (!state.startedInEditor) return;
+      scheduleUpdate(false);
+    };
+
+    const handleMouseUp = () => {
+      if (!state.startedInEditor) return;
+
+      state.startedInEditor = false;
+      scheduleUpdate(true);
+      requestAnimationFrame(() => {
+        state.anchorPath = null;
+        state.lastFocusPath = null;
+      });
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('selectionchange', handleSelectionChange);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    const cleanup = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('selectionchange', handleSelectionChange);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    (editor as any).__blockSelectionDragCleanup = cleanup;
+
+    return editor;
+  },
+});
 
 export const BlockSelectionKit = [
   BlockSelectionPlugin.configure(({ editor }) => ({
@@ -257,4 +529,5 @@ export const BlockSelectionKit = [
       },
     },
   })),
+  BlockSelectionDragPlugin,
 ];

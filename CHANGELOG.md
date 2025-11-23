@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 - feat(editor): 块选择复制粘贴支持完整格式保留(列表、缩进、对齐等)
+- feat(editor): 支持鼠标拖拽进行跨块选择
 
 ### Changed
 - feat(editor): 优化 Cmd+A 全选后粘贴位置,自动定位到文档末尾
