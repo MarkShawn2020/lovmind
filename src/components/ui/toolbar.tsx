@@ -28,7 +28,7 @@ export function Toolbar({
   return (
     <ToolbarPrimitive.Root
       className={cn(
-        'relative flex items-center select-none',
+        'relative flex items-center select-none min-w-0',
         wrap && 'flex-wrap gap-y-2',
         className
       )}
@@ -43,7 +43,7 @@ export function ToolbarToggleGroup({
 }: React.ComponentProps<typeof ToolbarPrimitive.ToolbarToggleGroup>) {
   return (
     <ToolbarPrimitive.ToolbarToggleGroup
-      className={cn('flex items-center', className)}
+      className={cn('flex items-center min-w-0', className)}
       {...props}
     />
   );
@@ -279,11 +279,11 @@ export function ToolbarGroup({
     <div
       className={cn(
         'group/toolbar-group',
-        'relative hidden has-[button]:flex',
+        'relative hidden has-[button]:flex min-w-0',
         className
       )}
     >
-      <div className="flex items-center">{children}</div>
+      <div className="flex items-center min-w-0">{children}</div>
 
       <div className="mx-1.5 py-0.5 group-last/toolbar-group:hidden!">
         <Separator orientation="vertical" />

@@ -215,13 +215,13 @@ export function EditorContextMenu({ editor, children, targetElement }: EditorCon
 
   const itemClassName = (disabled?: boolean) =>
     cn(
-      'relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left',
+      'relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left min-w-0',
       disabled && 'pointer-events-none opacity-50 text-muted-foreground'
     );
 
   return (
     <>
-      <div ref={containerRef}>
+      <div ref={containerRef} className="min-w-0 w-full">
         {children}
       </div>
       {menuOpen && (
@@ -232,27 +232,27 @@ export function EditorContextMenu({ editor, children, targetElement }: EditorCon
           role="menu"
         >
           <button className={itemClassName(!hasSelection)} onClick={handleCopy} disabled={!hasSelection}>
-            Copy
+            <span className="flex-1 truncate">Copy</span>
             <ContextMenuShortcut>⌘C</ContextMenuShortcut>
           </button>
           <button className={itemClassName(!hasSelection)} onClick={handleCopyAsMarkdown} disabled={!hasSelection}>
-            Copy as Markdown
+            <span className="flex-1 truncate">Copy as Markdown</span>
           </button>
           <button className={itemClassName(!hasSelection)} onClick={handleCopyAsPlainText} disabled={!hasSelection}>
-            Copy as Plain Text
+            <span className="flex-1 truncate">Copy as Plain Text</span>
           </button>
           <div className="-mx-1 my-1 h-px bg-border" />
           <button className={itemClassName(!hasSelection)} onClick={handleCut} disabled={!hasSelection}>
-            Cut
+            <span className="flex-1 truncate">Cut</span>
             <ContextMenuShortcut>⌘X</ContextMenuShortcut>
           </button>
           <button className={itemClassName()} onClick={handlePaste}>
-            Paste
+            <span className="flex-1 truncate">Paste</span>
             <ContextMenuShortcut>⌘V</ContextMenuShortcut>
           </button>
           <div className="-mx-1 my-1 h-px bg-border" />
           <button className={itemClassName()} onClick={handleSelectAll}>
-            Select All
+            <span className="flex-1 truncate">Select All</span>
             <ContextMenuShortcut>⌘A</ContextMenuShortcut>
           </button>
         </div>

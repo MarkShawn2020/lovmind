@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 - fix(editor): 修复跨block文本选择后右键菜单选区丢失及功能失效问题
+- fix(ui): 修复编辑器组件宽度溢出问题,添加 min-w-0 约束防止内容超出父容器
 
 ## [0.1.0] - 2025-11-23
 ### Added

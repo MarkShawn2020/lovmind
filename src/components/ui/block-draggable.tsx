@@ -151,7 +151,7 @@ function Draggable(props: PlateElementProps) {
   return (
     <div
       className={cn(
-        'relative',
+        'relative min-w-0',
         isDragging && 'opacity-50',
         getPluginByType(editor, element.type)?.node.isContainer
           ? 'group/container'
@@ -212,7 +212,7 @@ function Draggable(props: PlateElementProps) {
 
       <div
         ref={nodeRef}
-        className="slate-blockWrapper flow-root"
+        className="slate-blockWrapper flow-root min-w-0"
         onContextMenu={(event) => {
           // Check if there's an active text selection
           const hasTextSelection = editor.selection && !editor.api.isCollapsed();
