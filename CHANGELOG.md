@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 - feat(editor): 优化 Cmd+A 全选后粘贴位置,自动定位到文档末尾
 
+### Fixed
+- fix(editor): 修复跨block文本选择后右键菜单选区丢失及功能失效问题
+
 ## [0.1.0] - 2025-11-23
 ### Added
 - 初始版本发布

@@ -213,11 +213,28 @@ function Draggable(props: PlateElementProps) {
       <div
         ref={nodeRef}
         className="slate-blockWrapper flow-root"
-        onContextMenu={(event) =>
-          editor
-            .getApi(BlockSelectionPlugin)
-            .blockSelection.addOnContextMenu({ element, event })
-        }
+        onContextMenu={(event) => {
+          // Check if there's an active text selection
+          const hasTextSelection = editor.selection && !editor.api.isCollapsed();
+
+          console.log('[BlockDraggable] onContextMenu:', {
+            elementId: element.id,
+            hasTextSelection,
+            selection: editor.selection,
+            willCallAddOnContextMenu: !hasTextSelection
+          });
+
+          // Only trigger block selection if no text is selected
+          // This preserves cross-block text selections when right-clicking
+          if (!hasTextSelection) {
+            console.log('[BlockDraggable] ⚠️ Calling addOnContextMenu - this will change selection!');
+            editor
+              .getApi(BlockSelectionPlugin)
+              .blockSelection.addOnContextMenu({ element, event });
+          } else {
+            console.log('[BlockDraggable] ✅ Skipping addOnContextMenu - text selection preserved');
+          }
+        }}
       >
         <MemoizedChildren>{children}</MemoizedChildren>
         <DropLine />

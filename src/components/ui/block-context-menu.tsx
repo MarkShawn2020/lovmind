@@ -37,9 +37,17 @@ export function BlockContextMenu() {
   const isTouch = useIsTouchDevice();
   const [readOnly] = usePlateState('readOnly');
 
+  // Save selection on right-click to restore if it gets cleared
+  const savedSelectionRef = React.useRef<any>(null);
+
   // Update global state when menu state changes to hide floating toolbar
   React.useEffect(() => {
     blockMenuState.setOpen(menuOpen);
+
+    // Clear saved selection when menu closes
+    if (!menuOpen) {
+      savedSelectionRef.current = null;
+    }
   }, [menuOpen]);
 
   const handleTurnInto = React.useCallback(
@@ -119,11 +127,54 @@ export function BlockContextMenu() {
 
       // Only handle if it's in the editor
       if (target.closest('[data-slate-editor="true"]')) {
+        // Handle ALL selection types with unified BlockContextMenu:
+        // 1. Block selection (Cmd+A, manual block selection)
+        // 2. Text selection (cross-block drag-select)
+        // 3. No selection (right-click on empty block)
+
+        let hasTextSelection = editor.selection && !editor.api.isCollapsed();
+        let blockSelectionNodes = editor.getApi(BlockSelectionPlugin).blockSelection.getNodes();
+        let hasBlockSelection = blockSelectionNodes.length > 0;
+
+        console.log('[BlockContextMenu] handleContextMenu (before restore):', {
+          hasTextSelection,
+          hasBlockSelection,
+          blockSelectionCount: blockSelectionNodes.length,
+          selection: editor.selection,
+          savedSelection: savedSelectionRef.current
+        });
+
+        // If we saved a text selection, ALWAYS restore it and clear block selection
+        // This handles the case where selection was cleared or changed to block selection
+        if (savedSelectionRef.current) {
+          console.log('[BlockContextMenu] 🔄 Restoring saved text selection and clearing block selection');
+
+          // First, clear any block selection
+          editor.getApi(BlockSelectionPlugin).blockSelection.unselect();
+
+          // Then restore text selection
+          editor.tf.select(savedSelectionRef.current);
+
+          // Force the editor to sync the DOM selection with Slate's selection
+          // This ensures the visual highlight appears
+          requestAnimationFrame(() => {
+            try {
+              editor.tf.focus();
+              console.log('[BlockContextMenu] 🎨 Forced focus to restore visual highlight');
+            } catch (e) {
+              console.warn('[BlockContextMenu] Failed to force focus:', e);
+            }
+          });
+
+          // Update local state
+          hasTextSelection = true;
+          hasBlockSelection = false;
+
+          console.log('[BlockContextMenu] ✅ Selection restored');
+        }
+
         event.preventDefault();
         event.stopPropagation();
-
-        // Prevent the default mousedown behavior that might clear selection
-        // This ensures the block selection remains intact when right-clicking
 
         // Store initial click position - will be adjusted after render
         setInitialPosition({ x: event.clientX, y: event.clientY });
@@ -142,10 +193,30 @@ export function BlockContextMenu() {
       if (event.button === 2) {
         const target = event.target as HTMLElement;
         if (target.closest('[data-slate-editor="true"]')) {
-          // Check if there's a block selection active
+          // Check if there's a block selection or text selection active
           const hasBlockSelection = editor.getApi(BlockSelectionPlugin).blockSelection.getNodes().length > 0;
+          const hasTextSelection = editor.selection && !editor.api.isCollapsed();
 
-          if (hasBlockSelection) {
+          console.log('[BlockContextMenu] handleMouseDown (capture phase):', {
+            hasBlockSelection,
+            hasTextSelection,
+            selection: editor.selection,
+            button: event.button,
+            phase: 'capture',
+            currentSavedSelection: savedSelectionRef.current
+          });
+
+          // Save the current selection to restore later if needed
+          // IMPORTANT: Only save if we don't already have a saved selection (to avoid overwriting)
+          if (hasTextSelection && !savedSelectionRef.current) {
+            savedSelectionRef.current = editor.selection;
+            console.log('[BlockContextMenu] 💾 Saved text selection:', savedSelectionRef.current);
+          } else if (hasTextSelection) {
+            console.log('[BlockContextMenu] ℹ️ Already have saved selection, keeping it');
+          }
+
+          if (hasBlockSelection || hasTextSelection) {
+            console.log('[BlockContextMenu] ✅ Preventing mousedown to protect selection');
             // Prevent the mousedown from propagating to Slate, which would clear the selection
             event.preventDefault();
             event.stopPropagation();
@@ -195,6 +266,11 @@ export function BlockContextMenu() {
     <div
       ref={menuRef}
       className="fixed z-50 min-w-[8rem] max-h-[calc(100vh-16px)] overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md w-64"
+      onMouseDown={(e) => {
+        // Prevent the menu from stealing focus from the editor
+        // This keeps the text selection highlight visible
+        e.preventDefault();
+      }}
       style={{
         left: `${menuPosition.x}px`,
         top: `${menuPosition.y}px`,
@@ -214,12 +290,26 @@ export function BlockContextMenu() {
       <button
         className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
         onClick={() => {
+          const hasTextSelection = editor.selection && !editor.api.isCollapsed();
           const selectedBlocks = editor
             .getApi(BlockSelectionPlugin)
             .blockSelection.getNodes();
 
+          console.log('[Copy] Selection state:', { hasTextSelection, selectedBlocks: selectedBlocks.length });
+
+          // Handle text selection (cross-block drag select)
+          if (hasTextSelection && selectedBlocks.length === 0) {
+            console.log('[Copy] Using text selection');
+            // Use native copy command which works with text selection
+            document.execCommand('copy');
+            setMenuOpen(false);
+            return;
+          }
+
+          // Handle block selection
           if (selectedBlocks.length === 0) return;
 
+          console.log('[Copy] Using block selection');
           // Extract text from selected nodes
           const nodes = selectedBlocks.map(([node]) => node);
           const plainText = nodes
@@ -248,12 +338,40 @@ export function BlockContextMenu() {
       <button
         className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
         onClick={() => {
+          const hasTextSelection = editor.selection && !editor.api.isCollapsed();
           const selectedBlocks = editor
             .getApi(BlockSelectionPlugin)
             .blockSelection.getNodes();
 
+          console.log('[Copy as Markdown] Selection state:', { hasTextSelection, selectedBlocks: selectedBlocks.length });
+
+          // Handle text selection
+          if (hasTextSelection && selectedBlocks.length === 0) {
+            console.log('[Copy as Markdown] Using text selection');
+            try {
+              // Get the fragment from the text selection
+              const fragment = editor.api.fragment();
+
+              // Serialize to Markdown
+              const markdown = serializeMd(editor as any, { value: fragment as any });
+
+              // Write to clipboard
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(markdown).catch((err) => {
+                  console.error('Failed to copy markdown:', err);
+                });
+              }
+            } catch (error) {
+              console.error('Failed to serialize markdown from text selection:', error);
+            }
+            setMenuOpen(false);
+            return;
+          }
+
+          // Handle block selection
           if (selectedBlocks.length === 0) return;
 
+          console.log('[Copy as Markdown] Using block selection');
           // Extract selected nodes
           const nodes = selectedBlocks.map(([node]) => node);
 
@@ -280,6 +398,24 @@ export function BlockContextMenu() {
       <button
         className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
         onClick={() => {
+          const hasTextSelection = editor.selection && !editor.api.isCollapsed();
+          const selectedBlocks = editor
+            .getApi(BlockSelectionPlugin)
+            .blockSelection.getNodes();
+
+          console.log('[Delete] Selection state:', { hasTextSelection, selectedBlocks: selectedBlocks.length });
+
+          // Handle text selection
+          if (hasTextSelection && selectedBlocks.length === 0) {
+            console.log('[Delete] Deleting text selection');
+            editor.tf.delete();
+            editor.tf.focus();
+            setMenuOpen(false);
+            return;
+          }
+
+          // Handle block selection
+          console.log('[Delete] Deleting block selection');
           editor.getTransforms(BlockSelectionPlugin).blockSelection.removeNodes();
           editor.tf.focus();
           setMenuOpen(false);

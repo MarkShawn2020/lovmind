@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { BlockSelectionPlugin } from '@platejs/selection/react';
 import { ContextMenuShortcut } from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
 import { copyAsMarkdown, copyAsPlainText } from '@/utils/editorClipboard';
@@ -20,6 +21,7 @@ export function EditorContextMenu({ editor, children, targetElement }: EditorCon
   const [menuPosition, setMenuPosition] = React.useState({ x: 0, y: 0 });
   const [initialPosition, setInitialPosition] = React.useState({ x: 0, y: 0 });
   const menuRef = React.useRef<HTMLDivElement | null>(null);
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
 
   // Check if editor has selection to enable/disable copy options
   React.useEffect(() => {
@@ -35,27 +37,58 @@ export function EditorContextMenu({ editor, children, targetElement }: EditorCon
     };
   }, [editor]);
 
-  React.useEffect(() => {
-    if (!targetElement) return;
+  // EditorContextMenu is disabled - using only BlockContextMenu for all selections
+  // React.useEffect(() => {
+  //   // Use provided targetElement or fall back to containerRef
+  //   const target = targetElement || containerRef.current;
+  //   if (!target) return;
 
-    const handleContextMenu = (event: MouseEvent) => {
-      if (!(event.target instanceof Node)) return;
-      if (!targetElement.contains(event.target)) return;
+  //   const handleContextMenu = (event: MouseEvent) => {
+  //     if (!(event.target instanceof Node)) return;
+  //     if (!target.contains(event.target)) return;
 
-      event.preventDefault();
-      event.stopPropagation();
+  //     // Check if there's a text selection
+  //     const hasTextSelection = editor.selection && !editor.api.isCollapsed();
 
-      const { clientX, clientY } = event;
-      setInitialPosition({ x: clientX, y: clientY });
-      setMenuPosition({ x: clientX, y: clientY });
-      setMenuOpen(true);
-    };
+  //     // Check if there's an active block selection (e.g., from Cmd+A)
+  //     let blockSelectionNodes: any[] = [];
+  //     let hasBlockSelection = false;
+  //     try {
+  //       blockSelectionNodes = editor.getApi(BlockSelectionPlugin).blockSelection.getNodes();
+  //       hasBlockSelection = blockSelectionNodes.length > 0;
+  //     } catch (e) {
+  //       // BlockSelectionPlugin may not be available
+  //     }
 
-    document.addEventListener('contextmenu', handleContextMenu, true);
-    return () => {
-      document.removeEventListener('contextmenu', handleContextMenu, true);
-    };
-  }, [targetElement]);
+  //     console.log('[EditorContextMenu] handleContextMenu:', {
+  //       hasTextSelection,
+  //       hasBlockSelection,
+  //       blockSelectionCount: blockSelectionNodes.length,
+  //       selection: editor.selection
+  //     });
+
+  //     // Only handle context menu if there's a text selection WITHOUT block selection
+  //     // If block selection is active (e.g., Cmd+A), let BlockContextMenu handle it
+  //     if (!hasTextSelection || hasBlockSelection) {
+  //       console.log('[EditorContextMenu] ⏭️ Skipping - either no text selection or block selection active');
+  //       return;
+  //     }
+
+  //     console.log('[EditorContextMenu] ✅ Handling - pure text selection, showing editor menu');
+  //     event.preventDefault();
+  //     event.stopPropagation();
+
+  //     const { clientX, clientY } = event;
+  //     setInitialPosition({ x: clientX, y: clientY });
+  //     setMenuPosition({ x: clientX, y: clientY });
+  //     setMenuOpen(true);
+  //   };
+
+  //   document.addEventListener('contextmenu', handleContextMenu, true);
+  //   return () => {
+  //     document.removeEventListener('contextmenu', handleContextMenu, true);
+  //   };
+  // }, [targetElement, editor]);
 
   React.useLayoutEffect(() => {
     if (!menuOpen || !menuRef.current) return;
@@ -188,7 +221,9 @@ export function EditorContextMenu({ editor, children, targetElement }: EditorCon
 
   return (
     <>
-      {children}
+      <div ref={containerRef}>
+        {children}
+      </div>
       {menuOpen && (
         <div
           ref={menuRef}
