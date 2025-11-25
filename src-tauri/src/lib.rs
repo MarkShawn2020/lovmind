@@ -649,9 +649,11 @@ async fn reset_shortcut_settings(app: tauri::AppHandle) -> Result<ShortcutSettin
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
-        .plugin(tauri_plugin_window_state::Builder::new().build())
         .manage(MainWindowMenuItem(Mutex::new(None)))
         .plugin(tauri_plugin_opener::init());
+
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    let builder = builder.plugin(tauri_plugin_window_state::Builder::new().build());
 
     let builder = builder
         .plugin(tauri_plugin_store::Builder::new().build())
