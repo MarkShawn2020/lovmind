@@ -17,6 +17,7 @@ import { useFilePicker } from 'use-file-picker';
 
 import { cn } from '@/lib/utils';
 import { useUploadFile } from '@/hooks/use-upload-file';
+import { startImageUpload } from '@/lib/upload-manager';
 
 const CONTENT: Record<
   string,
@@ -81,16 +82,72 @@ export const PlaceholderElement = withHOC(
       },
     });
 
+    // Track the image node ID we created (for updating URL after upload)
+    const imageNodeIdRef = React.useRef<string | null>(null);
+    // Store pending file for image insertion (triggers useEffect)
+    const [pendingImage, setPendingImage] = React.useState<{ file: File; blobUrl: string; nodeId: string } | null>(null);
+
     const replaceCurrentPlaceholder = React.useCallback(
       (file: File) => {
-        void uploadFile(file);
-        api.placeholder.addUploadingFile(element.id as string, file);
+        // For images: schedule immediate insertion of Image node with blob URL
+        if (isImage) {
+          const blobUrl = URL.createObjectURL(file);
+          // Generate nodeId here so we can track it
+          const nodeId = `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          imageNodeIdRef.current = nodeId;
+          setPendingImage({ file, blobUrl, nodeId });
+          // Start upload using global manager (survives component unmount)
+          void startImageUpload(nodeId, file, blobUrl);
+        } else {
+          // For non-images: use original flow with hook
+          void uploadFile(file);
+          api.placeholder.addUploadingFile(element.id as string, file);
+        }
       },
-      [api.placeholder, element.id, uploadFile]
+      [api.placeholder, element.id, uploadFile, isImage]
     );
 
+    // Process pending image file - insert Image node with blob URL
     React.useEffect(() => {
-      if (!uploadedFile) return;
+      if (!pendingImage || !isImage) return;
+
+      const pending = pendingImage;
+      setPendingImage(null);
+
+      const path = editor.api.findPath(element);
+      if (!path) return;
+
+      // Use setTimeout to ensure we're outside React's render cycle
+      setTimeout(() => {
+        try {
+          editor.tf.removeNodes({ at: path });
+
+          const node = {
+            id: pending.nodeId,
+            children: [{ text: '' }],
+            isUpload: true,
+            type: KEYS.img,
+            url: pending.blobUrl,
+            // Mark as uploading for progress display
+            isUploading: true,
+            uploadProgress: 0,
+          };
+
+          editor.tf.insertNodes(node, { at: path });
+
+          console.log('[PlaceholderElement] Inserted Image node with blob URL:', pending.blobUrl, 'nodeId:', pending.nodeId);
+        } catch (err) {
+          console.error('[PlaceholderElement] Failed to insert image node:', err);
+        }
+      }, 0);
+    }, [pendingImage, isImage, editor, element]);
+
+    // Note: Upload completion is now handled via custom event 'image-upload-complete'
+    // which is listened to by ImageElement
+
+    // For non-images: original upload complete handler
+    React.useEffect(() => {
+      if (!uploadedFile || isImage) return;
 
       const path = editor.api.findPath(element);
 
@@ -108,27 +165,21 @@ export const PlaceholderElement = withHOC(
           placeholderId: element.id as string,
           type: element.mediaType!,
           url: uploadedFile.url,
-          // Auto-focus caption for pasted/uploaded media
           autoFocusCaption:
-            element.mediaType === KEYS.img ||
             element.mediaType === KEYS.video ||
             element.mediaType === KEYS.audio,
         };
 
         editor.tf.insertNodes(node, { at: path });
-
         updateUploadHistory(editor, node);
       });
 
-      // ✅ Ensure editor regains focus after async operation
       setTimeout(() => {
         editor.tf.focus();
-        console.log('[PlaceholderElement] 已恢复编辑器焦点');
       }, 0);
 
       api.placeholder.removeUploadingFile(element.id as string);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [uploadedFile, element.id]);
+    }, [uploadedFile, element.id, isImage]);
 
     // React dev mode will call React.useEffect twice
     const isReplaced = React.useRef(false);
@@ -181,13 +232,8 @@ export const PlaceholderElement = withHOC(
           </div>
         )}
 
-        {isImage && loading && (
-          <ImageProgress
-            file={uploadingFile}
-            imageRef={imageRef}
-            progress={progress}
-          />
-        )}
+        {/* Note: For images, we now directly insert ImageElement with blob URL,
+            so ImageProgress is no longer used for images */}
 
         {props.children}
       </PlateElement>
@@ -200,24 +246,31 @@ export function ImageProgress({
   file,
   imageRef,
   progress = 0,
+  blobUrl,
 }: {
   file: File;
   className?: string;
   imageRef?: React.RefObject<HTMLImageElement | null>;
   progress?: number;
+  blobUrl?: string | null;
 }) {
-  const [objectUrl, setObjectUrl] = React.useState<string | null>(null);
+  // Use provided blobUrl or create our own (fallback)
+  const [fallbackUrl, setFallbackUrl] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    const url = URL.createObjectURL(file);
-    setObjectUrl(url);
+    // Only create fallback URL if no blobUrl provided
+    if (!blobUrl) {
+      const url = URL.createObjectURL(file);
+      setFallbackUrl(url);
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    }
+  }, [file, blobUrl]);
 
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [file]);
+  const displayUrl = blobUrl || fallbackUrl;
 
-  if (!objectUrl) {
+  if (!displayUrl) {
     return null;
   }
 
@@ -227,7 +280,7 @@ export function ImageProgress({
         ref={imageRef}
         className="h-auto w-full rounded-sm object-cover"
         alt={file.name}
-        src={objectUrl}
+        src={displayUrl}
       />
       {progress < 100 && (
         <div className="absolute right-1 bottom-1 flex items-center space-x-2 rounded-full bg-black/50 px-1 py-0.5">

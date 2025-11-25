@@ -23,7 +23,7 @@ import { CaptionPlugin } from '@platejs/caption/react';
 import { useEditorRef } from 'platejs/react';
 import { useAtomValue } from 'jotai';
 import { imageMaxHeightAtom } from '@/store';
-import { Maximize2 } from 'lucide-react';
+import { Loader2Icon, Maximize2 } from 'lucide-react';
 
 export const ImageElement = withHOC(
   ResizableProvider,
@@ -35,6 +35,61 @@ export const ImageElement = withHOC(
     const [isExpanded, setIsExpanded] = React.useState(false);
     const [isImageTall, setIsImageTall] = React.useState(false);
     const imageRef = React.useRef<HTMLImageElement>(null);
+
+    // Get upload state from element (set by PlaceholderElement)
+    const element = props.element as TImageElement & {
+      isUploading?: boolean;
+      uploadProgress?: number;
+    };
+    const isUploading = element.isUploading;
+    const uploadProgress = element.uploadProgress ?? 0;
+    const nodeId = (element as any).id;
+
+    // Listen for upload progress and complete events
+    React.useEffect(() => {
+      if (!isUploading || !nodeId) return;
+
+      const handleUploadProgress = (e: CustomEvent<{ nodeId: string; progress: number }>) => {
+        if (e.detail.nodeId !== nodeId) return;
+
+        // Use props.element to find path directly
+        const path = editor.api.findPath(props.element);
+        if (path) {
+          editor.tf.setNodes({ uploadProgress: e.detail.progress }, { at: path });
+        }
+      };
+
+      const handleUploadComplete = (e: CustomEvent<{ nodeId: string; finalUrl: string }>) => {
+        if (e.detail.nodeId !== nodeId) return;
+
+        console.log('[ImageElement] Received upload complete for:', nodeId, 'URL:', e.detail.finalUrl);
+
+        // Use props.element to find path directly
+        const path = editor.api.findPath(props.element);
+        if (path) {
+          // Update URL in place (no DOM replacement = no flicker!)
+          editor.tf.setNodes(
+            {
+              url: e.detail.finalUrl,
+              isUploading: false,
+              uploadProgress: 100,
+            },
+            { at: path }
+          );
+
+          console.log('[ImageElement] Updated URL in place at path:', path);
+        } else {
+          console.error('[ImageElement] Could not find path for element');
+        }
+      };
+
+      window.addEventListener('image-upload-progress', handleUploadProgress as EventListener);
+      window.addEventListener('image-upload-complete', handleUploadComplete as EventListener);
+      return () => {
+        window.removeEventListener('image-upload-progress', handleUploadProgress as EventListener);
+        window.removeEventListener('image-upload-complete', handleUploadComplete as EventListener);
+      };
+    }, [isUploading, nodeId, editor, props.element]);
 
     const { isDragging, handleRef } = useDraggable({
       element: props.element,
@@ -106,6 +161,15 @@ export const ImageElement = withHOC(
                   }}
                   alt={props.attributes.alt as string | undefined}
                 />
+                {/* Upload progress indicator */}
+                {isUploading && (
+                  <div className="absolute right-1 bottom-1 flex items-center space-x-2 rounded-full bg-black/50 px-2 py-1">
+                    <Loader2Icon className="size-3.5 animate-spin text-white" />
+                    <span className="text-xs font-medium text-white">
+                      {uploadProgress < 100 ? `${Math.round(uploadProgress)}%` : 'Processing...'}
+                    </span>
+                  </div>
+                )}
                 {/* Expand/Collapse button - only show when image is tall and max-height is set */}
                 {isImageTall && imageMaxHeight > 0 && (
                   <button

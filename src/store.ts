@@ -93,6 +93,49 @@ const initStore = async (): Promise<Store | null> => {
 // Initialize store on module load
 initStore();
 
+// Export function to wait for store initialization
+export const waitForStoreReady = async (): Promise<boolean> => {
+  if (storeReady) return true;
+  if (!isTauri()) return true; // Non-Tauri uses localStorage, always ready
+
+  await initStore();
+  return storeReady;
+};
+
+// Export function to check if store is ready (sync)
+export const isStoreReady = (): boolean => {
+  if (!isTauri()) return true;
+  return storeReady;
+};
+
+// Export function to get a value directly from store (after init)
+export const getStoreValue = async <T>(key: string, defaultValue: T): Promise<T> => {
+  await waitForStoreReady();
+
+  // Try memory cache first
+  if (memoryCache.has(key)) {
+    try {
+      return JSON.parse(memoryCache.get(key)!) as T;
+    } catch {
+      return defaultValue;
+    }
+  }
+
+  // Fallback to direct store read
+  if (store) {
+    const value = await store.get<string>(key);
+    if (value !== null && value !== undefined) {
+      try {
+        return JSON.parse(value) as T;
+      } catch {
+        return defaultValue;
+      }
+    }
+  }
+
+  return defaultValue;
+};
+
 // Helper function to migrate old object-format notes to array format
 const migrateNotesData = (rawData: string): string => {
   try {
@@ -245,6 +288,38 @@ export const isPinnedCollapsedAtom = atomWithStorage<boolean>(
   'lovpen-pinned-collapsed',
   false, // Default: expanded
   createTauriStorage<boolean>(),
+  { getOnInit: true }
+);
+
+// Cloud storage settings (Qiniu)
+export interface CloudStorageSettings {
+  enabled: boolean;
+  provider: 'qiniu' | 'local'; // Extensible for future providers
+  qiniu: {
+    accessKey: string;
+    secretKey: string;
+    bucket: string;
+    domain: string; // CDN domain for accessing uploaded files
+    region: 'z0' | 'z1' | 'z2' | 'na0' | 'as0'; // Qiniu regions
+  };
+}
+
+export const defaultCloudStorageSettings: CloudStorageSettings = {
+  enabled: false,
+  provider: 'local',
+  qiniu: {
+    accessKey: '',
+    secretKey: '',
+    bucket: '',
+    domain: '',
+    region: 'z0', // Default: East China
+  },
+};
+
+export const cloudStorageSettingsAtom = atomWithStorage<CloudStorageSettings>(
+  'lovpen-cloud-storage',
+  defaultCloudStorageSettings,
+  createTauriStorage<CloudStorageSettings>(),
   { getOnInit: true }
 );
 

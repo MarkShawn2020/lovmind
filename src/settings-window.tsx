@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Keyboard, RotateCcw, Image as ImageIcon, Tag, Info } from 'lucide-react';
+import { X, Keyboard, RotateCcw, Image as ImageIcon, Tag, Info, Cloud, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { emit } from '@tauri-apps/api/event';
 import { isTauri } from './utils/tauri';
 import { useAtom } from 'jotai';
-import { imageMaxHeightAtom } from './store';
+import { imageMaxHeightAtom, cloudStorageSettingsAtom, defaultCloudStorageSettings, type CloudStorageSettings, getStoreValue } from './store';
 import { useTagMergeStrategy, type TagMergeStrategy } from '@/hooks/useTagMergeStrategy';
 
 interface ShortcutConfig {
@@ -92,7 +92,19 @@ const TAG_STRATEGY_OPTIONS: Array<{
   },
 ];
 
-type SettingsTab = 'display' | 'shortcuts' | 'tags';
+type SettingsTab = 'display' | 'shortcuts' | 'tags' | 'cloud';
+
+const QINIU_REGIONS: Array<{
+  value: CloudStorageSettings['qiniu']['region'];
+  label: string;
+  description: string;
+}> = [
+  { value: 'z0', label: '华东', description: 'East China (z0)' },
+  { value: 'z1', label: '华北', description: 'North China (z1)' },
+  { value: 'z2', label: '华南', description: 'South China (z2)' },
+  { value: 'na0', label: '北美', description: 'North America (na0)' },
+  { value: 'as0', label: '东南亚', description: 'Southeast Asia (as0)' },
+];
 
 export default function SettingsWindow() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('display');
@@ -103,9 +115,46 @@ export default function SettingsWindow() {
   const { strategy: tagStrategy, saveStrategy: saveTagStrategy, isLoading: isTagLoading } = useTagMergeStrategy();
   const [selectedTagStrategy, setSelectedTagStrategy] = useState<TagMergeStrategy>(tagStrategy);
 
+  // Store loading state
+  const [isStoreLoaded, setIsStoreLoaded] = useState(false);
+
+  // Cloud storage settings
+  const [cloudSettings, setCloudSettings] = useAtom(cloudStorageSettingsAtom);
+  const [editingCloudSettings, setEditingCloudSettings] = useState<CloudStorageSettings>(defaultCloudStorageSettings);
+  const [showSecretKey, setShowSecretKey] = useState(false);
+  const [cloudTestStatus, setCloudTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [cloudTestMessage, setCloudTestMessage] = useState('');
+
   useEffect(() => {
     setSelectedTagStrategy(tagStrategy);
   }, [tagStrategy]);
+
+  // Load cloud settings directly from store on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCloudSettings = async () => {
+      console.log('[SettingsWindow] Loading cloud settings from store...');
+      const storedSettings = await getStoreValue<CloudStorageSettings>(
+        'lovpen-cloud-storage',
+        defaultCloudStorageSettings
+      );
+
+      if (cancelled) return;
+
+      console.log('[SettingsWindow] Loaded cloud settings:', storedSettings);
+      setIsStoreLoaded(true);
+      setEditingCloudSettings(storedSettings);
+      // Also update the atom to keep it in sync
+      setCloudSettings(storedSettings);
+    };
+
+    loadCloudSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setCloudSettings]);
 
   useEffect(() => {
     loadSettings();
@@ -360,6 +409,18 @@ export default function SettingsWindow() {
             <Tag size={18} />
             Tags
           </button>
+
+          <button
+            onClick={() => setActiveTab('cloud')}
+            className={`w-full px-3 py-2.5 text-left text-sm rounded-lg transition-all border-none cursor-pointer flex items-center gap-3 ${
+              activeTab === 'cloud'
+                ? 'bg-[#D97757]/10 text-[#D97757] font-medium'
+                : 'bg-transparent text-[#181818] hover:bg-[#E8E6DC]'
+            }`}
+          >
+            <Cloud size={18} />
+            Cloud Storage
+          </button>
         </nav>
       </div>
 
@@ -372,6 +433,7 @@ export default function SettingsWindow() {
               {activeTab === 'display' && 'Display Settings'}
               {activeTab === 'shortcuts' && 'Keyboard Shortcuts'}
               {activeTab === 'tags' && 'Tag Settings'}
+              {activeTab === 'cloud' && 'Cloud Storage'}
             </h3>
             <button
               onClick={handleClose}
@@ -552,6 +614,260 @@ export default function SettingsWindow() {
               </div>
             </div>
           )}
+
+          {/* Cloud Storage Tab */}
+          {activeTab === 'cloud' && (
+            <div className="space-y-6">
+              {/* Loading State */}
+              {!isStoreLoaded && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-[#87867F]">Loading settings...</div>
+                </div>
+              )}
+
+              {isStoreLoaded && (
+                <>
+              {/* Info Banner */}
+              <div className="p-4 bg-[#C2C07D]/10 border border-[#C2C07D]/30 rounded-xl flex items-start gap-3">
+                <Info size={18} className="text-[#C2C07D] mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-[#181818]">
+                  Upload images to cloud storage (Qiniu) for better performance and cross-device sync.
+                  Local storage is used as fallback when cloud is disabled or unavailable.
+                </p>
+              </div>
+
+              {/* Enable/Disable Toggle */}
+              <div className="p-5 bg-white/60 rounded-2xl border border-transparent hover:border-[#E8E6DC] transition-all">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="font-medium text-[#181818] text-base mb-1">Enable Cloud Storage</div>
+                    <div className="text-sm text-[#87867F]">Upload images to Qiniu cloud instead of local storage</div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingCloudSettings.enabled}
+                      onChange={(e) => setEditingCloudSettings(prev => ({
+                        ...prev,
+                        enabled: e.target.checked,
+                        provider: e.target.checked ? 'qiniu' : 'local',
+                      }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-[#E8E6DC] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D97757]"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Qiniu Configuration */}
+              {editingCloudSettings.enabled && (
+                <div className="space-y-4">
+                  <h4 className="text-base font-semibold text-[#181818]">Qiniu Configuration</h4>
+
+                  {/* Warning: Configuration incomplete */}
+                  {editingCloudSettings.enabled && (
+                    !editingCloudSettings.qiniu.accessKey ||
+                    !editingCloudSettings.qiniu.secretKey ||
+                    !editingCloudSettings.qiniu.bucket ||
+                    !editingCloudSettings.qiniu.domain
+                  ) && (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                      <AlertCircle size={18} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-amber-800">
+                        Cloud storage is enabled but configuration is incomplete. Please fill in all required fields below. Until configured, uploads will use local storage.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Access Key */}
+                  <div className="p-5 bg-white/60 rounded-2xl border border-[#E8E6DC]">
+                    <label className="block">
+                      <span className="text-sm font-medium text-[#181818]">Access Key</span>
+                      <input
+                        type="text"
+                        value={editingCloudSettings.qiniu.accessKey}
+                        onChange={(e) => setEditingCloudSettings(prev => ({
+                          ...prev,
+                          qiniu: { ...prev.qiniu, accessKey: e.target.value },
+                        }))}
+                        placeholder="Your Qiniu Access Key"
+                        className="mt-2 w-full px-4 py-2.5 bg-white border border-[#E8E6DC] rounded-xl text-sm text-[#181818] placeholder:text-[#87867F]/50 focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757]"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Secret Key */}
+                  <div className="p-5 bg-white/60 rounded-2xl border border-[#E8E6DC]">
+                    <label className="block">
+                      <span className="text-sm font-medium text-[#181818]">Secret Key</span>
+                      <div className="mt-2 relative">
+                        <input
+                          type={showSecretKey ? 'text' : 'password'}
+                          value={editingCloudSettings.qiniu.secretKey}
+                          onChange={(e) => setEditingCloudSettings(prev => ({
+                            ...prev,
+                            qiniu: { ...prev.qiniu, secretKey: e.target.value },
+                          }))}
+                          placeholder="Your Qiniu Secret Key"
+                          className="w-full px-4 py-2.5 pr-12 bg-white border border-[#E8E6DC] rounded-xl text-sm text-[#181818] placeholder:text-[#87867F]/50 focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSecretKey(!showSecretKey)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#87867F] hover:text-[#181818] transition-colors border-none bg-transparent cursor-pointer"
+                        >
+                          {showSecretKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      <p className="mt-2 text-xs text-[#87867F]">
+                        ⚠️ Secret Key is stored locally. For production, consider using backend token generation.
+                      </p>
+                    </label>
+                  </div>
+
+                  {/* Bucket */}
+                  <div className="p-5 bg-white/60 rounded-2xl border border-[#E8E6DC]">
+                    <label className="block">
+                      <span className="text-sm font-medium text-[#181818]">Bucket Name</span>
+                      <input
+                        type="text"
+                        value={editingCloudSettings.qiniu.bucket}
+                        onChange={(e) => setEditingCloudSettings(prev => ({
+                          ...prev,
+                          qiniu: { ...prev.qiniu, bucket: e.target.value },
+                        }))}
+                        placeholder="Your bucket name"
+                        className="mt-2 w-full px-4 py-2.5 bg-white border border-[#E8E6DC] rounded-xl text-sm text-[#181818] placeholder:text-[#87867F]/50 focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757]"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Domain */}
+                  <div className="p-5 bg-white/60 rounded-2xl border border-[#E8E6DC]">
+                    <label className="block">
+                      <span className="text-sm font-medium text-[#181818]">CDN Domain</span>
+                      <input
+                        type="text"
+                        value={editingCloudSettings.qiniu.domain}
+                        onChange={(e) => setEditingCloudSettings(prev => ({
+                          ...prev,
+                          qiniu: { ...prev.qiniu, domain: e.target.value },
+                        }))}
+                        placeholder="https://cdn.example.com"
+                        className="mt-2 w-full px-4 py-2.5 bg-white border border-[#E8E6DC] rounded-xl text-sm text-[#181818] placeholder:text-[#87867F]/50 focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757]"
+                      />
+                      <p className="mt-2 text-xs text-[#87867F]">
+                        The domain used to access uploaded files (from Qiniu console → Bucket → Domain)
+                      </p>
+                    </label>
+                  </div>
+
+                  {/* Region */}
+                  <div className="p-5 bg-white/60 rounded-2xl border border-[#E8E6DC]">
+                    <label className="block">
+                      <span className="text-sm font-medium text-[#181818]">Storage Region</span>
+                      <select
+                        value={editingCloudSettings.qiniu.region}
+                        onChange={(e) => setEditingCloudSettings(prev => ({
+                          ...prev,
+                          qiniu: { ...prev.qiniu, region: e.target.value as CloudStorageSettings['qiniu']['region'] },
+                        }))}
+                        className="mt-2 w-full px-4 py-2.5 bg-white border border-[#E8E6DC] rounded-xl text-sm text-[#181818] focus:outline-none focus:border-[#D97757] focus:ring-1 focus:ring-[#D97757] cursor-pointer"
+                      >
+                        {QINIU_REGIONS.map((region) => (
+                          <option key={region.value} value={region.value}>
+                            {region.label} - {region.description}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  {/* Test Connection */}
+                  <div className="p-5 bg-white/60 rounded-2xl border border-[#E8E6DC]">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-[#181818] text-sm mb-1">Test Connection</div>
+                        <div className="text-xs text-[#87867F]">Verify your Qiniu configuration is correct</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {cloudTestStatus === 'success' && (
+                          <div className="flex items-center gap-2 text-green-600">
+                            <CheckCircle size={18} />
+                            <span className="text-sm">Connected</span>
+                          </div>
+                        )}
+                        {cloudTestStatus === 'error' && (
+                          <div className="flex items-center gap-2 text-red-500">
+                            <AlertCircle size={18} />
+                            <span className="text-sm">{cloudTestMessage || 'Failed'}</span>
+                          </div>
+                        )}
+                        <button
+                          onClick={async () => {
+                            setCloudTestStatus('testing');
+                            setCloudTestMessage('');
+                            try {
+                              // Test by trying to generate a token and upload a tiny test file
+                              const token = await invoke<string>('generate_qiniu_token', {
+                                accessKey: editingCloudSettings.qiniu.accessKey,
+                                secretKey: editingCloudSettings.qiniu.secretKey,
+                                bucket: editingCloudSettings.qiniu.bucket,
+                              });
+                              console.log('[CloudTest] Token generated successfully');
+
+                              // Try to actually connect to Qiniu by uploading a test file
+                              const qiniu = await import('qiniu-js');
+                              const testContent = `lovmind-test-${Date.now()}`;
+                              const testBlob = new Blob([testContent], { type: 'text/plain' });
+                              const testFile = new File([testBlob], '.lovmind-connection-test.txt', { type: 'text/plain' });
+                              const testKey = `.lovmind-test/${Date.now()}.txt`;
+
+                              await new Promise<void>((resolve, reject) => {
+                                const observable = qiniu.upload(
+                                  testFile,
+                                  testKey,
+                                  token,
+                                  { fname: testFile.name },
+                                  {
+                                    useCdnDomain: true,
+                                    region: qiniu.region[editingCloudSettings.qiniu.region],
+                                  }
+                                );
+
+                                observable.subscribe({
+                                  error: (err: { message?: string }) => {
+                                    console.error('[CloudTest] Upload failed:', err);
+                                    reject(new Error(err.message || 'Upload test failed'));
+                                  },
+                                  complete: () => {
+                                    console.log('[CloudTest] Test upload successful');
+                                    resolve();
+                                  },
+                                });
+                              });
+
+                              setCloudTestStatus('success');
+                            } catch (error) {
+                              console.error('[CloudTest] Error:', error);
+                              setCloudTestStatus('error');
+                              setCloudTestMessage(error instanceof Error ? error.message : 'Connection failed');
+                            }
+                          }}
+                          disabled={cloudTestStatus === 'testing' || !editingCloudSettings.qiniu.accessKey || !editingCloudSettings.qiniu.secretKey || !editingCloudSettings.qiniu.bucket}
+                          className="px-4 py-2 bg-white border border-[#E8E6DC] text-[#181818] rounded-xl hover:bg-[#E8E6DC] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-sm font-medium transition-all"
+                        >
+                          {cloudTestStatus === 'testing' ? 'Testing...' : 'Test'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -575,7 +891,7 @@ export default function SettingsWindow() {
               >
                 Close
               </button>
-              {(activeTab === 'shortcuts' || activeTab === 'tags') && (
+              {(activeTab === 'shortcuts' || activeTab === 'tags' || activeTab === 'cloud') && (
                 <button
                   onClick={async () => {
                     if (activeTab === 'shortcuts') {
@@ -587,6 +903,25 @@ export default function SettingsWindow() {
                       } catch (error) {
                         console.error('Failed to save tag strategy:', error);
                         alert('Failed to save tag settings. Please try again.');
+                      }
+                    } else if (activeTab === 'cloud') {
+                      try {
+                        console.log('[SettingsWindow] Saving cloud settings:', editingCloudSettings);
+                        setCloudSettings(editingCloudSettings);
+
+                        // Broadcast to all windows
+                        if (isTauri()) {
+                          await emit('cloud-storage-settings-changed', editingCloudSettings);
+                          console.log('[SettingsWindow] Broadcast cloud-storage-settings-changed');
+                        }
+
+                        // Small delay to ensure async storage write completes
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        console.log('[SettingsWindow] Cloud settings saved successfully');
+                        handleClose();
+                      } catch (error) {
+                        console.error('Failed to save cloud settings:', error);
+                        alert('Failed to save cloud storage settings. Please try again.');
                       }
                     }
                   }}

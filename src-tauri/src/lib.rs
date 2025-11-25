@@ -1,5 +1,8 @@
+use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Utc};
+use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
+use sha1::Sha1;
 use std::collections::HashMap;
 use std::fs;
 use std::sync::Mutex;
@@ -216,6 +219,46 @@ async fn save_uploaded_file(
 
     // Return the file path (frontend will use convertFileSrc to convert to asset:// URL)
     Ok(file_path.to_string_lossy().to_string())
+}
+
+type HmacSha1 = Hmac<Sha1>;
+
+/// Generate Qiniu upload token
+/// Token format: AccessKey:EncodedSign:EncodedPolicy
+/// See: https://developer.qiniu.com/kodo/manual/upload-token
+#[tauri::command]
+async fn generate_qiniu_token(
+    access_key: String,
+    secret_key: String,
+    bucket: String,
+) -> Result<String, String> {
+    // Create upload policy
+    // deadline: 1 hour from now
+    let deadline = Utc::now().timestamp() + 3600;
+
+    let policy = serde_json::json!({
+        "scope": bucket,
+        "deadline": deadline,
+    });
+
+    let policy_json = serde_json::to_string(&policy).map_err(|e| e.to_string())?;
+
+    // URL-safe Base64 encode the policy
+    let encoded_policy = general_purpose::URL_SAFE.encode(policy_json.as_bytes());
+
+    // HMAC-SHA1 sign the encoded policy
+    let mut mac =
+        HmacSha1::new_from_slice(secret_key.as_bytes()).map_err(|e| e.to_string())?;
+    mac.update(encoded_policy.as_bytes());
+    let sign = mac.finalize().into_bytes();
+
+    // URL-safe Base64 encode the signature
+    let encoded_sign = general_purpose::URL_SAFE.encode(&sign);
+
+    // Combine to form the token
+    let token = format!("{}:{}:{}", access_key, encoded_sign, encoded_policy);
+
+    Ok(token)
 }
 
 #[tauri::command]
@@ -638,6 +681,7 @@ pub fn run() {
             open_devtools,
             broadcast_note_update,
             save_uploaded_file,
+            generate_qiniu_token,
             is_ai_enabled,
             set_ai_enabled,
             quit_app,
