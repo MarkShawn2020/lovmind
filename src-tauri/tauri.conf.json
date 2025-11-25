@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Lovmind",
-  "version": "0.99.1",
-  "identifier": "app.lovpen.mind",
+  "version": "0.99.2",
+  "identifier": "app.lovpen.minds",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -56,9 +56,7 @@
       "icons/icon.ico"
     ],
     "category": "Productivity",
-    "iOS": {
-      "developmentTeam": "F2R98GKMH2"
-    },
+    "iOS": {},
     "macOS": {
       "minimumSystemVersion": "10.15",
       "signingIdentity": "-"
