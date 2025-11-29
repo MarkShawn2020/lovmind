@@ -397,6 +397,67 @@ export function BlockContextMenu() {
 
       <button
         className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
+        onClick={async () => {
+          const selectedBlocks = editor
+            .getApi(BlockSelectionPlugin)
+            .blockSelection.getNodes();
+
+          if (selectedBlocks.length === 0) {
+            setMenuOpen(false);
+            return;
+          }
+
+          // Get the DOM elements for selected blocks
+          const domElements: HTMLElement[] = [];
+          for (const [node] of selectedBlocks) {
+            const el = editor.api.toDOMNode(node);
+            if (el) domElements.push(el as HTMLElement);
+          }
+
+          if (domElements.length === 0) {
+            setMenuOpen(false);
+            return;
+          }
+
+          // If single element, capture it directly
+          // If multiple, create a wrapper to capture them together
+          let targetElement: HTMLElement;
+          let wrapper: HTMLDivElement | null = null;
+
+          if (domElements.length === 1) {
+            targetElement = domElements[0];
+          } else {
+            // Create temporary wrapper for multiple elements
+            wrapper = document.createElement('div');
+            wrapper.style.cssText = 'position: absolute; left: -9999px; background: white; padding: 16px;';
+            document.body.appendChild(wrapper);
+
+            for (const el of domElements) {
+              const clone = el.cloneNode(true) as HTMLElement;
+              wrapper.appendChild(clone);
+            }
+            targetElement = wrapper;
+          }
+
+          try {
+            const { captureToClipboard } = await import('@/utils/dom-to-image');
+            await captureToClipboard(targetElement);
+          } catch (error) {
+            console.error('Failed to capture image:', error);
+          } finally {
+            if (wrapper) {
+              wrapper.remove();
+            }
+          }
+
+          setMenuOpen(false);
+        }}
+      >
+        Copy as Image
+      </button>
+
+      <button
+        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
         onClick={() => {
           const hasTextSelection = editor.selection && !editor.api.isCollapsed();
           const selectedBlocks = editor
@@ -510,6 +571,7 @@ export function BlockContextMenu() {
       >
         Right
       </button>
+
     </div>
   );
 }

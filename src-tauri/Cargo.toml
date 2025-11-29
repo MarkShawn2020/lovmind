@@ -1,6 +1,6 @@
 [package]
 name = "lovmind"
-version = "0.99.3"
+version = "0.100.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
