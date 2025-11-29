@@ -92,6 +92,7 @@ export function BaseMainWindow({
   const {
     // State
     viewingNoteId,
+    editorSessionKey,
     showArchived,
     isProfileModalOpen,
     setIsProfileModalOpen,
@@ -137,6 +138,9 @@ export function BaseMainWindow({
 
   // Use provided mobileView or fall back to logic's mobileView
   const effectiveMobileView = mobileView ?? logic.mobileView;
+
+  // Editor key: for create mode, include session key to force remount
+  const editorKey = viewingNoteId ?? `create-mode-${editorSessionKey}`;
 
   // Fallback for onOpenNoteInNewWindow (iOS doesn't support multi-window)
   const handleOpenNoteInNewWindow = onOpenNoteInNewWindow ?? handleOpenNoteInCurrentWindow;
@@ -185,7 +189,7 @@ export function BaseMainWindow({
         }
         editor={
           <LovmindEditor
-            key={viewingNoteId || 'create-mode'}
+            key={editorKey}
             noteId={viewingNoteId}
             onSubmit={handleSubmit}
             placeholder={editorPlaceholder}

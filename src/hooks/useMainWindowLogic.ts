@@ -38,6 +38,7 @@ export interface MainWindowLogicReturn {
   setViewingNoteId: (id: string | null) => void;
   mobileView: 'list' | 'editor';
   setMobileView: (view: 'list' | 'editor') => void;
+  editorSessionKey: number;
   showArchived: boolean;
   setShowArchived: (show: boolean) => void;
   isProfileModalOpen: boolean;
@@ -101,6 +102,10 @@ export function useMainWindowLogic(
   // Mobile view state: 'list' shows notes sidebar, 'editor' shows editor
   const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
 
+  // Editor session key: used to force editor remount in create mode
+  // so that the input area is cleared after successful submit
+  const [editorSessionKey, setEditorSessionKey] = useState(0);
+
   // Local UI state
   const [showArchived, setShowArchived] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -154,6 +159,11 @@ export function useMainWindowLogic(
   // Wrap handleSubmit to auto-return to list on mobile after submission
   const handleSubmit = useCallback(async () => {
     await originalHandleSubmit();
+
+    // Bump editor session so that next time we enter create mode,
+    // the editor remounts with a fresh empty state.
+    setEditorSessionKey((prev) => prev + 1);
+
     // On mobile, return to list view after submitting
     if (shouldUseMobileView && isMobile) {
       setMobileView('list');
@@ -210,6 +220,7 @@ export function useMainWindowLogic(
     setViewingNoteId,
     mobileView,
     setMobileView,
+    editorSessionKey,
     showArchived,
     setShowArchived,
     isProfileModalOpen,

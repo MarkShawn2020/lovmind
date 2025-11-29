@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAtomValue } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { invoke } from '@tauri-apps/api/core';
 import confetti from 'canvas-confetti';
 
@@ -55,6 +55,7 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
   // Read from atoms
   const editorContent = useAtomValue(editorContentAtom);
   const notes = useAtomValue(notesAtom);
+  const setEditorContent = useSetAtom(editorContentAtom);
 
   // Business logic hooks
   const { setNotes, updateNote } = useNoteOperations();
@@ -74,13 +75,29 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           const { text, tags } = extractTextContent(editor.children);
           const isEmpty = isEditorContentEmpty(editor.children);
 
-          currentContent = {
-            text,
-            tags,
-            richContent: editor.children,
-            isEmpty,
-            sourceNoteId: editorContent.sourceNoteId,
-          };
+          // Decide whether to trust extracted content or atom content.
+          // In responsive layouts there may be multiple editor instances
+          // sharing the same ref; some can remain empty (hidden) while
+          // the visible editor has content synced via editorContentAtom.
+          const extractedHasTypedContent =
+            typeof text === 'string' && Boolean(text.trim());
+          const extractedEffectivelyEmpty = !extractedHasTypedContent && isEmpty;
+
+          const atomHasTypedContent =
+            typeof editorContent.text === 'string' && Boolean(editorContent.text.trim());
+          const atomEffectivelyEmpty = !atomHasTypedContent && editorContent.isEmpty;
+
+          // Only override atom content when extracted content clearly has
+          // more information (non-empty or atom is effectively empty).
+          if (!extractedEffectivelyEmpty && (extractedHasTypedContent || atomEffectivelyEmpty)) {
+            currentContent = {
+              text,
+              tags,
+              richContent: editor.children,
+              isEmpty,
+              sourceNoteId: editorContent.sourceNoteId,
+            };
+          }
 
           console.log('📝 Sync extracted content from editor:', { text, tags, isEmpty });
         }
@@ -133,6 +150,14 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
 
           // Now reset the editor DOM
           if (shouldReset) {
+            // Clear editor content so next capture starts fresh
+            setEditorContent({
+              text: '',
+              tags: [],
+              richContent: null,
+              isEmpty: true,
+              sourceNoteId: null,
+            });
             editorRef.current?.resetAndFocus();
             console.log('[Submit] Editor reset for continuous capture (pinned mode)');
           } else if (onCloseWindow) {
@@ -206,6 +231,14 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
 
           // Now reset the editor DOM
           if (shouldReset) {
+            // Clear editor content so next capture starts fresh
+            setEditorContent({
+              text: '',
+              tags: [],
+              richContent: null,
+              isEmpty: true,
+              sourceNoteId: null,
+            });
             editorRef.current?.resetAndFocus();
             console.log('[Submit] Editor reset for continuous capture (pinned mode)');
           } else if (onCloseWindow) {
@@ -278,6 +311,14 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
 
         // Now reset the editor DOM
         if (shouldReset) {
+          // Clear editor content so next capture starts fresh
+          setEditorContent({
+            text: '',
+            tags: [],
+            richContent: null,
+            isEmpty: true,
+            sourceNoteId: null,
+          });
           editorRef.current?.resetAndFocus();
           console.log('[Submit] Editor reset for continuous capture (pinned mode)');
         } else if (onCloseWindow) {
@@ -289,7 +330,7 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
     } catch (error) {
       console.error('Failed to submit note:', error);
     }
-  }, [editorContent, noteId, notes, setNotes, updateNote, editorRef, resetEditorAfterCreate, onNoteIdChange, onCloseWindow]);
+  }, [editorContent, noteId, notes, setNotes, updateNote, editorRef, resetEditorAfterCreate, onNoteIdChange, onCloseWindow, setEditorContent]);
 
   return { handleSubmit };
 };

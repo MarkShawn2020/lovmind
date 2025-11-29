@@ -126,7 +126,11 @@ function MainWindowIOS() {
         onOpenNoteInNewWindow={logic.handleOpenNoteInCurrentWindow}
         // Force mobileView to always be 'list' - editor is shown in sheet overlay
         mobileView="list"
-        onBackToList={() => logic.setMobileView('list')}
+        onBackToList={async () => {
+          // Auto-submit when leaving editor on iOS
+          await logic.handleSubmit();
+          logic.setMobileView('list');
+        }}
         // iOS: No additional modals (no userMenu, no aboutModal)
         additionalModals={null}
         // iOS: Use fullscreen drawer for better mobile experience
@@ -173,14 +177,18 @@ function MainWindowIOS() {
       {/* iOS Bottom Sheet for Editor */}
       <IOSEditorSheet
         isOpen={isEditorSheetOpen}
-        onClose={() => logic.setMobileView('list')}
+        onClose={async () => {
+          // Auto-submit when sheet is closed (tap backdrop or close button)
+          await logic.handleSubmit();
+          logic.setMobileView('list');
+        }}
         maxHeightRatio={0.67} // 2/3 of screen height
         onSheetReady={handleSheetReady} // Auto-focus editor when sheet appears
       >
         {/* Editor Content - Fixed height 240px */}
         <div className="flex flex-col overflow-y-auto overflow-x-hidden bg-background" style={{ height: '240px' }}>
           <LovmindEditor
-            key={logic.viewingNoteId || 'create-mode'}
+            key={logic.viewingNoteId ?? `create-mode-${logic.editorSessionKey}`}
             noteId={logic.viewingNoteId}
             onSubmit={logic.handleSubmit}
             placeholder="此时此刻，你在想什么呢？"
@@ -198,7 +206,10 @@ function MainWindowIOS() {
           editorRef={logic.editorRef}
           onOpenMobileSidebar={() => logic.setIsMobileSidebarOpen(true)}
           hideSubmitButton={false}
-          onBackToList={() => logic.setMobileView('list')}
+          onBackToList={async () => {
+            await logic.handleSubmit();
+            logic.setMobileView('list');
+          }}
         />
       </IOSEditorSheet>
     </div>
