@@ -374,6 +374,20 @@ const DragHandle = React.memo(function DragHandle({
       onMouseUp={() => {
         resetPreview();
       }}
+      onContextMenu={(event) => {
+        // 右键拖拽句柄时，总是按照“块级操作”处理：
+        // 1）为当前块建立 block selection（包括 table 块）
+        // 2）让 BlockContextMenu 基于 block 类型决定展示的菜单
+        const blockSelectionApi = editor
+          .getApi(BlockSelectionPlugin)
+          .blockSelection as any;
+
+        const id = (element as any).id as string | undefined;
+        if (blockSelectionApi?.set && id) {
+          blockSelectionApi.set(id);
+        }
+        // 不阻止事件，让全局 BlockContextMenu 的 contextmenu 监听继续执行
+      }}
       data-plate-prevent-deselect
       role="button"
     >

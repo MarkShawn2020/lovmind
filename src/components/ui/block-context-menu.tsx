@@ -14,6 +14,7 @@ import { useEditorPlugin, usePlateState } from 'platejs/react';
 
 import { useIsTouchDevice } from '@/hooks/use-is-touch-device';
 import { blockMenuState } from '@/lib/block-menu-state';
+import { captureToClipboard } from '@/utils/dom-to-image';
 
 // Helper function to extract text from Slate nodes (same as in block-selection-kit)
 function getNodeString(node: any): string {
@@ -26,6 +27,32 @@ function getNodeString(node: any): string {
   }
 
   return '';
+}
+
+function getTableEntry(editor: any) {
+  try {
+    // 1) Prefer current block selection: if任何选中的 block 是 table，则以它为上下文
+    const blockSelectionApi = editor.getApi?.(BlockSelectionPlugin)?.blockSelection;
+    const selectedBlocks: Array<[any, any]> | undefined = blockSelectionApi?.getNodes?.();
+
+    if (selectedBlocks && selectedBlocks.length > 0) {
+      const tableBlock = selectedBlocks.find(([node]) =>
+        isType(editor as any, node as any, KEYS.table)
+      );
+      if (tableBlock) {
+        return tableBlock;
+      }
+    }
+
+    // 2) 否则退回到当前 selection 所在结构上方最近的 table
+    if (!editor.selection) return null;
+
+    return editor.api.above({
+      match: (n: any) => isType(editor as any, n as any, KEYS.table),
+    });
+  } catch {
+    return null;
+  }
 }
 
 export function BlockContextMenu() {
@@ -262,6 +289,9 @@ export function BlockContextMenu() {
     return null;
   }
 
+  const tableEntry = getTableEntry(editor);
+  const isInTableContext = !!tableEntry;
+
   return (
     <div
       ref={menuRef}
@@ -306,12 +336,26 @@ export function BlockContextMenu() {
             return;
           }
 
-          // Handle block selection
-          if (selectedBlocks.length === 0) return;
+          // Handle block selection or structural table fallback
+          let nodes =
+            selectedBlocks.length > 0
+              ? selectedBlocks.map(([node]) => node)
+              : tableEntry
+                ? [tableEntry[0]]
+                : [];
 
-          console.log('[Copy] Using block selection');
+          if (nodes.length === 0) {
+            setMenuOpen(false);
+            return;
+          }
+
+          console.log('[Copy] Using structured selection', {
+            fromBlocks: selectedBlocks.length > 0,
+            isInTableContext,
+            nodeCount: nodes.length,
+          });
+
           // Extract text from selected nodes
-          const nodes = selectedBlocks.map(([node]) => node);
           const plainText = nodes
             .map((node) => {
               try {
@@ -368,12 +412,24 @@ export function BlockContextMenu() {
             return;
           }
 
-          // Handle block selection
-          if (selectedBlocks.length === 0) return;
+          // Handle block selection or structural table fallback
+          let nodes =
+            selectedBlocks.length > 0
+              ? selectedBlocks.map(([node]) => node)
+              : tableEntry
+                ? [tableEntry[0]]
+                : [];
 
-          console.log('[Copy as Markdown] Using block selection');
-          // Extract selected nodes
-          const nodes = selectedBlocks.map(([node]) => node);
+          if (nodes.length === 0) {
+            setMenuOpen(false);
+            return;
+          }
+
+          console.log('[Copy as Markdown] Using structured selection', {
+            fromBlocks: selectedBlocks.length > 0,
+            isInTableContext,
+            nodeCount: nodes.length,
+          });
 
           try {
             // Serialize to Markdown
@@ -413,10 +469,6 @@ export function BlockContextMenu() {
           } else if (editor.selection) {
             // No block selection – fall back to the structural block at the current selection.
             // If we're inside a table, capture the whole table.
-            const tableEntry = editor.api.above({
-              match: (n) => isType(editor as any, n as any, KEYS.table),
-            });
-
             const targetEntry =
               tableEntry ??
               editor.api.above({
@@ -457,7 +509,6 @@ export function BlockContextMenu() {
           }
 
           try {
-            const { captureToClipboard } = await import('@/utils/dom-to-image');
             await captureToClipboard(targetElement);
           } catch (error) {
             console.error('Failed to capture image:', error);
@@ -492,8 +543,16 @@ export function BlockContextMenu() {
             return;
           }
 
-          // Handle block selection
-          console.log('[Delete] Deleting block selection');
+          // Handle block selection or table fallback
+          if (selectedBlocks.length === 0 && tableEntry) {
+            const [tableNode] = tableEntry;
+            const id = (tableNode as any).id as string | undefined;
+            if (id) {
+              editor.getApi(BlockSelectionPlugin).blockSelection.set(id);
+            }
+          }
+
+          console.log('[Delete] Deleting block selection or table');
           editor.getTransforms(BlockSelectionPlugin).blockSelection.removeNodes();
           editor.tf.focus();
           setMenuOpen(false);
@@ -505,89 +564,105 @@ export function BlockContextMenu() {
       <button
         className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
         onClick={() => {
+          const selectedBlocks = editor
+            .getApi(BlockSelectionPlugin)
+            .blockSelection.getNodes();
+
+          if (selectedBlocks.length === 0 && tableEntry) {
+            const [tableNode] = tableEntry;
+            const id = (tableNode as any).id as string | undefined;
+            if (id) {
+              editor.getApi(BlockSelectionPlugin).blockSelection.set(id);
+            }
+          }
+
           editor.getTransforms(BlockSelectionPlugin).blockSelection.duplicate();
           setMenuOpen(false);
         }}
       >
         Duplicate
       </button>
-      
-      <div className="-mx-1 my-1 h-px bg-border" />
-      
-      <div className="px-2 py-1.5 text-sm font-medium">Turn into</div>
-      <button
-        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
-        onClick={() => handleTurnInto(KEYS.p)}
-      >
-        Paragraph
-      </button>
-      <button
-        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
-        onClick={() => handleTurnInto(KEYS.h1)}
-      >
-        Heading 1
-      </button>
-      <button
-        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
-        onClick={() => handleTurnInto(KEYS.h2)}
-      >
-        Heading 2
-      </button>
-      <button
-        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
-        onClick={() => handleTurnInto(KEYS.h3)}
-      >
-        Heading 3
-      </button>
-      <button
-        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
-        onClick={() => handleTurnInto(KEYS.blockquote)}
-      >
-        Blockquote
-      </button>
-      
-      <div className="-mx-1 my-1 h-px bg-border" />
-      
-      <button
-        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
-        onClick={() => {
-          editor.getTransforms(BlockSelectionPlugin).blockSelection.setIndent(1);
-          setMenuOpen(false);
-        }}
-      >
-        Indent
-      </button>
-      <button
-        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
-        onClick={() => {
-          editor.getTransforms(BlockSelectionPlugin).blockSelection.setIndent(-1);
-          setMenuOpen(false);
-        }}
-      >
-        Outdent
-      </button>
-      
-      <div className="-mx-1 my-1 h-px bg-border" />
-      
-      <div className="px-2 py-1.5 text-sm font-medium">Align</div>
-      <button
-        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
-        onClick={() => handleAlign('left')}
-      >
-        Left
-      </button>
-      <button
-        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
-        onClick={() => handleAlign('center')}
-      >
-        Center
-      </button>
-      <button
-        className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
-        onClick={() => handleAlign('right')}
-      >
-        Right
-      </button>
+
+      {!isInTableContext && (
+        <>
+          <div className="-mx-1 my-1 h-px bg-border" />
+
+          <div className="px-2 py-1.5 text-sm font-medium">Turn into</div>
+          <button
+            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
+            onClick={() => handleTurnInto(KEYS.p)}
+          >
+            Paragraph
+          </button>
+          <button
+            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
+            onClick={() => handleTurnInto(KEYS.h1)}
+          >
+            Heading 1
+          </button>
+          <button
+            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
+            onClick={() => handleTurnInto(KEYS.h2)}
+          >
+            Heading 2
+          </button>
+          <button
+            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
+            onClick={() => handleTurnInto(KEYS.h3)}
+          >
+            Heading 3
+          </button>
+          <button
+            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
+            onClick={() => handleTurnInto(KEYS.blockquote)}
+          >
+            Blockquote
+          </button>
+
+          <div className="-mx-1 my-1 h-px bg-border" />
+
+          <button
+            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
+            onClick={() => {
+              editor.getTransforms(BlockSelectionPlugin).blockSelection.setIndent(1);
+              setMenuOpen(false);
+            }}
+          >
+            Indent
+          </button>
+          <button
+            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
+            onClick={() => {
+              editor.getTransforms(BlockSelectionPlugin).blockSelection.setIndent(-1);
+              setMenuOpen(false);
+            }}
+          >
+            Outdent
+          </button>
+
+          <div className="-mx-1 my-1 h-px bg-border" />
+
+          <div className="px-2 py-1.5 text-sm font-medium">Align</div>
+          <button
+            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
+            onClick={() => handleAlign('left')}
+          >
+            Left
+          </button>
+          <button
+            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
+            onClick={() => handleAlign('center')}
+          >
+            Center
+          </button>
+          <button
+            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left pl-8"
+            onClick={() => handleAlign('right')}
+          >
+            Right
+          </button>
+        </>
+      )}
 
     </div>
   );
