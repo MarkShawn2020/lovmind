@@ -1,4 +1,6 @@
 import { domToCanvas, domToPng } from 'modern-screenshot';
+import { writeImage } from '@tauri-apps/plugin-clipboard-manager';
+import { Image } from '@tauri-apps/api/image';
 
 export interface CaptureOptions {
   /** Scale factor for the output image (default: 2 for retina) */
@@ -6,6 +8,10 @@ export interface CaptureOptions {
   /** Background color (default: white) */
   backgroundColor?: string;
 }
+
+const isTauriEnvironment = (): boolean => {
+  return typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || 'isTauri' in window);
+};
 
 /**
  * Capture a DOM element as a PNG data URL
@@ -36,6 +42,27 @@ export async function captureToClipboard(
     backgroundColor,
   });
 
+  // In Tauri, prefer the native clipboard plugin for image writes
+  if (isTauriEnvironment()) {
+    try {
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error('Failed to get 2D context from canvas');
+      }
+
+      const width = canvas.width;
+      const height = canvas.height;
+      const imageData = context.getImageData(0, 0, width, height);
+      const rgba = new Uint8Array(imageData.data.buffer);
+
+      const image = await Image.new(rgba, width, height);
+      await writeImage(image);
+      return;
+    } catch (error) {
+      console.error('[dom-to-image] Failed to write image via Tauri clipboard, falling back to navigator.clipboard:', error);
+    }
+  }
+
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => {
       if (b) resolve(b);
@@ -43,9 +70,13 @@ export async function captureToClipboard(
     }, 'image/png');
   });
 
-  await navigator.clipboard.write([
-    new ClipboardItem({ 'image/png': blob }),
-  ]);
+  if (navigator.clipboard && typeof (window as any).ClipboardItem !== 'undefined') {
+    await navigator.clipboard.write([
+      new (window as any).ClipboardItem({ 'image/png': blob }),
+    ]);
+  } else {
+    throw new Error('Image clipboard API is not supported in this environment');
+  }
 }
 
 /**

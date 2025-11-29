@@ -9,7 +9,7 @@ import {
   BlockSelectionPlugin,
 } from '@platejs/selection/react';
 import { serializeMd } from '@platejs/markdown';
-import { KEYS } from 'platejs';
+import { KEYS, isType } from 'platejs';
 import { useEditorPlugin, usePlateState } from 'platejs/react';
 
 import { useIsTouchDevice } from '@/hooks/use-is-touch-device';
@@ -398,20 +398,37 @@ export function BlockContextMenu() {
       <button
         className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full text-left"
         onClick={async () => {
+          const domElements: HTMLElement[] = [];
+
+          // Prefer explicit block selection if present
           const selectedBlocks = editor
             .getApi(BlockSelectionPlugin)
             .blockSelection.getNodes();
 
-          if (selectedBlocks.length === 0) {
-            setMenuOpen(false);
-            return;
-          }
+          if (selectedBlocks.length > 0) {
+            for (const [node] of selectedBlocks) {
+              const el = editor.api.toDOMNode(node);
+              if (el) domElements.push(el as HTMLElement);
+            }
+          } else if (editor.selection) {
+            // No block selection – fall back to the structural block at the current selection.
+            // If we're inside a table, capture the whole table.
+            const tableEntry = editor.api.above({
+              match: (n) => isType(editor as any, n as any, KEYS.table),
+            });
 
-          // Get the DOM elements for selected blocks
-          const domElements: HTMLElement[] = [];
-          for (const [node] of selectedBlocks) {
-            const el = editor.api.toDOMNode(node);
-            if (el) domElements.push(el as HTMLElement);
+            const targetEntry =
+              tableEntry ??
+              editor.api.above({
+                // Fallback: closest element node at the selection
+                match: (n) => (n as any).type != null,
+              });
+
+            if (targetEntry) {
+              const [node] = targetEntry;
+              const el = editor.api.toDOMNode(node);
+              if (el) domElements.push(el as HTMLElement);
+            }
           }
 
           if (domElements.length === 0) {

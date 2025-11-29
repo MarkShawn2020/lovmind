@@ -48,6 +48,7 @@
     "dialog:allow-confirm",
     "clipboard-manager:allow-read-text",
     "clipboard-manager:allow-write-text",
+    "clipboard-manager:allow-write-image",
     "clipboard-manager:allow-clear",
     "clipboard-manager:default"
   ]
