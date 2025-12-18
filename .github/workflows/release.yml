@@ -6,10 +6,12 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      skip_build:
-        description: 'Skip Tauri build (release only)'
-        type: boolean
-        default: false
+      tag:
+        description: 'Tag to build (e.g., v0.99.0)'
+        required: true
+
+env:
+  CARGO_INCREMENTAL: 0
 
 permissions:
   contents: write
@@ -18,11 +20,13 @@ permissions:
 
 jobs:
   release:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     name: Semantic Release
     runs-on: ubuntu-latest
     outputs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+      tag: ${{ steps.semantic.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,41 +65,53 @@ jobs:
             VERSION=$(echo "$OUTPUT" | grep -oP "Published release \K[0-9]+\.[0-9]+\.[0-9]+")
             echo "new_release_published=true" >> $GITHUB_OUTPUT
             echo "new_release_version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=v$VERSION" >> $GITHUB_OUTPUT
           else
             echo "new_release_published=false" >> $GITHUB_OUTPUT
           fi
 
   build:
-    name: Build Tauri (${{ matrix.platform }})
+    name: Build (${{ matrix.target }})
     needs: release
-    if: needs.release.outputs.new_release_published == 'true' && github.event.inputs.skip_build != 'true'
+    if: always() && (needs.release.outputs.new_release_published == 'true' || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: macos-arm64
-          - platform: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: macos-x64
-          - platform: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: windows-x64
-          - platform: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
-            artifact_name: linux-x64
-
-    runs-on: ${{ matrix.platform }}
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
     steps:
+      - name: Determine tag
+        id: get-tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ needs.release.outputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: main
-          fetch-depth: 0
+          ref: ${{ steps.get-tag.outputs.tag }}
 
-      - name: Pull latest (after release commit)
-        run: git pull origin main
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -113,39 +129,25 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: 0
 
-      - name: Build Tauri
-        run: pnpm tauri build --target ${{ matrix.target }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: |
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.dmg
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.app
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.exe
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.msi
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.deb
-            src-tauri/target/${{ matrix.target }}/release/bundle/**/*.AppImage
-
-      - name: Upload to Release
+      - name: Build with Tauri
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION="${{ needs.release.outputs.new_release_version }}"
-          TAG="v$VERSION"
-
-          # Find and upload release assets
-          find src-tauri/target/${{ matrix.target }}/release/bundle -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.msi" -o -name "*.deb" -o -name "*.AppImage" \) | while read file; do
-            echo "Uploading $file to release $TAG"
-            gh release upload "$TAG" "$file" --clobber || echo "Failed to upload $file"
-          done
+          HUSKY: 0
+        with:
+          tagName: ${{ steps.get-tag.outputs.tag }}
+          releaseName: ${{ steps.get-tag.outputs.tag }}
+          releaseBody: "See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
+          releaseDraft: false
+          prerelease: false
+          args: --target ${{ matrix.target }}

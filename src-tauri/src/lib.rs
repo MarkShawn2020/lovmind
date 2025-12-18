@@ -1034,7 +1034,8 @@ pub fn run() {
                         api.prevent_exit();
                     }
                 }
-                // Reopen main window when user clicks Dock icon or Cmd+Tab (macOS)
+                // Reopen main window when user clicks Dock icon or Cmd+Tab (macOS only)
+                #[cfg(target_os = "macos")]
                 tauri::RunEvent::Reopen { .. } => {
                     println!("[Reopen Event] Triggered - attempting to show main window");
                     if let Some(main_window) = app_handle.get_webview_window("main") {
