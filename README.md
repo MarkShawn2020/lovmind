@@ -2,7 +2,10 @@
   <img src="docs/images/cover.png" alt="Lovmind Cover" width="100%">
 </p>
 
-<h1 align="center">Lovmind</h1>
+<h1 align="center">
+  <img src="assets/logo.svg" width="32" height="32" alt="Logo" align="top">
+  Lovmind
+</h1>
 
 <p align="center">
   <strong>Lightning-fast floating notes for instant thought capture</strong><br>
