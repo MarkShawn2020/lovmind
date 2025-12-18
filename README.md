@@ -1,20 +1,26 @@
-<div align="center">
+<p align="center">
+  <img src="docs/images/cover.png" alt="Lovmind Cover" width="100%">
+</p>
 
-![Lovmind Cover](docs/images/cover.png)
+<h1 align="center">Lovmind</h1>
 
-# Lovmind
+<p align="center">
+  <strong>Lightning-fast floating notes for instant thought capture</strong><br>
+  <sub>macOS · Windows · Linux</sub>
+</p>
 
-**Lightning-fast floating notes for instant thought capture**
+<p align="center">
+  <a href="https://github.com/MarkShawn2020/lovmind/releases"><img src="https://img.shields.io/github/v/release/MarkShawn2020/lovmind?label=version" alt="Version"></a>
+  <a href="https://tauri.app/"><img src="https://img.shields.io/badge/Tauri-v2-24C8DB" alt="Tauri"></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB" alt="React"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+</p>
 
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](https://github.com/MarkShawn2020/lovmind)
-[![Version](https://img.shields.io/github/v/release/MarkShawn2020/lovmind?label=version)](https://github.com/MarkShawn2020/lovmind/releases)
-[![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB)](https://tauri.app/)
-[![React](https://img.shields.io/badge/React-19-61DAFB)](https://react.dev/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-
-[Download](https://github.com/MarkShawn2020/lovmind/releases) · [Report Bug](https://github.com/MarkShawn2020/lovmind/issues) · [Request Feature](https://github.com/MarkShawn2020/lovmind/issues)
-
-</div>
+<p align="center">
+  <a href="https://github.com/MarkShawn2020/lovmind/releases">Download</a> ·
+  <a href="https://github.com/MarkShawn2020/lovmind/issues">Report Bug</a> ·
+  <a href="https://github.com/MarkShawn2020/lovmind/issues">Request Feature</a>
+</p>
 
 ---
 
