@@ -46,11 +46,14 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: 0
 
       - name: Semantic Release
         id: semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HUSKY: 0
         run: |
           OUTPUT=$(pnpm release 2>&1) || true
           echo "$OUTPUT"
