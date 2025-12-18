@@ -1,5 +1,7 @@
 <div align="center">
 
+![Lovmind Cover](docs/images/cover.png)
+
 # Lovmind
 
 **Lightning-fast floating notes for instant thought capture**
