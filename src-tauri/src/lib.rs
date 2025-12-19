@@ -310,8 +310,47 @@ fn update_main_window_menu_text<R: tauri::Runtime>(app: &tauri::AppHandle<R>, is
     }
 }
 
+#[cfg(all(debug_assertions, not(target_os = "ios")))]
+fn persist_main_window_devtools_state<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+    is_open: bool,
+    reason: &str,
+) {
+    match app.store("settings.json") {
+        Ok(store) => {
+            store.set(
+                "devtools_open_main",
+                serde_json::Value::Bool(is_open),
+            );
+            if let Err(err) = store.save() {
+                println!(
+                    "[DevTools] Failed to persist main window DevTools state ({}): {}",
+                    reason, err
+                );
+            } else {
+                println!(
+                    "[DevTools] Persisted main window DevTools state ({}): {}",
+                    reason, is_open
+                );
+            }
+        }
+        Err(err) => {
+            println!(
+                "[DevTools] Failed to open settings store ({}): {}",
+                reason, err
+            );
+        }
+    }
+}
+
 #[tauri::command]
 async fn quit_app(app: tauri::AppHandle) -> Result<(), String> {
+    #[cfg(all(debug_assertions, not(target_os = "ios")))]
+    {
+        if let Some(main_window) = app.get_webview_window("main") {
+            persist_main_window_devtools_state(&app, main_window.is_devtools_open(), "quit_app");
+        }
+    }
     app.exit(0);
     Ok(())
 }
@@ -890,11 +929,63 @@ pub fn run() {
             let window_clone_main = window.clone();
             let app_handle_editors = app.handle().clone();
 
-            // Auto-open DevTools for main window in debug mode
+            // Auto-open DevTools for main window in debug mode (remember last state)
             #[cfg(debug_assertions)]
             {
-                println!("[DevTools] Auto-opening DevTools for main window");
-                window.open_devtools();
+                let saved_state = store
+                    .get("devtools_open_main")
+                    .and_then(|v| v.as_bool());
+                let should_open = saved_state.unwrap_or(true);
+
+                // Ensure there's always an explicit persisted value so changes can be observed later.
+                if saved_state.is_none() {
+                    store.set(
+                        "devtools_open_main",
+                        serde_json::Value::Bool(should_open),
+                    );
+                    if let Err(err) = store.save() {
+                        println!(
+                            "[DevTools] Failed to initialize main window DevTools state: {}",
+                            err
+                        );
+                    }
+                }
+
+                if should_open {
+                    println!("[DevTools] Auto-opening DevTools for main window");
+                    window.open_devtools();
+                } else {
+                    println!("[DevTools] Skipping DevTools auto-open for main window");
+                }
+            }
+
+            // Watch DevTools open/close changes and persist them.
+            #[cfg(debug_assertions)]
+            {
+                let app_handle_for_devtools_watch = app.handle().clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    let mut last_state: Option<bool> = None;
+                    loop {
+                        std::thread::sleep(std::time::Duration::from_millis(750));
+                        let Some(main_window) =
+                            app_handle_for_devtools_watch.get_webview_window("main")
+                        else {
+                            break;
+                        };
+
+                        let is_open = main_window.is_devtools_open();
+                        if last_state == Some(is_open) {
+                            continue;
+                        }
+                        last_state = Some(is_open);
+
+                        persist_main_window_devtools_state(
+                            &app_handle_for_devtools_watch,
+                            is_open,
+                            "watch",
+                        );
+                    }
+                });
             }
 
             // Setup main window close behavior: hide instead of destroy
@@ -903,6 +994,14 @@ pub fn run() {
             let app_handle_for_menu = app.handle().clone();
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    #[cfg(debug_assertions)]
+                    {
+                        persist_main_window_devtools_state(
+                            &app_handle_for_menu,
+                            main_window_for_close.is_devtools_open(),
+                            "main_window_close_requested",
+                        );
+                    }
                     println!("[Main Window] Close requested - hiding instead of destroying");
                     // Hide window instead of closing (destroying) it
                     let _ = main_window_for_close.hide();
@@ -1028,6 +1127,17 @@ pub fn run() {
                 // Prevent app from exiting when last window is closed (macOS behavior)
                 // Only Cmd+Q (Quit menu) should exit the app
                 tauri::RunEvent::ExitRequested { api, code, .. } => {
+                    #[cfg(debug_assertions)]
+                    {
+                        if let Some(main_window) = app_handle.get_webview_window("main") {
+                            persist_main_window_devtools_state(
+                                &app_handle,
+                                main_window.is_devtools_open(),
+                                "exit_requested",
+                            );
+                        }
+                    }
+
                     // If code is None, it's triggered by closing all windows
                     // If code is Some(0), it's an explicit quit (Cmd+Q)
                     if code.is_none() {
