@@ -7,7 +7,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { Note } from '../store';
 import { isTauri } from '../utils/tauri';
-import { WINDOW_CONFIG } from '../constants/window';
+import { WINDOW_CONFIG, DEV_SERVER_PORT } from '../constants/window';
 
 /**
  * Custom hook for window operations
@@ -71,7 +71,7 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
         // Determine URL based on environment
         const isDev = window.location.protocol === 'http:';
         const url = isDev
-          ? `http://localhost:1420/?window=editor&noteId=${note.id}`
+          ? `http://localhost:${DEV_SERVER_PORT}/?window=editor&noteId=${note.id}`
           : `index.html?window=editor&noteId=${note.id}`;
 
         console.log('Opening window with URL:', url);
@@ -151,7 +151,7 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
       // Determine URL based on environment
       const isDev = window.location.protocol === 'http:';
       const url = isDev
-        ? `http://localhost:1420/?window=editor&noteId=${newNoteId}&rank=${newRank}`
+        ? `http://localhost:${DEV_SERVER_PORT}/?window=editor&noteId=${newNoteId}&rank=${newRank}`
         : `index.html?window=editor&noteId=${newNoteId}&rank=${newRank}`;
 
       console.log('Creating new note window with URL:', url);

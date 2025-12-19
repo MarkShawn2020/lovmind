@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 import path from "path";
 import { codeInspectorPlugin } from "code-inspector-plugin";
+import { DEV_SERVER_PORT } from "./src/constants/window";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
@@ -36,14 +37,14 @@ export default defineConfig(async () => ({
   clearScreen: false,
   // 2. tauri expects a fixed port, fail if that port is not available
   server: {
-    port: 1420,
+    port: DEV_SERVER_PORT,
     strictPort: true,
     host: host || false,
     hmr: host
       ? {
           protocol: "ws",
           host,
-          port: 1421,
+          port: DEV_SERVER_PORT + 1,
         }
       : undefined,
     watch: {

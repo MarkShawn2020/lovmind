@@ -2,9 +2,13 @@
  * Window configuration constants
  * Shared between main window and float windows
  *
- * NOTE: Main window configuration must be kept in sync with src-tauri/tauri.conf.json
- * Float window configuration is used by useWindowOperations hook
+ * NOTE:
+ * - DEV_SERVER_PORT must be kept in sync with src-tauri/tauri.conf.json > build.devUrl
+ * - Main window configuration must be kept in sync with src-tauri/tauri.conf.json
+ * - Float window configuration is used by useWindowOperations hook
  */
+
+export const DEV_SERVER_PORT = 51219;
 
 export const WINDOW_CONFIG = {
   // Main window (create mode)

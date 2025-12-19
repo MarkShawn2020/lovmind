@@ -1,11 +1,11 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Lovmind",
-  "version": "0.99.5",
+  "version": "0.99.6",
   "identifier": "app.lovpen.minds",
   "build": {
     "beforeDevCommand": "pnpm dev",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:51219",
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
   },
