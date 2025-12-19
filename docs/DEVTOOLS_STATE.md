@@ -42,6 +42,21 @@
 - 触发 `quit_app` 命令
 - `RunEvent::ExitRequested`
 
+### 3) macOS：避免 DevTools 挤压窗口宽度
+
+在 macOS 上，DevTools 以“停靠到右侧”的形式打开时，会挤压 WebView 的可视宽度，导致主窗口 UI 变窄。
+
+为保持主窗口布局稳定：
+
+- 当检测到 DevTools **打开**时，自动把主窗口宽度增加一个固定值（当前为 `600px`）
+- 当检测到 DevTools **关闭**时，自动把窗口宽度收回到“基础宽度”
+
+另外，为避免重启后重复放大导致越变越宽，会在 `settings.json` 中记录主窗口 DevTools 关闭时的“基础宽度”：
+
+- key：`devtools_base_width_main`（`number`）
+
+并在 macOS 下，当主窗口 DevTools 关闭时发生 `Resized` 事件，会同步更新该基础宽度（以匹配你手动调整后的窗口宽度）。
+
 ## 数据存储位置
 
 使用 `tauri-plugin-store` 的 `BaseDirectory::AppData`，文件名为 `settings.json`。
@@ -66,7 +81,8 @@
 
 ```json
 {
-  "devtools_open_main": false
+  "devtools_open_main": false,
+  "devtools_base_width_main": 420
 }
 ```
 
@@ -85,4 +101,3 @@
    - 没有：可能是 store 路径、权限或未触发保存
    - 有但仍自动打开：确认启动时读取到的是同一份 store（同一个 identifier 目录）
 4. 需要重置时可删除 `settings.json` 或移除 `devtools_open_main` key。
-
