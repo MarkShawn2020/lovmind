@@ -1,3 +1,4 @@
+use chrono::{DateTime, Local, Utc};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
@@ -99,4 +100,47 @@ pub fn clear_temp_notes(app: AppHandle) -> Result<(), String> {
     store.set("notes", serde_json::json!([]));
     store.save().map_err(|e| e.to_string())?;
     Ok(())
+}
+
+/// Check if an ISO date string (UTC) matches today's local date
+fn is_today_local(iso_str: &str) -> bool {
+    // Parse ISO string as UTC, convert to local, compare date
+    if let Ok(utc_time) = iso_str.parse::<DateTime<Utc>>() {
+        let local_time = utc_time.with_timezone(&Local);
+        let today = Local::now().date_naive();
+        return local_time.date_naive() == today;
+    }
+    false
+}
+
+/// Count notes submitted today (non-draft notes with submitted_at date matching today)
+pub fn count_today_notes(app: &AppHandle) -> usize {
+    let store = match app.store("notes.json") {
+        Ok(s) => s,
+        Err(_) => return 0,
+    };
+
+    let notes: Vec<TempNote> = store
+        .get("notes")
+        .and_then(|v| serde_json::from_value(v.clone()).ok())
+        .unwrap_or_else(Vec::new);
+
+    notes
+        .iter()
+        .filter(|n| {
+            // Only count non-draft notes
+            if n.is_draft.unwrap_or(false) {
+                return false;
+            }
+            // Check submitted_at date
+            if let Some(ref submitted) = n.submitted_at {
+                return is_today_local(submitted);
+            }
+            // Fallback to created_at
+            if let Some(ref created) = n.created_at {
+                return is_today_local(created);
+            }
+            false
+        })
+        .count()
 }

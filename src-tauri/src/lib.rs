@@ -9,6 +9,7 @@ use std::sync::Mutex;
 #[cfg(not(target_os = "ios"))]
 use tauri::{
     menu::{CheckMenuItemBuilder, MenuBuilder, MenuItem, PredefinedMenuItem, SubmenuBuilder},
+    tray::TrayIconBuilder,
     WindowEvent,
 };
 use tauri::{Emitter, Manager};
@@ -19,7 +20,8 @@ use uuid::Uuid;
 
 mod note_store;
 use note_store::{
-    clear_temp_notes, get_all_temp_notes, get_temp_note, remove_temp_note, store_temp_note,
+    clear_temp_notes, count_today_notes, get_all_temp_notes, get_temp_note, remove_temp_note,
+    store_temp_note,
 };
 
 // Global state to hold reference to the main window menu item
@@ -194,6 +196,11 @@ async fn broadcast_note_update(
         app.emit("global-note-updated", &note)
             .map_err(|e| e.to_string())?;
     }
+
+    // Update tray title with today's note count
+    #[cfg(not(target_os = "ios"))]
+    update_tray_title(&app);
+
     Ok(())
 }
 
@@ -281,6 +288,16 @@ async fn set_ai_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), Stri
     app.emit("ai-enabled-changed", enabled)
         .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+// Helper function to update tray title with today's note count
+#[cfg(not(target_os = "ios"))]
+pub fn update_tray_title(app: &tauri::AppHandle) {
+    let count = count_today_notes(app);
+    let title = format!("{}", count);
+    if let Some(tray) = app.tray_by_id("main-tray") {
+        let _ = tray.set_title(Some(&title));
+    }
 }
 
 // Helper function to update menu item text based on window visibility
@@ -934,6 +951,15 @@ pub fn run() {
                 .build()?;
 
             app.set_menu(menu)?;
+
+            // Create system tray with today's note count
+            let today_count = count_today_notes(&app.handle());
+            let tray_title = format!("{}", today_count);
+            TrayIconBuilder::with_id("main-tray")
+                .icon(app.default_window_icon().unwrap().clone())
+                .title(&tray_title)
+                .tooltip("Lovmind")
+                .build(app)?;
 
             // Handle menu events
             app.on_menu_event(move |app, event| {
