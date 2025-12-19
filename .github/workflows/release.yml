@@ -1,13 +1,10 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to build (e.g., v0.99.0)'
+        description: 'Tag to build (e.g., v0.101.0)'
         required: true
 
 env:
@@ -15,65 +12,10 @@ env:
 
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
 
 jobs:
-  release:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    name: Semantic Release
-    runs-on: ubuntu-latest
-    outputs:
-      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
-      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
-      tag: ${{ steps.semantic.outputs.tag }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        env:
-          HUSKY: 0
-
-      - name: Semantic Release
-        id: semantic
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HUSKY: 0
-        run: |
-          OUTPUT=$(pnpm release 2>&1) || true
-          echo "$OUTPUT"
-          if echo "$OUTPUT" | grep -q "Published release"; then
-            VERSION=$(echo "$OUTPUT" | grep -oP "Published release \K[0-9]+\.[0-9]+\.[0-9]+")
-            echo "new_release_published=true" >> $GITHUB_OUTPUT
-            echo "new_release_version=$VERSION" >> $GITHUB_OUTPUT
-            echo "tag=v$VERSION" >> $GITHUB_OUTPUT
-          else
-            echo "new_release_published=false" >> $GITHUB_OUTPUT
-          fi
-
   build:
     name: Build (${{ matrix.target }})
-    needs: release
-    if: always() && (needs.release.outputs.new_release_published == 'true' || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -88,20 +30,10 @@ jobs:
             target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Determine tag
-        id: get-tag
-        shell: bash
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=${{ needs.release.outputs.tag }}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.get-tag.outputs.tag }}
+          ref: ${{ github.event.inputs.tag }}
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
@@ -145,8 +77,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0
         with:
-          tagName: ${{ steps.get-tag.outputs.tag }}
-          releaseName: ${{ steps.get-tag.outputs.tag }}
+          tagName: ${{ github.event.inputs.tag }}
+          releaseName: ${{ github.event.inputs.tag }}
           releaseBody: "See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
           releaseDraft: false
           prerelease: false

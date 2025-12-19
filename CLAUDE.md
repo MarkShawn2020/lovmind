@@ -34,10 +34,9 @@ pnpm test:coverage   # Run tests with coverage report
 
 ### Version Management
 ```bash
-pnpm version:patch   # Bump version and sync to Cargo.toml
-pnpm version:minor   # Bump minor version
-pnpm version:major   # Bump major version
-pnpm release         # Run semantic-release
+pnpm changeset          # Create a changeset (describe your changes)
+pnpm release            # Bump version, update CHANGELOG, commit and push
+pnpm release:trigger    # Trigger CI build for current version
 ```
 
 ### Platform-Specific Builds
@@ -124,15 +123,14 @@ Notes are synchronized between windows using:
 - **Behavior**: Copy mode for AI workflow (defaultAction: 'copy')
 - **Enabled**: Development mode only (`NODE_ENV !== 'production'`)
 
-## Semantic Versioning & Git
-- Uses **semantic-release** with conventional commits
+## Versioning & Release
+- Uses **changesets** for version management
 - **Commitizen** configured for standardized commit messages (`pnpm cz` or `git cz`)
-- **Automated version bumping** via git hooks:
-  1. `prepare-commit-msg` hook runs `scripts/bump-version.js` to analyze commit message
-  2. Version bumped automatically: `feat:` → minor, `BREAKING CHANGE` or `!:` → major, others → patch
-  3. Updates both `package.json` and `src-tauri/tauri.conf.json` versions
-  4. `post-commit` hook auto-amends commit if version files changed
-- **Husky** hooks: `prepare-commit-msg`, `post-commit`, `commit-msg` (commitlint)
+- **Release workflow**:
+  1. `pnpm changeset` - Create changeset file describing changes (patch/minor/major)
+  2. `pnpm release` - Bump version, update CHANGELOG, sync Cargo.toml, commit and push
+  3. `pnpm release:trigger` - Trigger GitHub Actions to build and create release
+- **Husky** hooks: `commit-msg` (commitlint for message validation)
 
 ## Important Technical Details
 - **App identifier**: `app.lovpen.mind` (configured in `src-tauri/tauri.conf.json`)
