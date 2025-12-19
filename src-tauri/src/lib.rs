@@ -899,6 +899,25 @@ pub fn run() {
                 .accelerator("CmdOrCtrl+M")
                 .build(app)?;
 
+            // Toggle Developer Tools (debug only)
+            #[cfg(debug_assertions)]
+            let toggle_devtools_item = tauri::menu::MenuItemBuilder::new("Toggle Developer Tools")
+                .id("toggle_devtools")
+                .accelerator("CmdOrCtrl+Alt+I")
+                .build(app)?;
+
+            #[cfg(debug_assertions)]
+            let window_menu = SubmenuBuilder::new(app, "Window")
+                .item(&show_main_window_item)
+                .item(&show_float_windows_item)
+                .separator()
+                .item(&minimize_window_item)
+                .item(&close_window_item)
+                .separator()
+                .item(&toggle_devtools_item)
+                .build()?;
+
+            #[cfg(not(debug_assertions))]
             let window_menu = SubmenuBuilder::new(app, "Window")
                 .item(&show_main_window_item)
                 .item(&show_float_windows_item)
@@ -978,6 +997,22 @@ pub fn run() {
                     for (_, window) in app.webview_windows() {
                         if window.is_focused().unwrap_or(false) {
                             let _ = window.minimize();
+                            break;
+                        }
+                    }
+                }
+                #[cfg(debug_assertions)]
+                if event.id() == "toggle_devtools" {
+                    // Toggle DevTools for the currently focused window
+                    for (label, window) in app.webview_windows() {
+                        if window.is_focused().unwrap_or(false) {
+                            if window.is_devtools_open() {
+                                println!("[DevTools] Closing DevTools for window: {}", label);
+                                window.close_devtools();
+                            } else {
+                                println!("[DevTools] Opening DevTools for window: {}", label);
+                                let _ = open_devtools_best_effort(&window);
+                            }
                             break;
                         }
                     }
@@ -1149,6 +1184,52 @@ pub fn run() {
                     }
                 }
             )?;
+
+            // Register global shortcut for DevTools toggle (debug only)
+            // This needs to be a global shortcut because the WebKit Inspector is a separate
+            // native window that doesn't receive our app's menu shortcuts
+            #[cfg(debug_assertions)]
+            {
+                let devtools_shortcut = Shortcut::new(
+                    Some(Modifiers::SUPER | Modifiers::ALT),
+                    Code::KeyI,
+                );
+                println!("[DevTools] Registering global shortcut: Cmd+Option+I");
+                let app_handle_devtools = app.handle().clone();
+                match app.global_shortcut().on_shortcut(
+                    devtools_shortcut,
+                    move |_app, _shortcut, event| {
+                        println!("[DevTools Global] Shortcut event received, state: {:?}", event.state);
+                        if event.state == tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                            println!("[DevTools Global] Cmd+Shift+I pressed!");
+                            // Toggle DevTools for all windows (close if any open, open for focused)
+                            let mut any_closed = false;
+                            for (label, window) in app_handle_devtools.webview_windows() {
+                                let is_open = window.is_devtools_open();
+                                println!("[DevTools Global] Window '{}' devtools open: {}", label, is_open);
+                                if is_open {
+                                    println!("[DevTools Global] Closing DevTools for window: {}", label);
+                                    window.close_devtools();
+                                    any_closed = true;
+                                }
+                            }
+                            // If none were closed, open for the focused window
+                            if !any_closed {
+                                for (label, window) in app_handle_devtools.webview_windows() {
+                                    if window.is_focused().unwrap_or(false) {
+                                        println!("[DevTools Global] Opening DevTools for window: {}", label);
+                                        let _ = open_devtools_best_effort(&window);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    Ok(_) => println!("[DevTools] Global shortcut registered successfully"),
+                    Err(e) => println!("[DevTools] Failed to register global shortcut: {}", e),
+                }
+            }
             
             // Handle window events for proper floating behavior
             window.on_window_event(move |event| {
