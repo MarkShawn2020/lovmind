@@ -432,7 +432,7 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
     // Determine URL based on environment
     #[cfg(debug_assertions)]
     let webview_url = {
-        let url_str = "http://localhost:1420/?window=settings";
+        let url_str = "http://localhost:51219/?window=settings";
         WebviewUrl::External(url_str.parse().expect("Invalid URL format"))
     };
 
@@ -524,7 +524,7 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
         #[cfg(debug_assertions)]
         let webview_url = {
             let url_str = format!(
-                "http://localhost:1420/?window=editor&noteId={}&rank={}",
+                "http://localhost:51219/?window=editor&noteId={}&rank={}",
                 note_id, new_rank
             );
             WebviewUrl::External(url_str.parse().expect("Invalid URL format"))
