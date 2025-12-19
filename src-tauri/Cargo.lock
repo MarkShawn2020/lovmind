@@ -2106,11 +2106,12 @@ checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 
 [[package]]
 name = "lovmind"
-version = "0.99.9"
+version = "0.99.10"
 dependencies = [
  "base64 0.22.1",
  "chrono",
  "hmac",
+ "objc2 0.6.3",
  "once_cell",
  "serde",
  "serde_json",

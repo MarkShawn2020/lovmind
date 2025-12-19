@@ -1,6 +1,6 @@
 [package]
 name = "lovmind"
-version = "0.99.9"
+version = "0.99.10"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -35,9 +35,11 @@ base64 = "0.22"
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 tauri-plugin-global-shortcut = "2.3"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+
 [target.'cfg(target_os = "ios")'.dependencies]
 tauri-plugin-no-input-accessory = { path = "../tauri-plugin-no-input-accessory" }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-window-state = "2"
-

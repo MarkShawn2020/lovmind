@@ -143,7 +143,7 @@ async fn generate_title_and_tags(content: String) -> Result<(String, Vec<String>
 async fn open_devtools(_window: tauri::WebviewWindow) -> Result<(), String> {
     #[cfg(all(debug_assertions, not(target_os = "ios")))]
     {
-        _window.open_devtools();
+        open_devtools_best_effort(&_window)?;
         Ok(())
     }
 
@@ -344,41 +344,59 @@ fn persist_main_window_devtools_state<R: tauri::Runtime>(
 }
 
 #[cfg(all(debug_assertions, target_os = "macos"))]
-fn persist_main_window_devtools_base_width<R: tauri::Runtime>(
-    app: &tauri::AppHandle<R>,
-    width: u32,
-    reason: &str,
-) {
-    match app.store("settings.json") {
-        Ok(store) => {
-            store.set("devtools_base_width_main", serde_json::json!(width));
-            if let Err(err) = store.save() {
-                println!(
-                    "[DevTools] Failed to persist main window base width ({}): {}",
-                    reason, err
-                );
-            } else {
-                println!(
-                    "[DevTools] Persisted main window base width ({}): {}",
-                    reason, width
-                );
+fn open_devtools_detached_macos(window: &tauri::WebviewWindow) -> Result<bool, String> {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    };
+
+    let did_open = Arc::new(AtomicBool::new(false));
+    let did_open_clone = did_open.clone();
+
+    window
+        .with_webview(move |webview| unsafe {
+            use objc2::{msg_send, runtime::AnyObject};
+
+            let wk_webview = webview.inner() as *mut AnyObject;
+            if wk_webview.is_null() {
+                return;
             }
-        }
-        Err(err) => {
-            println!(
-                "[DevTools] Failed to open settings store for base width ({}): {}",
-                reason, err
-            );
-        }
-    }
+
+            let inspector: *mut AnyObject = msg_send![&*wk_webview, _inspector];
+            if inspector.is_null() {
+                return;
+            }
+
+            // Force the inspector to open detached so it doesn't squeeze the webview.
+            let _: () = msg_send![&*inspector, detach];
+            let _: () = msg_send![&*inspector, show];
+            let _: () = msg_send![&*inspector, detach];
+
+            did_open_clone.store(true, Ordering::Relaxed);
+        })
+        .map_err(|e| e.to_string())?;
+
+    Ok(did_open.load(Ordering::Relaxed))
 }
 
-#[cfg(all(debug_assertions, target_os = "macos"))]
-fn read_main_window_devtools_base_width<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Option<u32> {
-    let store = app.store("settings.json").ok()?;
-    let value = store.get("devtools_base_width_main")?;
-    let width = value.as_u64()?;
-    u32::try_from(width).ok()
+#[cfg(all(debug_assertions, not(target_os = "ios")))]
+fn open_devtools_best_effort(window: &tauri::WebviewWindow) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        match open_devtools_detached_macos(window) {
+            Ok(true) => return Ok(()),
+            Ok(false) => println!(
+                "[DevTools] Failed to open detached inspector, falling back to default open_devtools()"
+            ),
+            Err(err) => println!(
+                "[DevTools] Failed to open detached inspector: {}, falling back to default open_devtools()",
+                err
+            ),
+        }
+    }
+
+    window.open_devtools();
+    Ok(())
 }
 
 #[tauri::command]
@@ -445,7 +463,9 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
         #[cfg(debug_assertions)]
         {
             println!("[DevTools] Auto-opening DevTools for settings window");
-            window.open_devtools();
+            if let Err(err) = open_devtools_best_effort(&window) {
+                println!("[DevTools] Failed to auto-open DevTools for settings window: {}", err);
+            }
         }
     }
 
@@ -540,7 +560,9 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
             #[cfg(debug_assertions)]
             {
                 println!("[DevTools] Auto-opening DevTools for editor window");
-                window.open_devtools();
+                if let Err(err) = open_devtools_best_effort(&window) {
+                    println!("[DevTools] Failed to auto-open DevTools for editor window: {}", err);
+                }
             }
 
             // Ensure window is shown and focused
@@ -981,18 +1003,6 @@ pub fn run() {
                         "devtools_open_main",
                         serde_json::Value::Bool(should_open),
                     );
-                    #[cfg(target_os = "macos")]
-                    {
-                        if store
-                            .get("devtools_base_width_main")
-                            .and_then(|v| v.as_u64())
-                            .is_none()
-                        {
-                            if let Ok(size) = window.inner_size() {
-                                store.set("devtools_base_width_main", serde_json::json!(size.width));
-                            }
-                        }
-                    }
                     if let Err(err) = store.save() {
                         println!(
                             "[DevTools] Failed to initialize main window DevTools state: {}",
@@ -1003,7 +1013,9 @@ pub fn run() {
 
                 if should_open {
                     println!("[DevTools] Auto-opening DevTools for main window");
-                    window.open_devtools();
+                    if let Err(err) = open_devtools_best_effort(&window) {
+                        println!("[DevTools] Failed to auto-open DevTools for main window: {}", err);
+                    }
                 } else {
                     println!("[DevTools] Skipping DevTools auto-open for main window");
                 }
@@ -1028,86 +1040,6 @@ pub fn run() {
                             continue;
                         }
                         last_state = Some(is_open);
-
-                        #[cfg(target_os = "macos")]
-                        {
-                            // On macOS, docked DevTools squeezes the webview area.
-                            // Expand the window width while DevTools is open to keep the app layout stable.
-                            const DEVTOOLS_DOCK_EXTRA_WIDTH: u32 = 600;
-
-                            if let Ok(current_size) = main_window.inner_size() {
-                                let mut target_width = current_size.width;
-                                let target_height = current_size.height;
-
-                                if is_open {
-                                    // Prefer a persisted base width to avoid repeatedly expanding on startup.
-                                    let base_width = read_main_window_devtools_base_width(
-                                        &app_handle_for_devtools_watch,
-                                    )
-                                    .unwrap_or_else(|| {
-                                        persist_main_window_devtools_base_width(
-                                            &app_handle_for_devtools_watch,
-                                            current_size.width,
-                                            "watch-open-init",
-                                        );
-                                        current_size.width
-                                    });
-
-                                    let desired_width =
-                                        base_width.saturating_add(DEVTOOLS_DOCK_EXTRA_WIDTH);
-                                    if current_size.width < desired_width.saturating_sub(8) {
-                                        target_width = desired_width;
-                                    }
-                                } else {
-                                    // Shrink back by the same extra width (preserve user resizing while open).
-                                    if let Some(stored_base_width) =
-                                        read_main_window_devtools_base_width(
-                                            &app_handle_for_devtools_watch,
-                                        )
-                                    {
-                                        let base_width =
-                                            current_size.width.saturating_sub(DEVTOOLS_DOCK_EXTRA_WIDTH);
-                                        let base_width = base_width.max(stored_base_width);
-
-                                        // Only shrink if it looks like we previously expanded.
-                                        if current_size.width
-                                            > stored_base_width.saturating_add(8)
-                                        {
-                                            target_width = base_width;
-                                        }
-
-                                        persist_main_window_devtools_base_width(
-                                            &app_handle_for_devtools_watch,
-                                            base_width,
-                                            "watch-close",
-                                        );
-                                    } else {
-                                        // If we don't know the base width, keep the current size.
-                                        // Still persist a baseline for next time.
-                                        persist_main_window_devtools_base_width(
-                                            &app_handle_for_devtools_watch,
-                                            current_size.width,
-                                            "watch-close-init",
-                                        );
-                                    }
-                                }
-
-                                // Clamp to current monitor work area so we don't push the window off-screen.
-                                if let Ok(Some(monitor)) = main_window.current_monitor() {
-                                    let max_width = monitor.work_area().size.width;
-                                    target_width = target_width.min(max_width);
-                                }
-
-                                if target_width != current_size.width {
-                                    let _ = main_window.set_size(tauri::Size::Physical(
-                                        tauri::PhysicalSize::<u32> {
-                                            width: target_width,
-                                            height: target_height,
-                                        },
-                                    ));
-                                }
-                            }
-                        }
 
                         persist_main_window_devtools_state(
                             &app_handle_for_devtools_watch,
@@ -1141,15 +1073,6 @@ pub fn run() {
                     println!("[Main Window] About to call update_main_window_menu_text(false)");
                     update_main_window_menu_text(&app_handle_for_menu, false);
                     println!("[Main Window] Finished calling update_main_window_menu_text");
-                }
-                #[cfg(all(debug_assertions, target_os = "macos"))]
-                tauri::WindowEvent::Resized(size) => {
-                    // Keep the persisted base width in sync while DevTools is closed.
-                    if !main_window_for_close.is_devtools_open() {
-                        if let Ok(store) = app_handle_for_menu.store("settings.json") {
-                            store.set("devtools_base_width_main", serde_json::json!(size.width));
-                        }
-                    }
                 }
                 _ => {}
             });

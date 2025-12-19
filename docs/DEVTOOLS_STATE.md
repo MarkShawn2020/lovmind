@@ -44,18 +44,9 @@
 
 ### 3) macOS：避免 DevTools 挤压窗口宽度
 
-在 macOS 上，DevTools 以“停靠到右侧”的形式打开时，会挤压 WebView 的可视宽度，导致主窗口 UI 变窄。
+在 macOS 上，如果 DevTools 以“停靠（Docked）”方式打开，会挤压 WebView 的可视宽度，导致主窗口 UI 变窄。
 
-为保持主窗口布局稳定：
-
-- 当检测到 DevTools **打开**时，自动把主窗口宽度增加一个固定值（当前为 `600px`）
-- 当检测到 DevTools **关闭**时，自动把窗口宽度收回到“基础宽度”
-
-另外，为避免重启后重复放大导致越变越宽，会在 `settings.json` 中记录主窗口 DevTools 关闭时的“基础宽度”：
-
-- key：`devtools_base_width_main`（`number`）
-
-并在 macOS 下，当主窗口 DevTools 关闭时发生 `Resized` 事件，会同步更新该基础宽度（以匹配你手动调整后的窗口宽度）。
+为保证 DevTools **不影响当前 App 的布局/宽度**，打开 DevTools 时会通过 WebKit 私有 API 强制将 Inspector `detach` 为独立窗口显示。
 
 ## 数据存储位置
 
@@ -81,8 +72,7 @@
 
 ```json
 {
-  "devtools_open_main": false,
-  "devtools_base_width_main": 420
+  "devtools_open_main": false
 }
 ```
 
