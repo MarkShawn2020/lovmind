@@ -150,7 +150,7 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
           </FixedToolbar>
 
           <EditorContextMenu editor={editor}>
-            <EditorContainer className="relative overflow-auto">
+            <EditorContainer className="relative overflow-auto flex-1 min-h-0">
               <Editor
                 placeholder={placeholder}
                 variant="none"

@@ -10,12 +10,13 @@ import {createSlatePlugin} from 'platejs';
  * - Cmd+S: Save shortcut (triggers auto-save feedback)
  *
  * Emits events for parent components to handle UI feedback.
+ *
+ * Uses a singleton pattern to ensure only one document-level listener exists.
  */
 
-// Global deduplication state (shared across all plugin instances)
-// This prevents duplicate events even if the plugin is initialized multiple times
-let globalLastSubmitTimestamp = -1;
-let globalLastSaveTimestamp = -1;
+// Singleton state: Only one listener should exist across all editor instances
+let globalKeydownHandler: ((event: KeyboardEvent) => void) | null = null;
+let currentEditor: any = null;
 
 export const KeyboardShortcutsPlugin = createSlatePlugin({
     key: 'keyboard-shortcuts',
@@ -25,7 +26,7 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
             return !!(node && node instanceof HTMLElement && node.classList.contains('slate-shadow-input'));
         };
 
-        // Helper: Check if event is from this editor
+        // Helper: Check if event is from a Slate editor
         const isEventFromEditor = (event: Event): boolean => {
             const targetNode = event.target instanceof Node ? event.target : null;
             const activeElement = document.activeElement;
@@ -70,89 +71,58 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
             return false;
         };
 
-        // Cmd+Enter Handler: Submit shortcut
-        const handleSubmit = (event: KeyboardEvent) => {
+        // Update the current editor reference
+        // This ensures the latest editor instance receives events
+        currentEditor = editor;
+
+        // Only register the global handler once
+        if (!globalKeydownHandler) {
             const isDev = process.env.NODE_ENV === 'development';
 
-            if (!event || !(event.metaKey || event.ctrlKey)) return;
-            if (event.key !== 'Enter') return;
+            globalKeydownHandler = (event: KeyboardEvent) => {
+                // Skip if no editor or not a modifier key combo
+                if (!currentEditor || !(event.metaKey || event.ctrlKey)) return;
 
-            const fromEditor = isEventFromEditor(event);
+                const fromEditor = isEventFromEditor(event);
+                if (!fromEditor) return;
 
-            // Development debugging
-            if (isDev) {
-                console.log('[KeyboardShortcuts] Cmd+Enter detected:', {
-                    timestamp: event.timeStamp,
-                    targetClass: (event.target as Element)?.className,
-                    targetTag: (event.target as Element)?.tagName,
-                    activeElementClass: document.activeElement?.className,
-                    activeElementTag: document.activeElement?.tagName,
-                    isFromEditor: fromEditor,
-                    metaKey: event.metaKey,
-                    ctrlKey: event.ctrlKey,
-                });
-            }
+                // Cmd+Enter: Submit shortcut
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    event.stopPropagation();
 
-            if (!fromEditor) {
-                if (isDev) {
-                    console.log('[KeyboardShortcuts] Event not from editor, ignoring');
+                    if (isDev) {
+                        console.log('[KeyboardShortcuts] ✅ Cmd+Enter - emitting submit-shortcut');
+                    }
+
+                    if (typeof currentEditor.emit === 'function') {
+                        currentEditor.emit('submit-shortcut');
+                    }
+                    return;
                 }
-                return;
-            }
 
-            // Deduplication: Check if this is the same event (by timestamp)
-            // Use GLOBAL state to deduplicate across multiple plugin instances
-            if (event.timeStamp === globalLastSubmitTimestamp) {
-                if (isDev) {
-                    console.log('[KeyboardShortcuts] Duplicate event detected, ignoring');
+                // Cmd+S: Save shortcut
+                if (event.key.toLowerCase() === 's') {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (isDev) {
+                        console.log('[KeyboardShortcuts] ✅ Cmd+S - emitting save-shortcut');
+                    }
+
+                    if (typeof currentEditor.emit === 'function') {
+                        currentEditor.emit('save-shortcut');
+                    }
+                    return;
                 }
-                return;
-            }
-            globalLastSubmitTimestamp = event.timeStamp;
+            };
 
-            event.preventDefault();
-            event.stopPropagation(); // Prevent event from reaching other handlers
+            document.addEventListener('keydown', globalKeydownHandler, true);
 
             if (isDev) {
-                console.log('[KeyboardShortcuts] ✅ Emitting submit-shortcut event');
+                console.log('[KeyboardShortcuts] Global handler registered');
             }
-
-            // Emit submit event for parent components
-            if (typeof editor.emit === 'function') {
-                editor.emit('submit-shortcut');
-            }
-        };
-
-        // Cmd+S Handler: Save shortcut
-        const handleSave = (event: KeyboardEvent) => {
-            if (!event || !(event.metaKey || event.ctrlKey)) return;
-            if (event.key.toLowerCase() !== 's') return;
-            if (!isEventFromEditor(event)) return;
-
-            // Deduplication: Check if this is the same event (by timestamp)
-            // Use GLOBAL state to deduplicate across multiple plugin instances
-            if (event.timeStamp === globalLastSaveTimestamp) {
-                return;
-            }
-            globalLastSaveTimestamp = event.timeStamp;
-
-            event.preventDefault();
-            event.stopPropagation(); // Prevent event from reaching other handlers
-
-            // Emit save event for parent components to show feedback
-            if (typeof editor.emit === 'function') {
-                editor.emit('save-shortcut');
-            }
-        };
-
-        // Global keydown handler
-        const handleKeyDown = (event: KeyboardEvent) => {
-            handleSubmit(event);
-            handleSave(event);
-        };
-
-        // Register event listener on document (capture phase)
-        document.addEventListener('keydown', handleKeyDown, true);
+        }
 
         return editor;
     },

@@ -219,9 +219,47 @@ export function EditorContextMenu({ editor, children, targetElement }: EditorCon
       disabled && 'pointer-events-none opacity-50 text-muted-foreground'
     );
 
+  const handleContainerMouseDown = React.useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (event.button !== 0) return;
+
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+
+      if (
+        target.closest(
+          'button, [role="button"], a, input, textarea, select, [data-plate-prevent-deselect]'
+        )
+      ) {
+        return;
+      }
+
+      const inSlateEditor = target.closest('[data-slate-editor]');
+      const inSlateNode = target.closest('[data-slate-node="element"], [data-slate-node="text"]');
+
+      if (inSlateEditor && inSlateNode) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const endPoint = editor.api.end([]);
+      if (endPoint) {
+        editor.tf.select(editor.api.range(endPoint, endPoint));
+      }
+      requestAnimationFrame(() => {
+        editor.tf.focus();
+      });
+    },
+    [editor]
+  );
+
   return (
     <>
-      <div ref={containerRef} className="min-w-0 w-full h-full min-h-0">
+      <div
+        ref={containerRef}
+        className="min-w-0 w-full h-full min-h-0 flex flex-col"
+        onMouseDownCapture={handleContainerMouseDown}
+      >
         {children}
       </div>
       {menuOpen && (
