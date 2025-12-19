@@ -304,8 +304,8 @@ const NotesSidebarComponent = ({
                 </div>
                 <span className="text-[0.625rem] text-[var(--muted-foreground)] flex-shrink-0 whitespace-nowrap">{dayjs(note.time).fromNow()}</span>
               </div>
-              <p className="text-[0.8125rem] text-[var(--muted-foreground)] leading-6 mb-1 line-clamp-2 overflow-hidden text-ellipsis break-words">
-                {note.text.replace(/\n/g, ' ').substring(0, 100)}
+              <p className="text-[0.8125rem] text-[var(--muted-foreground)] leading-6 mb-1 line-clamp-2 overflow-hidden text-ellipsis break-words whitespace-pre-line">
+                {note.text.substring(0, 100)}
                 {note.text.length > 100 ? '...' : ''}
               </p>
               <div className="flex gap-[3px] mt-auto mb-1">
