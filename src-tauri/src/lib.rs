@@ -952,6 +952,19 @@ pub fn run() {
 
             app.set_menu(menu)?;
 
+            // Create tray menu
+            let tray_toggle = MenuItem::with_id(app, "tray_toggle", "Toggle Main Window", true, None::<&str>)?;
+            let tray_settings = MenuItem::with_id(app, "tray_settings", "Settings...", true, None::<&str>)?;
+            let tray_quit = MenuItem::with_id(app, "tray_quit", "Quit Lovmind", true, None::<&str>)?;
+
+            let tray_menu = tauri::menu::Menu::with_items(app, &[
+                &tray_toggle,
+                &PredefinedMenuItem::separator(app)?,
+                &tray_settings,
+                &PredefinedMenuItem::separator(app)?,
+                &tray_quit,
+            ])?;
+
             // Create system tray with today's note count
             let today_count = count_today_notes(&app.handle());
             let tray_title = format!("{}", today_count);
@@ -959,6 +972,39 @@ pub fn run() {
                 .icon(app.default_window_icon().unwrap().clone())
                 .title(&tray_title)
                 .tooltip("Lovmind")
+                .menu(&tray_menu)
+                .on_menu_event(move |app, event| {
+                    match event.id.as_ref() {
+                        "tray_toggle" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                if window.is_visible().unwrap_or(false) {
+                                    let _ = window.hide();
+                                    update_main_window_menu_text(&app, false);
+                                } else {
+                                    let _ = window.show();
+                                    let _ = window.set_focus();
+                                    update_main_window_menu_text(&app, true);
+                                }
+                            }
+                        }
+                        "tray_settings" => {
+                            let app_clone = app.clone();
+                            tauri::async_runtime::spawn(async move {
+                                let _ = open_settings_window(app_clone).await;
+                            });
+                        }
+                        "tray_quit" => {
+                            #[cfg(debug_assertions)]
+                            {
+                                if let Some(main_window) = app.get_webview_window("main") {
+                                    persist_main_window_devtools_state(&app, main_window.is_devtools_open(), "tray_quit");
+                                }
+                            }
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
                 .build(app)?;
 
             // Handle menu events
