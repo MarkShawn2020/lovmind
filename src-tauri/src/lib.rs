@@ -573,15 +573,6 @@ async fn toggle_float_windows(app: tauri::AppHandle) -> Result<(), String> {
                 .build()
                 .map_err(|e| e.to_string())?;
 
-            // Auto-open DevTools for editor window in debug mode
-            #[cfg(debug_assertions)]
-            {
-                println!("[DevTools] Auto-opening DevTools for editor window");
-                if let Err(err) = open_devtools_best_effort(&window) {
-                    println!("[DevTools] Failed to auto-open DevTools for editor window: {}", err);
-                }
-            }
-
             // Ensure window is shown and focused
             let _ = window.show();
             let _ = window.set_focus();
