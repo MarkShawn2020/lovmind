@@ -1,99 +1,63 @@
 'use client';
 
-import { createSlatePlugin } from 'platejs';
-import { BaseHashtagPlugin, HASHTAG_KEY } from './hashtag-base-kit';
+import { createSlatePlugin, createTSlatePlugin, type PluginConfig } from 'platejs';
+import {
+  type TriggerComboboxPluginOptions,
+  withTriggerCombobox,
+} from '@platejs/combobox';
+import { HASHTAG_KEY, type THashtagElement } from './hashtag-base-kit';
 import { HashtagElement } from '@/components/ui/hashtag-node';
+import { HashtagInputElement } from '@/components/ui/hashtag-input-node';
 
-// Plugin to handle hashtag autoformatting on space/enter press
-const HashtagAutoformatPlugin = createSlatePlugin({
-  key: 'hashtag-autoformat',
-  extendEditor: ({ editor }) => {
-    const { insertText, insertBreak } = editor;
+export const HASHTAG_INPUT_KEY = 'hashtag_input';
 
-    // Shared logic to convert #tag to hashtag element
-    const tryConvertHashtag = (): boolean => {
-      const { selection } = editor;
-
-      if (!selection) return false;
-
-      try {
-        const point = selection.anchor;
-        const nodeEntry = editor.api.node(point);
-
-        if (!nodeEntry) return false;
-
-        const [node, path] = nodeEntry;
-
-        if (!node || typeof node.text !== 'string') return false;
-
-        const textContent = node.text;
-        const offset = point.offset;
-        const textBeforeCursor = textContent.slice(0, offset);
-
-        // Match hashtag pattern (supports Unicode and hyphen)
-        const hashtagMatch = /#([\p{L}\p{N}_-]+)$/u.exec(textBeforeCursor);
-
-        if (!hashtagMatch) return false;
-
-        const tagValue = hashtagMatch[1];
-        const matchStart = offset - hashtagMatch[0].length;
-
-        // Delete the #tag text
-        editor.tf.delete({
-          at: { path, offset: matchStart },
-          distance: hashtagMatch[0].length,
-          unit: 'character',
-        });
-
-        // Insert hashtag followed by space text node
-        editor.tf.insertNodes(
-          [
-            {
-              type: HASHTAG_KEY,
-              value: tagValue,
-              children: [{ text: '' }],
-            },
-            { text: ' ' }, // Space as a separate text node
-          ],
-          { at: { path, offset: matchStart }, select: true }
-        );
-
-        return true;
-      } catch (error) {
-        console.error('Error in hashtag autoformat:', error);
-        return false;
-      }
-    };
-
-    // Intercept space character
-    editor.insertText = (text: string) => {
-      if (text === ' ' && tryConvertHashtag()) {
-        return;
-      }
-
-      // For all other characters or if hashtag match failed, use original insertText
-      (insertText as (text: string) => void)(text);
-    };
-
-    // Intercept enter key - same behavior as space
-    editor.insertBreak = () => {
-      if (tryConvertHashtag()) {
-        return;
-      }
-
-      // If no hashtag conversion, proceed with normal line break
-      (insertBreak as () => void)();
-    };
-
-    return editor;
+// HashtagInputPlugin - renders the combobox input when # is typed
+export const HashtagInputPlugin = createSlatePlugin({
+  key: HASHTAG_INPUT_KEY,
+  node: {
+    isElement: true,
+    isInline: true,
+    isVoid: true,
   },
-});
+}).withComponent(HashtagInputElement);
 
-export const HashtagKit = [
-  BaseHashtagPlugin.configure({
-    render: { node: HashtagElement },
-  }),
-  HashtagAutoformatPlugin,
-];
+// Type config for HashtagPlugin
+type HashtagConfig = PluginConfig<
+  typeof HASHTAG_KEY,
+  TriggerComboboxPluginOptions & {
+    insertSpaceAfterHashtag?: boolean;
+  }
+>;
+
+// HashtagPlugin with trigger combobox - triggers on # character
+export const HashtagPlugin = createTSlatePlugin<HashtagConfig>({
+  key: HASHTAG_KEY,
+  node: {
+    isElement: true,
+    isInline: true,
+    isVoid: true,
+  },
+  options: {
+    trigger: '#',
+    triggerPreviousCharPattern: /^$|^[\s"']$/,
+    createComboboxInput: () => ({
+      children: [{ text: '' }],
+      type: HASHTAG_INPUT_KEY,
+    }),
+    insertSpaceAfterHashtag: true,
+  },
+  plugins: [HashtagInputPlugin],
+})
+  .overrideEditor(withTriggerCombobox)
+  .withComponent(HashtagElement);
+
+export const HashtagKit = [HashtagPlugin];
 
 export { HASHTAG_KEY };
+
+// Helper to create hashtag node
+export const createHashtagNode = (value: string): THashtagElement => ({
+  type: HASHTAG_KEY,
+  value,
+  children: [{ text: '' }],
+});

@@ -959,8 +959,10 @@ pub fn run() {
             // Create system tray with today's note count
             let today_count = count_today_notes(&app.handle());
             let tray_title = format!("{}", today_count);
+            let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png"))
+                .expect("Failed to load tray icon");
             TrayIconBuilder::with_id("main-tray")
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(tray_icon)
                 .title(&tray_title)
                 .tooltip("Lovmind")
                 .menu(&tray_menu)
