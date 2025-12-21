@@ -166,19 +166,25 @@ const InlineCombobox = ({
   );
 
   const store = useComboboxStore({
-    // open: ,
-    setValue: (newValue) => React.startTransition(() => setValue(newValue)),
+    setValue,
   });
 
   const items = store.useState('items');
 
+  /**
+   * If there is no active ID and the list of items changes, select the first
+   * item.
+   */
+  React.useEffect(() => {
+    if (!store.getState().activeId) {
+      store.setActiveId(store.first());
+    }
+  }, [items, store]);
+
   return (
     <span contentEditable={false}>
       <ComboboxProvider
-        open={
-          (items.length > 0 || hasEmpty) &&
-          (!hideWhenNoValue || value.length > 0)
-        }
+        open={!hideWhenNoValue || value.length > 0}
         store={store}
       >
         <InlineComboboxContext.Provider value={contextValue}>
@@ -231,6 +237,7 @@ const InlineComboboxInput = React.forwardRef<
             className
           )}
           value={value}
+          autoSelect
           spellCheck={false}
           autoComplete="off"
           autoCorrect="off"
@@ -253,6 +260,7 @@ const InlineComboboxContent: typeof ComboboxPopover = ({
   return (
     <Portal>
       <ComboboxPopover
+        gutter={4}
         className={cn(
           'z-500 max-h-[288px] w-[300px] overflow-y-auto rounded-md bg-popover shadow-md',
           className
@@ -272,7 +280,7 @@ const comboboxItemVariants = cva(
     variants: {
       interactive: {
         false: '',
-        true: 'cursor-pointer transition-colors hover:bg-accent hover:text-accent-foreground data-[active-item=true]:bg-accent data-[active-item=true]:text-accent-foreground',
+        true: 'cursor-pointer hover:bg-muted data-[active-item=true]:bg-accent data-[active-item=true]:text-accent-foreground',
       },
     },
   }

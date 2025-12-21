@@ -106,34 +106,10 @@ export function HashtagInputElement(
 
         <InlineComboboxContent className="my-1.5">
           <InlineComboboxEmpty>
-            {search.trim() ? (
-              <button
-                type="button"
-                onClick={handleCreateTag}
-                className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent rounded cursor-pointer"
-              >
-                <span className="text-muted-foreground">Create</span>
-                <span className="font-medium text-brand">#{search.trim()}</span>
-              </button>
-            ) : (
-              <span className="text-muted-foreground">Type to search tags...</span>
-            )}
+            <span className="text-muted-foreground">Type to search tags...</span>
           </InlineComboboxEmpty>
 
           <InlineComboboxGroup>
-            {/* Show create option at top if it's a new tag */}
-            {isNewTag && search.trim() && (
-              <InlineComboboxItem
-                key="__create__"
-                value={search.trim()}
-                onClick={handleCreateTag}
-                className="border-b border-border mb-1"
-              >
-                <span className="text-muted-foreground mr-1">Create</span>
-                <span className="font-medium text-brand">#{search.trim()}</span>
-              </InlineComboboxItem>
-            )}
-
             {filteredTags.map((tag) => (
               <InlineComboboxItem
                 key={tag.key}
@@ -146,6 +122,19 @@ export function HashtagInputElement(
                 </span>
               </InlineComboboxItem>
             ))}
+
+            {/* Show create option at bottom if it's a new tag */}
+            {isNewTag && search.trim() && (
+              <InlineComboboxItem
+                key="__create__"
+                value={search.trim()}
+                onClick={handleCreateTag}
+                className="group/item border-t border-border mt-1"
+              >
+                <span className="text-muted-foreground group-data-[active-item=true]/item:text-accent-foreground mr-1">Create</span>
+                <span className="font-medium text-brand group-data-[active-item=true]/item:text-accent-foreground">#{search.trim()}</span>
+              </InlineComboboxItem>
+            )}
           </InlineComboboxGroup>
         </InlineComboboxContent>
       </InlineCombobox>
