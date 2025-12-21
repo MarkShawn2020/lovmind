@@ -14,6 +14,7 @@ import {
   InlineComboboxGroup,
   InlineComboboxInput,
   InlineComboboxItem,
+  type InlineComboboxHandle,
 } from './inline-combobox';
 
 // Get all unique tags from notes, sorted by frequency
@@ -45,6 +46,7 @@ export function HashtagInputElement(
   const { editor } = props;
   const [search, setSearch] = React.useState('');
   const allTags = useAllTags();
+  const comboboxRef = React.useRef<InlineComboboxHandle>(null);
 
   // Filter tags based on search
   const filteredTags = React.useMemo(() => {
@@ -91,6 +93,19 @@ export function HashtagInputElement(
     insertHashtag(normalized);
   }, [search, insertHashtag]);
 
+  // Handle Enter key for new tags - fixes IME composition issue
+  // When typing Chinese, first Enter confirms IME, but store may not have updated activeId yet
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' && !e.nativeEvent.isComposing && isNewTag && filteredTags.length === 0) {
+        e.preventDefault();
+        comboboxRef.current?.removeInput(true);
+        handleCreateTag();
+      }
+    },
+    [isNewTag, filteredTags.length, handleCreateTag]
+  );
+
   return (
     <PlateElement {...props} as="span">
       <InlineCombobox
@@ -99,9 +114,10 @@ export function HashtagInputElement(
         setValue={setSearch}
         showTrigger={true}
         trigger="#"
+        comboboxRef={comboboxRef}
       >
         <span className="inline-block rounded bg-brand/10 px-1 py-0.5 align-baseline text-sm text-brand/90 ring-ring focus-within:ring-1">
-          <InlineComboboxInput />
+          <InlineComboboxInput onKeyDown={handleKeyDown} />
         </span>
 
         <InlineComboboxContent className="my-1.5">

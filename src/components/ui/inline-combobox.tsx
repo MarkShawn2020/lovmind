@@ -60,6 +60,10 @@ const defaultFilter: FilterFn = (
   );
 };
 
+export interface InlineComboboxHandle {
+  removeInput: (focusEditor?: boolean) => void;
+}
+
 interface InlineComboboxProps {
   children: React.ReactNode;
   element: TElement;
@@ -69,10 +73,12 @@ interface InlineComboboxProps {
   showTrigger?: boolean;
   value?: string;
   setValue?: (value: string) => void;
+  comboboxRef?: React.RefObject<InlineComboboxHandle | null>;
 }
 
 const InlineCombobox = ({
   children,
+  comboboxRef,
   element,
   filter = defaultFilter,
   hideWhenNoValue = false,
@@ -142,6 +148,20 @@ const InlineCombobox = ({
     },
   });
 
+  // Expose removeInput via ref for external access
+  React.useEffect(() => {
+    if (comboboxRef) {
+      (comboboxRef as React.MutableRefObject<InlineComboboxHandle | null>).current = {
+        removeInput,
+      };
+    }
+    return () => {
+      if (comboboxRef) {
+        (comboboxRef as React.MutableRefObject<InlineComboboxHandle | null>).current = null;
+      }
+    };
+  }, [comboboxRef, removeInput]);
+
   const [hasEmpty, setHasEmpty] = React.useState(false);
 
   const contextValue: InlineComboboxContextValue = React.useMemo(
@@ -172,14 +192,15 @@ const InlineCombobox = ({
   const items = store.useState('items');
 
   /**
-   * If there is no active ID and the list of items changes, select the first
-   * item.
+   * Always select the first item when items or value change.
+   * useEffect runs after render, requestAnimationFrame ensures all updates complete.
    */
   React.useEffect(() => {
-    if (!store.getState().activeId) {
+    const frameId = requestAnimationFrame(() => {
       store.setActiveId(store.first());
-    }
-  }, [items, store]);
+    });
+    return () => cancelAnimationFrame(frameId);
+  }, [items, value, store]);
 
   return (
     <span contentEditable={false}>
@@ -197,8 +218,10 @@ const InlineCombobox = ({
 
 const InlineComboboxInput = React.forwardRef<
   HTMLInputElement,
-  React.HTMLAttributes<HTMLInputElement>
->(({ className, ...props }, propRef) => {
+  React.HTMLAttributes<HTMLInputElement> & {
+    onCompositionEnd?: React.CompositionEventHandler<HTMLInputElement>;
+  }
+>(({ className, onKeyDown, onCompositionEnd, ...props }, propRef) => {
   const {
     inputProps,
     inputRef: contextRef,
@@ -210,6 +233,29 @@ const InlineComboboxInput = React.forwardRef<
   const value = store.useState('value');
 
   const ref = useComposedRef(propRef, contextRef);
+
+  // Merge onKeyDown handlers to preserve both behaviors
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      onKeyDown?.(e);
+      if (!e.defaultPrevented) {
+        inputProps.onKeyDown?.(e);
+      }
+    },
+    [onKeyDown, inputProps]
+  );
+
+  // Handle IME composition end - ensure first item is highlighted
+  const handleCompositionEnd = React.useCallback(
+    (e: React.CompositionEvent<HTMLInputElement>) => {
+      onCompositionEnd?.(e);
+      // requestAnimationFrame executes after React batch update and render completes
+      requestAnimationFrame(() => {
+        store.setActiveId(store.first());
+      });
+    },
+    [onCompositionEnd, store]
+  );
 
   /**
    * To create an auto-resizing input, we render a visually hidden span
@@ -244,6 +290,8 @@ const InlineComboboxInput = React.forwardRef<
           autoCapitalize="off"
           {...inputProps}
           {...props}
+          onKeyDown={handleKeyDown}
+          onCompositionEnd={handleCompositionEnd}
         />
       </span>
     </>
