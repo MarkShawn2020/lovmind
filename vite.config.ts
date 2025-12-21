@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
 import path from "path";
-import { codeInspectorPlugin } from "code-inspector-plugin";
+import { LovinspPlugin } from "lovinsp";
 import { DEV_SERVER_PORT } from "./src/constants/window";
 
 // @ts-expect-error process is a nodejs global
@@ -11,8 +11,8 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [
-    // Code inspector must be placed before @vitejs/plugin-react
-    process.env.NODE_ENV !== 'production' && codeInspectorPlugin({
+    // lovinsp must be placed before @vitejs/plugin-react
+    process.env.NODE_ENV !== 'production' && LovinspPlugin({
       bundler: 'vite',
       behavior: {
         defaultAction: 'copy',  // Copy mode for AI workflow

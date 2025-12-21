@@ -120,13 +120,25 @@ function FloatWindowInner() {
   }, []);
 
   const handleSaveTitle = useCallback(async () => {
-    if (!currentNote || !editingTitle.trim()) {
+    if (!editingTitle.trim() || !noteId) {
       setIsEditingTitle(false);
       return;
     }
 
+    // For blank notes: currentNote is null, so we need to build the note object
+    const existingNote = currentNote || notes.find(n => n.id === noteId);
+    const baseNote = existingNote || {
+      id: noteId,
+      title: 'New Note',
+      text: '',
+      time: new Date().toISOString(),
+      tags: [],
+      richContent: null,
+      rank: initialRank,
+    };
+
     const updatedNote = {
-      ...currentNote,
+      ...baseNote,
       title: editingTitle.trim(),
       manualTitle: true, // Mark as manually edited
     };
@@ -149,7 +161,7 @@ function FloatWindowInner() {
       console.error('[FloatWindow] Failed to save title:', error);
       setIsEditingTitle(false);
     }
-  }, [currentNote, editingTitle, updateNote]);
+  }, [currentNote, notes, noteId, initialRank, editingTitle, updateNote]);
 
   // Use withSidebarClose to auto-close mobile sidebar after opening note
   // MUST be declared before conditional returns

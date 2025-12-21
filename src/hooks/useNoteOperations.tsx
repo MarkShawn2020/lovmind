@@ -154,6 +154,11 @@ export const useNoteOperations = () => {
         title: updatedNote.title,
       });
 
+      // Optimistic update: always update local state immediately for instant UI feedback
+      setNotes((prevNotes) =>
+        prevNotes.map((n) => (n.id === updatedNote.id ? updatedNote : n))
+      );
+
       if (isTauri()) {
         // Tauri: save to backend
         try {
@@ -167,7 +172,7 @@ export const useNoteOperations = () => {
           throw error;
         }
 
-        // Broadcast update event to all windows
+        // Broadcast update event to other windows
         try {
           await invoke('broadcast_note_update', { note: updatedNote });
           console.log('[useNoteOperations] Successfully broadcasted note update');
@@ -175,12 +180,7 @@ export const useNoteOperations = () => {
           console.error('Failed to broadcast note update:', error);
         }
       } else {
-        // Browser: update Jotai atom
-        setNotes((prevNotes) =>
-          prevNotes.map((n) => (n.id === updatedNote.id ? updatedNote : n))
-        );
-
-        // Broadcast via BroadcastChannel
+        // Browser: Broadcast via BroadcastChannel for other tabs
         try {
           const channel = new BroadcastChannel('lovpen-notes-channel');
           channel.postMessage({ type: 'note-updated', note: updatedNote });

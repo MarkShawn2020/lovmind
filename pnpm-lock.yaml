@@ -260,9 +260,6 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.5))(@types/react@19.2.5)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      code-inspector-plugin:
-        specifier: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.2.tgz
-        version: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.2.tgz
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -450,6 +447,9 @@ importers:
       jsdom:
         specifier: ^27.2.0
         version: 27.2.0
+      lovinsp:
+        specifier: ^1.4.17
+        version: 1.4.17
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
@@ -691,24 +691,6 @@ packages:
 
   '@changesets/write@0.4.0':
     resolution: {integrity: sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==}
-
-  '@code-inspector/core@1.4.2':
-    resolution: {integrity: sha512-6qHdMrGDciYe2L9JibJLDHB9pUdPSBk7IMt7vTQsh8UB5dZRhHVD1vnME+zloN/bP8AHLC/KTghsb+9McT06JA==}
-
-  '@code-inspector/esbuild@1.4.2':
-    resolution: {integrity: sha512-uC1lDCNtvrvOxsFIAVBSQEalStnNfs9axBYWe2Ors9L3GajAQtQUNy4GL5jQolzDrRJXfmhVu58g/kzrbzPmCQ==}
-
-  '@code-inspector/mako@1.4.2':
-    resolution: {integrity: sha512-kSoSF2pOt/kMXVwNJbQASJzZQkeuI6ruF7gjT0zxbfnTzmvDyAyEMPiaxKLr49+3IefzT+Beglq/U8MmEBpb8w==}
-
-  '@code-inspector/turbopack@1.4.2':
-    resolution: {integrity: sha512-Z4lZXr5zWpYA67DvA4M0i3vNF6j9Q5qjG0nNoCM2pDE+PNqza4zO2LYDMfwP2PwopbLEKltHOjaH/WnnY9m7Rw==}
-
-  '@code-inspector/vite@1.4.2':
-    resolution: {integrity: sha512-XOzUfeqyWPU55rXE1nIin0/zrtHfeZinWNozfZ426x+tw3a3OeXlk6bGFSmoZgY+Pbqq/v7dkMx8hqBbuaT4GA==}
-
-  '@code-inspector/webpack@1.4.2':
-    resolution: {integrity: sha512-py7iir+Nx6Tkj07m/K6W1IymPQtC+hVUCsQKed+U8L4KKI9H99pbqyFDcMBwGuGLgBis2TXAejQq7Fv6A6qTtg==}
 
   '@commitlint/cli@19.8.1':
     resolution: {integrity: sha512-LXUdNIkspyxrlV6VDHWBmCZRtkEVRpBKxi2Gtw3J54cGWhLCTouVD/Q6ZSaSvd2YaDObWK8mDjrz3TIKtaQMAA==}
@@ -1061,6 +1043,24 @@ packages:
 
   '@juggle/resize-observer@3.4.0':
     resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
+
+  '@lovinsp/core@1.4.17':
+    resolution: {integrity: sha512-kEhnErF2pUVYROWCeh0OKdqrqa1XPwHvnV9sFo6bRCb8P0VAki4VBND2nAnqdVveR7B4p+QqlxBUePb4Y/w9IA==}
+
+  '@lovinsp/esbuild@1.4.17':
+    resolution: {integrity: sha512-8IfK2M+qBA2ERJUqCZTOoczpR5OTRIfB2DcAvTgulBzy4MGGRbvW9KeAORIclSt/BwRWJPfVASquHZvbv1RYYw==}
+
+  '@lovinsp/mako@1.4.17':
+    resolution: {integrity: sha512-66QSWdeb66xLqYUk8fXPFKxkXsEPjew42sFddiFQ3VhnXJb8O9tYTizxZadQpxRF8nF0cGwGAF6BBbv84nAD1g==}
+
+  '@lovinsp/turbopack@1.4.17':
+    resolution: {integrity: sha512-GPO+er0NRRxgllnW6NgyHeLliSi8HgxNbQbkvsWN2OHX+Ps+YEAM0x6+F4xtbQ3NqKjkms7OddHA7UISqDQfuQ==}
+
+  '@lovinsp/vite@1.4.17':
+    resolution: {integrity: sha512-KgW39WYye6wydpjwW3tmWYN3u8sfa3wPRmyK/9gYuJwrj5BxxHxfJAJPsMoc/gIvdgI+JiS/ySLYWmH3eH6Vbg==}
+
+  '@lovinsp/webpack@1.4.17':
+    resolution: {integrity: sha512-FaLnBbehPEyM4pGrXSYBeKJke3bKr4EfwqN2ip+uC6OC2dwiCBA+L5MTjuYU/miR+ijZCe5SKizX1mxKHl5UMQ==}
 
   '@manypkg/find-root@1.1.0':
     resolution: {integrity: sha512-mki5uBvhHzO8kYYix/WRy2WX8S3B5wdVSc9D6KcU5lQNglP2yt58/VfLuAK49glRXChosY8ap2oJ1qgma3GUVA==}
@@ -2611,14 +2611,14 @@ packages:
   '@vitest/utils@4.0.9':
     resolution: {integrity: sha512-cEol6ygTzY4rUPvNZM19sDf7zGa35IYTm9wfzkHoT/f5jX10IOY7QleWSOh5T0e3I3WVozwK5Asom79qW8DiuQ==}
 
-  '@vue/compiler-core@3.5.24':
-    resolution: {integrity: sha512-eDl5H57AOpNakGNAkFDH+y7kTqrQpJkZFXhWZQGyx/5Wh7B1uQYvcWkvZi11BDhscPgj8N7XV3oRwiPnx1Vrig==}
+  '@vue/compiler-core@3.5.26':
+    resolution: {integrity: sha512-vXyI5GMfuoBCnv5ucIT7jhHKl55Y477yxP6fc4eUswjP8FG3FFVFd41eNDArR+Uk3QKn2Z85NavjaxLxOC19/w==}
 
-  '@vue/compiler-dom@3.5.24':
-    resolution: {integrity: sha512-1QHGAvs53gXkWdd3ZMGYuvQFXHW4ksKWPG8HP8/2BscrbZ0brw183q2oNWjMrSWImYLHxHrx1ItBQr50I/q2zw==}
+  '@vue/compiler-dom@3.5.26':
+    resolution: {integrity: sha512-y1Tcd3eXs834QjswshSilCBnKGeQjQXB6PqFn/1nxcQw4pmG42G8lwz+FZPAZAby6gZeHSt/8LMPfZ4Rb+Bd/A==}
 
-  '@vue/shared@3.5.24':
-    resolution: {integrity: sha512-9cwHL2EsJBdi8NY22pngYYWzkTDhld6fAD6jlaeloNGciNSJL6bLpbxVgXl96X00Jtc6YWQv96YA/0sxex/k1A==}
+  '@vue/shared@3.5.26':
+    resolution: {integrity: sha512-7Z6/y3uFI5PRoKeorTOSXKcDj0MSasfNNltcslbFrPpcw6aXRUALq4IfJlaTRspiWIUOEZbrpM+iQGmCOiWe4A==}
 
   JSONStream@1.3.5:
     resolution: {integrity: sha512-E+iruNOY8VV9s4JEbe1aNEm6MiszPRr/UfcHMz0TQh1BXSxHK+ASV1R6W4HpjBhSeS+54PIsAMCBmwD06LLsqQ==}
@@ -2880,10 +2880,6 @@ packages:
     peerDependencies:
       react: ^18 || ^19 || ^19.0.0-rc
       react-dom: ^18 || ^19 || ^19.0.0-rc
-
-  code-inspector-plugin@https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.2.tgz:
-    resolution: {tarball: https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.2.tgz}
-    version: 1.4.2
 
   codem-isoboxer@0.3.10:
     resolution: {integrity: sha512-eNk3TRV+xQMJ1PEj0FQGY8KD4m0GPxT487XJ+Iftm7mVa9WpPFDMWqPt+46buiP5j5Wzqe5oMIhqBcAeKfygSA==}
@@ -3931,6 +3927,9 @@ packages:
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
     hasBin: true
+
+  lovinsp@1.4.17:
+    resolution: {integrity: sha512-SFTbKFGcxyPddsl2SYT49Twf+12o63hMhy1HxyVyvwFcSTRry7M6iCIFP/fEb+L5yzAEWSuejTLUcttpvZhywQ==}
 
   lowlight@3.3.0:
     resolution: {integrity: sha512-0JNhgFoPvP6U6lE/UdVsSq99tn6DhjjpAj5MxG49ewd2mOBVtwWYIT8ClyABhq198aXXODMU6Ox8DrGy/CpTZQ==}
@@ -5752,48 +5751,6 @@ snapshots:
       human-id: 4.1.3
       prettier: 2.8.8
 
-  '@code-inspector/core@1.4.2':
-    dependencies:
-      '@vue/compiler-dom': 3.5.24
-      chalk: 4.1.2
-      dotenv: 16.6.1
-      launch-ide: 1.2.0
-      portfinder: 1.0.38
-    transitivePeerDependencies:
-      - supports-color
-
-  '@code-inspector/esbuild@1.4.2':
-    dependencies:
-      '@code-inspector/core': 1.4.2
-    transitivePeerDependencies:
-      - supports-color
-
-  '@code-inspector/mako@1.4.2':
-    dependencies:
-      '@code-inspector/core': 1.4.2
-    transitivePeerDependencies:
-      - supports-color
-
-  '@code-inspector/turbopack@1.4.2':
-    dependencies:
-      '@code-inspector/core': 1.4.2
-      '@code-inspector/webpack': 1.4.2
-    transitivePeerDependencies:
-      - supports-color
-
-  '@code-inspector/vite@1.4.2':
-    dependencies:
-      '@code-inspector/core': 1.4.2
-      chalk: 4.1.1
-    transitivePeerDependencies:
-      - supports-color
-
-  '@code-inspector/webpack@1.4.2':
-    dependencies:
-      '@code-inspector/core': 1.4.2
-    transitivePeerDependencies:
-      - supports-color
-
   '@commitlint/cli@19.8.1(@types/node@24.10.1)(typescript@5.8.3)':
     dependencies:
       '@commitlint/format': 19.8.1
@@ -6121,6 +6078,48 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.5
 
   '@juggle/resize-observer@3.4.0': {}
+
+  '@lovinsp/core@1.4.17':
+    dependencies:
+      '@vue/compiler-dom': 3.5.26
+      chalk: 4.1.2
+      dotenv: 16.6.1
+      launch-ide: 1.2.0
+      portfinder: 1.0.38
+    transitivePeerDependencies:
+      - supports-color
+
+  '@lovinsp/esbuild@1.4.17':
+    dependencies:
+      '@lovinsp/core': 1.4.17
+    transitivePeerDependencies:
+      - supports-color
+
+  '@lovinsp/mako@1.4.17':
+    dependencies:
+      '@lovinsp/core': 1.4.17
+    transitivePeerDependencies:
+      - supports-color
+
+  '@lovinsp/turbopack@1.4.17':
+    dependencies:
+      '@lovinsp/core': 1.4.17
+      '@lovinsp/webpack': 1.4.17
+    transitivePeerDependencies:
+      - supports-color
+
+  '@lovinsp/vite@1.4.17':
+    dependencies:
+      '@lovinsp/core': 1.4.17
+      chalk: 4.1.1
+    transitivePeerDependencies:
+      - supports-color
+
+  '@lovinsp/webpack@1.4.17':
+    dependencies:
+      '@lovinsp/core': 1.4.17
+    transitivePeerDependencies:
+      - supports-color
 
   '@manypkg/find-root@1.1.0':
     dependencies:
@@ -7706,20 +7705,20 @@ snapshots:
       '@vitest/pretty-format': 4.0.9
       tinyrainbow: 3.0.3
 
-  '@vue/compiler-core@3.5.24':
+  '@vue/compiler-core@3.5.26':
     dependencies:
       '@babel/parser': 7.28.5
-      '@vue/shared': 3.5.24
-      entities: 4.5.0
+      '@vue/shared': 3.5.26
+      entities: 7.0.0
       estree-walker: 2.0.2
       source-map-js: 1.2.1
 
-  '@vue/compiler-dom@3.5.24':
+  '@vue/compiler-dom@3.5.26':
     dependencies:
-      '@vue/compiler-core': 3.5.24
-      '@vue/shared': 3.5.24
+      '@vue/compiler-core': 3.5.26
+      '@vue/shared': 3.5.26
 
-  '@vue/shared@3.5.24': {}
+  '@vue/shared@3.5.26': {}
 
   JSONStream@1.3.5:
     dependencies:
@@ -7978,18 +7977,6 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
       - '@types/react-dom'
-
-  code-inspector-plugin@https://npm.cloudsmith.io/mark/code-inspector/code-inspector-plugin/-/code-inspector-plugin-1.4.2.tgz:
-    dependencies:
-      '@code-inspector/core': 1.4.2
-      '@code-inspector/esbuild': 1.4.2
-      '@code-inspector/mako': 1.4.2
-      '@code-inspector/turbopack': 1.4.2
-      '@code-inspector/vite': 1.4.2
-      '@code-inspector/webpack': 1.4.2
-      chalk: 4.1.1
-    transitivePeerDependencies:
-      - supports-color
 
   codem-isoboxer@0.3.10: {}
 
@@ -9022,6 +9009,18 @@ snapshots:
   loose-envify@1.4.0:
     dependencies:
       js-tokens: 4.0.0
+
+  lovinsp@1.4.17:
+    dependencies:
+      '@lovinsp/core': 1.4.17
+      '@lovinsp/esbuild': 1.4.17
+      '@lovinsp/mako': 1.4.17
+      '@lovinsp/turbopack': 1.4.17
+      '@lovinsp/vite': 1.4.17
+      '@lovinsp/webpack': 1.4.17
+      chalk: 4.1.1
+    transitivePeerDependencies:
+      - supports-color
 
   lowlight@3.3.0:
     dependencies:
