@@ -157,6 +157,9 @@ function Draggable(props: PlateElementProps) {
           ? 'group/container'
           : 'group'
       )}
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
       onMouseEnter={() => {
         if (!isDragging) {
           setIsMouseOver(true);
