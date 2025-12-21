@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2
+
+### Patch Changes
+
+- 移除 DevTools 全局快捷键注册
+
 ## 0.2.1
 
 ### Patch Changes
