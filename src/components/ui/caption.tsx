@@ -217,6 +217,10 @@ export const CaptionTextarea = React.forwardRef<
         'text-center print:placeholder:text-transparent',
         props.className
       )}
+      spellCheck={false}
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="off"
     />
   );
 });

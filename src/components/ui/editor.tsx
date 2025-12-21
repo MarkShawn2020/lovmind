@@ -107,6 +107,9 @@ export const Editor = React.forwardRef<HTMLDivElement, EditorProps>(
         )}
         disabled={disabled}
         disableDefaultStyles
+        spellCheck={false}
+        autoCorrect="off"
+        autoCapitalize="off"
         {...props}
       />
     );

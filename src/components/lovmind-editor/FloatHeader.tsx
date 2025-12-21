@@ -63,6 +63,10 @@ export const FloatHeader = ({
             className="bg-white/10 text-white px-2 py-0.5 rounded outline-none border border-white/20 focus:border-white/40"
             style={{ minWidth: '200px' }}
             onClick={(e) => e.stopPropagation()}
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
           />
         ) : (
           <span

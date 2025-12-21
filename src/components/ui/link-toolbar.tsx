@@ -108,6 +108,10 @@ export function LinkFloatingToolbar({
           className={inputVariants()}
           placeholder="Paste link"
           data-plate-focus
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
         />
       </div>
       <Separator className="my-1" />
@@ -119,6 +123,10 @@ export function LinkFloatingToolbar({
           className={inputVariants()}
           placeholder="Text to display"
           data-plate-focus
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
           {...textInputProps}
         />
       </div>

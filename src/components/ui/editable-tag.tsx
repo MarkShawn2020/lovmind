@@ -148,6 +148,10 @@ export const EditableTag = memo(({
           `}
           maxLength={50}
           aria-label={`Edit tag ${tag}`}
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
         />
       </span>
     );

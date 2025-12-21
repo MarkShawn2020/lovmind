@@ -147,6 +147,10 @@ export function HashtagElement(props: PlateElementProps<THashtagElement>) {
             className="inline-block px-1 py-0.5 text-sm bg-brand/10 text-brand/90 border border-brand/40 rounded outline-none focus:ring-1 focus:ring-brand/60 min-w-[40px] max-w-[150px]"
             maxLength={50}
             aria-label={`Edit tag ${element.value}`}
+            spellCheck={false}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
           />
         </span>
         {props.children}
