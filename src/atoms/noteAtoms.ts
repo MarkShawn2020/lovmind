@@ -9,7 +9,7 @@ import { notesAtom } from '@/store'; // Re-export from store.ts
  * This eliminates state duplication and enables cross-component communication.
  */
 
-// Re-export notesAtom from store.ts (already persisted with atomWithStorage)
+// Re-export notesAtom from store.ts (persisted in web builds via atomWithStorage)
 export { notesAtom };
 
 // Base atoms: Source of truth

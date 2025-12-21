@@ -161,6 +161,50 @@ const migrateNotesData = (rawData: string): string => {
   }
 };
 
+// Notes storage: localStorage in web builds, in-memory in Tauri (backend persists notes)
+const createNotesStorage = <T>() => {
+  return createJSONStorage<T>(() => ({
+    getItem: (key: string) => {
+      if (isTauri()) {
+        return null;
+      }
+
+      const rawValue = localStorage.getItem(key);
+
+      // Special handling for notes atom to migrate old format
+      if (key === 'lovpen-notes' && rawValue) {
+        const migratedValue = migrateNotesData(rawValue);
+
+        // Update localStorage with migrated data if it changed
+        if (migratedValue !== rawValue) {
+          localStorage.setItem(key, migratedValue);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Storage] Notes data migrated in localStorage');
+          }
+        }
+
+        return migratedValue;
+      }
+
+      return rawValue;
+    },
+
+    setItem: (key: string, value: string) => {
+      if (isTauri()) {
+        return;
+      }
+      localStorage.setItem(key, value);
+    },
+
+    removeItem: (key: string) => {
+      if (isTauri()) {
+        return;
+      }
+      localStorage.removeItem(key);
+    },
+  }));
+};
+
 // Custom storage implementation using memory cache + async Tauri Store
 const createTauriStorage = <T>() => {
   return createJSONStorage<T>(() => ({
@@ -264,7 +308,7 @@ const createTauriStorage = <T>() => {
 export const notesAtom = atomWithStorage<Note[]>(
   'lovpen-notes',
   [],
-  createTauriStorage<Note[]>(),
+  createNotesStorage<Note[]>(),
   { getOnInit: true }
 );
 

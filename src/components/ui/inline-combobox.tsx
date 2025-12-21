@@ -172,16 +172,6 @@ const InlineCombobox = ({
 
   const items = store.useState('items');
 
-  /**
-   * If there is no active ID and the list of items changes, select the first
-   * item.
-   */
-  React.useEffect(() => {
-    if (!store.getState().activeId) {
-      store.setActiveId(store.first());
-    }
-  }, [items, store]);
-
   return (
     <span contentEditable={false}>
       <ComboboxProvider
@@ -241,7 +231,10 @@ const InlineComboboxInput = React.forwardRef<
             className
           )}
           value={value}
-          autoSelect
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
           {...inputProps}
           {...props}
         />
