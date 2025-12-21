@@ -1,5 +1,11 @@
 ## [0.99.0](https://github.com/MarkShawn2020/lovmind/compare/v0.98.4...v0.99.0) (2025-12-18)
 
+## 0.100.3
+
+### Patch Changes
+
+- 修复 main window 下 Cmd+Enter 无法触发笔记提交的问题
+
 ## 0.100.2
 
 ### Patch Changes
