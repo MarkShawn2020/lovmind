@@ -998,7 +998,7 @@ pub fn run() {
             } else {
                 None
             };
-            let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png"))
+            let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray-icon.png"))
                 .expect("Failed to load tray icon");
             let mut tray_builder = TrayIconBuilder::with_id("main-tray")
                 .icon(tray_icon);
