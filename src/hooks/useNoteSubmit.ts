@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { invoke } from '@tauri-apps/api/core';
+import { emit } from '@tauri-apps/api/event';
 import confetti from 'canvas-confetti';
 
 import { isTauri } from '../utils/tauri';
-import { Note, draftContentAtom } from '../store';
+import { Note, draftContentAtom, setStoreValue } from '../store';
 import { editorContentAtom, notesAtom } from '../atoms/noteAtoms';
 import { extractNoteTitle } from '../utils/titleExtractor';
 import { useNoteOperations } from './useNoteOperations';
@@ -302,34 +303,32 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           drift: 0
         });
 
-        // Save to backend
+        // Save to backend and notify float windows
         if (isTauri()) {
           try {
             await invoke('store_temp_note', { note: newNote });
             await invoke('broadcast_note_update', { note: newNote });
+
+            // Clear draft from store and notify float windows to close
+            await setStoreValue('lovpen-draft', null);
+            await emit('draft-submitted', { noteId: newNote.id });
+
             console.log('✅ Note created and broadcasted:', newNote.id);
           } catch (error) {
             console.error('Failed to save to backend:', error);
           }
         }
 
-        // Now reset the editor DOM
-        if (shouldReset) {
-          // Clear editor content so next capture starts fresh
-          setEditorContent({
-            text: '',
-            tags: [],
-            richContent: null,
-            isEmpty: true,
-            sourceNoteId: null,
-          });
-          editorRef.current?.resetAndFocus();
-          console.log('[Submit] Editor reset for continuous capture (pinned mode)');
-        } else if (onCloseWindow) {
-          // Close window after successful creation (for float window normal mode)
-          await onCloseWindow();
-          return; // Early return to prevent further execution
-        }
+        // Reset editor for new note
+        setEditorContent({
+          text: '',
+          tags: [],
+          richContent: null,
+          isEmpty: true,
+          sourceNoteId: null,
+        });
+        editorRef.current?.resetAndFocus();
+        console.log('[Submit] Editor reset for new note');
       }
     } catch (error) {
       console.error('Failed to submit note:', error);

@@ -2,8 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor';
 import { editorContentAtom, notesAtom } from '@/atoms/noteAtoms';
-import { noteStatsAtom, draftContentAtom, getStoreValue, type DraftContent } from '@/store';
-import { isTauri } from '@/utils/tauri';
+import { noteStatsAtom, draftContentAtom } from '@/store';
 import { useNoteEventSync } from './useNoteEventSync';
 import { useImageHeightSync } from './useImageHeightSync';
 import { useMobileSidebarState } from './useMobileSidebarState';
@@ -78,7 +77,7 @@ export interface MainWindowLogicReturn {
   setLastClickedNote: (noteId: string) => void;
 
   // Handlers
-  handleBackToCreate: () => Promise<void>;
+  handleBackToCreate: () => void;
   handleOpenNoteInCurrentWindow: (note: Note) => void;
   handleCreateNewNote: () => void;
   handleBatchDelete: () => Promise<void>;
@@ -175,30 +174,25 @@ export function useMainWindowLogic(
   }, [originalHandleSubmit, shouldUseMobileView, isMobile]);
 
   // Handlers
-  const handleBackToCreate = useCallback(async () => {
+  const handleBackToCreate = useCallback(() => {
     setViewingNoteId(null);
 
-    // Read draft from Tauri Store directly (not local atom)
-    // This ensures we get the latest content from float windows
-    let latestDraft: DraftContent | null = null;
-    if (isTauri()) {
-      latestDraft = await getStoreValue<DraftContent | null>('lovpen-draft', null);
-    } else {
-      // Fallback to local atom for web
-      latestDraft = draftContent;
-    }
-
-    if (latestDraft && latestDraft.text?.trim()) {
+    // Read draft from local atom (kept in sync by useDraftSync)
+    if (draftContent && draftContent.text?.trim()) {
       setEditorContent({
-        text: latestDraft.text,
-        tags: latestDraft.tags,
-        richContent: latestDraft.richContent,
+        text: draftContent.text,
+        tags: draftContent.tags,
+        richContent: draftContent.richContent,
         isEmpty: false,
         sourceNoteId: null, // Create mode
       });
-      console.log('[Draft] Restored draft from store:', latestDraft.savedAt);
+      console.log('[Draft] Restored draft:', draftContent.savedAt);
     } else {
-      editorRef.current?.resetAndFocus();
+      // Delay resetAndFocus to next frame to allow editor to remount
+      // (editorKey changes when viewingNoteId becomes null, causing React to remount the editor)
+      requestAnimationFrame(() => {
+        editorRef.current?.resetAndFocus();
+      });
     }
 
     // On mobile, switch to editor view

@@ -142,6 +142,14 @@ const isFloatWindowNewNote = noteId !== null && !notes.some(n => n.id === noteId
 **修复**: 当 `noteId === null` 时，`useNoteLoader` 不再重置 `editorContent`，
 只清除 `currentNoteId`。让调用方（如 `handleBackToCreate`）控制内容。
 
+### 2024-12-23: 修复主窗口查看笔记时 draftContentAtom 不更新
+
+**问题**: 主窗口查看其他笔记时，`useDraftSync` 不更新 `editorContentAtom`（正确），
+但也不更新 `draftContentAtom`。当切回新建模式时，`draftContentAtom` 是旧数据。
+
+**修复**: `useDraftSync` 始终更新 `draftContentAtom`，即使不更新编辑器。
+这样 `handleBackToCreate` 可以直接读取本地 atom，无需异步读取 Store。
+
 ---
 
 ## 测试清单
@@ -159,6 +167,9 @@ const isFloatWindowNewNote = noteId !== null && !notes.some(n => n.id === noteId
 - [ ] 浮动窗口新建 → 主窗口切换到已有笔记 → 浮动窗口继续编辑 → 不应同步到主窗口
 
 ### 生命周期
-- [ ] 提交后两边都清空
+- [ ] 主窗口提交后：笔记保存、编辑器清空、非置顶浮动窗口关闭
+- [ ] 主窗口提交后：置顶浮动窗口保持打开并清空编辑器
+- [ ] 浮动窗口提交后：非置顶模式关闭窗口
+- [ ] 浮动窗口提交后：置顶模式清空编辑器继续输入
 - [ ] 关闭 Float 窗口后主窗口保留内容
 - [ ] 多个 Float 窗口同时同步

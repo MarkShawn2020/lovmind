@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { listen } from '@tauri-apps/api/event';
 import { editorContentAtom, notesAtom } from '@/atoms/noteAtoms';
-import { type DraftContent } from '@/store';
+import { draftContentAtom, type DraftContent } from '@/store';
 import { isTauri } from '@/utils/tauri';
 import { emittedSavedAtSet } from './useDraftPersistence';
 
@@ -19,6 +19,7 @@ import { emittedSavedAtSet } from './useDraftPersistence';
  */
 export function useDraftSync(noteId: string | null) {
   const setEditorContent = useSetAtom(editorContentAtom);
+  const setDraftContent = useSetAtom(draftContentAtom);
   const editorContent = useAtomValue(editorContentAtom);
   const notes = useAtomValue(notesAtom);
 
@@ -42,13 +43,19 @@ export function useDraftSync(noteId: string | null) {
         return;
       }
 
-      // Check if we should sync:
+      lastReceivedDraftRef.current = draft.savedAt;
+
+      // Always update draftContentAtom so handleBackToCreate can read it
+      setDraftContent(draft);
+
+      // Check if we should also sync to editor:
       // 1. Main window in create mode (noteId === null, sourceNoteId === null)
       // 2. Float window with unsaved note (noteId exists but note not in backend)
       const isMainWindowCreateMode = noteId === null && editorContent.sourceNoteId === null;
       const isFloatWindowNewNote = noteId !== null && !notes.some(n => n.id === noteId);
 
       if (!isMainWindowCreateMode && !isFloatWindowNewNote) {
+        console.log('[DraftSync] Updated draftContentAtom only (not in edit mode)');
         return;
       }
 
@@ -58,9 +65,7 @@ export function useDraftSync(noteId: string | null) {
         return;
       }
 
-      lastReceivedDraftRef.current = draft.savedAt;
-
-      console.log('[DraftSync] Received draft update, syncing to editor:', draft.savedAt);
+      console.log('[DraftSync] Syncing to editor:', draft.savedAt);
 
       // Update editor content with synced draft
       // Add _syncedAt marker so useDraftPersistence knows this came from sync
@@ -77,5 +82,5 @@ export function useDraftSync(noteId: string | null) {
     return () => {
       unlistenPromise.then((unlisten) => unlisten());
     };
-  }, [noteId, notes, editorContent.sourceNoteId, setEditorContent]);
+  }, [noteId, notes, editorContent.sourceNoteId, setEditorContent, setDraftContent]);
 }

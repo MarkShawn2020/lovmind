@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { Toaster } from 'sonner';
 
 import { isTauri } from './utils/tauri';
@@ -293,6 +294,29 @@ function FloatWindowInner() {
       }
     };
   }, []);
+
+  // Listen for draft-submitted event and close window if not pinned
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    const unlistenPromise = listen<{ noteId: string }>('draft-submitted', async () => {
+      // Don't close if window is pinned (always-on-top mode)
+      if (isAlwaysOnTop) {
+        console.log('[FloatWindow] Draft submitted but window is pinned, staying open');
+        // Reset editor for new note
+        editorRef.current?.resetAndFocus();
+        return;
+      }
+
+      console.log('[FloatWindow] Draft submitted, closing window');
+      const currentWindow = getCurrentWindow();
+      await currentWindow.close();
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, [isAlwaysOnTop]);
 
   // Show loading while note is being loaded
   if (!noteId) {
