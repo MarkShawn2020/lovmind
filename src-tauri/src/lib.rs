@@ -1353,6 +1353,8 @@ pub fn run() {
                 #[cfg(target_os = "macos")]
                 tauri::RunEvent::Reopen { .. } => {
                     println!("[Reopen Event] Triggered - attempting to show main window");
+                    // First, activate the application (unhide it from background)
+                    let _ = app_handle.show();
                     if let Some(main_window) = app_handle.get_webview_window("main") {
                         println!("[Reopen Event] Main window found, showing...");
                         let _ = main_window.unminimize();
@@ -1360,9 +1362,7 @@ pub fn run() {
                         let _ = main_window.set_focus();
                         println!("[Reopen Event] Main window shown and focused");
                         // Update menu text to "Hide Main Window"
-                        println!("[Reopen Event] About to call update_main_window_menu_text(true)");
                         update_main_window_menu_text(&app_handle, true);
-                        println!("[Reopen Event] Finished calling update_main_window_menu_text");
                     } else {
                         println!("[Reopen Event] ERROR: Main window not found!");
                     }

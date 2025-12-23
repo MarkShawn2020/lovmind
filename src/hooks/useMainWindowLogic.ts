@@ -1,8 +1,10 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
+import { listen } from '@tauri-apps/api/event';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor';
 import { editorContentAtom, notesAtom } from '@/atoms/noteAtoms';
 import { noteStatsAtom, draftContentAtom } from '@/store';
+import { isTauri } from '@/utils/tauri';
 import { useNoteEventSync } from './useNoteEventSync';
 import { useImageHeightSync } from './useImageHeightSync';
 import { useMobileSidebarState } from './useMobileSidebarState';
@@ -127,7 +129,33 @@ export function useMainWindowLogic(
   const noteStats = useAtomValue(noteStatsAtom);
   const draftContent = useAtomValue(draftContentAtom);
   const setEditorContent = useSetAtom(editorContentAtom);
+  const setDraftContent = useSetAtom(draftContentAtom);
 
+  // Listen for draft-submitted event (from float windows)
+  // Clear editor if we're in create mode
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    const unlistenPromise = listen<{ noteId: string }>('draft-submitted', () => {
+      // Only clear if we're in create mode
+      if (viewingNoteId === null) {
+        console.log('[MainWindow] Draft submitted from another window, clearing editor');
+        setEditorContent({
+          text: '',
+          tags: [],
+          richContent: null,
+          isEmpty: true,
+          sourceNoteId: null,
+        });
+        setDraftContent(null);
+        editorRef.current?.resetAndFocus();
+      }
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten());
+    };
+  }, [viewingNoteId, setEditorContent, setDraftContent]);
 
   // Business logic hooks (for toolbar and sidebar)
   const { deleteNote, togglePin, toggleArchive } = useNoteOperations();

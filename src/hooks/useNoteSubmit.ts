@@ -149,6 +149,12 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
 
           await updateNote(updatedNote);
           setDraft(null); // Clear draft after successful update
+
+          // Clear draft from store and notify other windows
+          if (isTauri()) {
+            await setStoreValue('lovpen-draft', null);
+            await emit('draft-submitted', { noteId: updatedNote.id });
+          }
           console.log('✅ Note updated:', updatedNote.id);
 
           // Now reset the editor DOM
@@ -222,11 +228,16 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
             drift: 0
           });
 
-          // Save to backend
+          // Save to backend and notify other windows
           if (isTauri()) {
             try {
               await invoke('store_temp_note', { note: newNote });
               await invoke('broadcast_note_update', { note: newNote });
+
+              // Clear draft from store and notify other windows
+              await setStoreValue('lovpen-draft', null);
+              await emit('draft-submitted', { noteId: newNote.id });
+
               console.log('✅ Note created and broadcasted:', newNote.id);
             } catch (error) {
               console.error('Failed to save to backend:', error);
