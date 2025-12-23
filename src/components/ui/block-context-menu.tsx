@@ -66,6 +66,7 @@ export function BlockContextMenu() {
 
   // Save selection on right-click to restore if it gets cleared
   const savedSelectionRef = React.useRef<any>(null);
+  const savedBlockSelectionRef = React.useRef<string[] | null>(null);
 
   // Update global state when menu state changes to hide floating toolbar
   React.useEffect(() => {
@@ -74,6 +75,7 @@ export function BlockContextMenu() {
     // Clear saved selection when menu closes
     if (!menuOpen) {
       savedSelectionRef.current = null;
+      savedBlockSelectionRef.current = null;
     }
   }, [menuOpen]);
 
@@ -168,12 +170,25 @@ export function BlockContextMenu() {
           hasBlockSelection,
           blockSelectionCount: blockSelectionNodes.length,
           selection: editor.selection,
-          savedSelection: savedSelectionRef.current
+          savedSelection: savedSelectionRef.current,
+          savedBlockSelection: savedBlockSelectionRef.current
         });
 
-        // If we saved a text selection, ALWAYS restore it and clear block selection
-        // This handles the case where selection was cleared or changed to block selection
-        if (savedSelectionRef.current) {
+        // Restore block selection if it was saved
+        if (savedBlockSelectionRef.current && savedBlockSelectionRef.current.length > 0) {
+          console.log('[BlockContextMenu] 🔄 Restoring saved block selection');
+
+          const blockSelectionApi = editor.getApi(BlockSelectionPlugin).blockSelection;
+          blockSelectionApi.setSelectedIds({ ids: savedBlockSelectionRef.current });
+
+          // Update local state
+          hasBlockSelection = true;
+          hasTextSelection = false;
+
+          console.log('[BlockContextMenu] ✅ Block selection restored');
+        }
+        // If we saved a text selection, restore it and clear block selection
+        else if (savedSelectionRef.current) {
           console.log('[BlockContextMenu] 🔄 Restoring saved text selection and clearing block selection');
 
           // First, clear any block selection
@@ -197,7 +212,7 @@ export function BlockContextMenu() {
           hasTextSelection = true;
           hasBlockSelection = false;
 
-          console.log('[BlockContextMenu] ✅ Selection restored');
+          console.log('[BlockContextMenu] ✅ Text selection restored');
         }
 
         event.preventDefault();
@@ -235,10 +250,14 @@ export function BlockContextMenu() {
 
           // Save the current selection to restore later if needed
           // IMPORTANT: Only save if we don't already have a saved selection (to avoid overwriting)
-          if (hasTextSelection && !savedSelectionRef.current) {
+          if (hasBlockSelection && !savedBlockSelectionRef.current) {
+            const blockNodes = editor.getApi(BlockSelectionPlugin).blockSelection.getNodes();
+            savedBlockSelectionRef.current = blockNodes.map(([node]) => (node as any).id).filter(Boolean);
+            console.log('[BlockContextMenu] 💾 Saved block selection:', savedBlockSelectionRef.current);
+          } else if (hasTextSelection && !savedSelectionRef.current) {
             savedSelectionRef.current = editor.selection;
             console.log('[BlockContextMenu] 💾 Saved text selection:', savedSelectionRef.current);
-          } else if (hasTextSelection) {
+          } else if (hasTextSelection || hasBlockSelection) {
             console.log('[BlockContextMenu] ℹ️ Already have saved selection, keeping it');
           }
 
