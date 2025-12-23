@@ -287,9 +287,19 @@ async fn set_show_tray_count(app: tauri::AppHandle, enabled: bool) -> Result<(),
     store.set("show_tray_count", serde_json::json!(enabled));
     store.save().map_err(|e| e.to_string())?;
 
-    // Update tray immediately
+    // Update tray immediately with the new value (don't re-read from store)
     #[cfg(not(target_os = "ios"))]
-    update_tray_title(&app);
+    {
+        if let Some(tray) = app.tray_by_id("main-tray") {
+            if enabled {
+                let count = count_today_notes(&app);
+                let _ = tray.set_title(Some(&format!("{}", count)));
+            } else {
+                // Use empty string to clear title (None doesn't work on macOS)
+                let _ = tray.set_title(Some(""));
+            }
+        }
+    }
 
     // Broadcast to all windows
     app.emit("show-tray-count-changed", enabled)
@@ -322,10 +332,10 @@ pub fn update_tray_title(app: &tauri::AppHandle) {
     if let Some(tray) = app.tray_by_id("main-tray") {
         if show_count {
             let count = count_today_notes(app);
-            let title = format!("{}", count);
-            let _ = tray.set_title(Some(&title));
+            let _ = tray.set_title(Some(&format!("{}", count)));
         } else {
-            let _ = tray.set_title(None::<&str>);
+            // Use empty string to clear title (None doesn't work on macOS)
+            let _ = tray.set_title(Some(""));
         }
     }
 }
@@ -504,16 +514,7 @@ async fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
             .decorations(true)
             .transparent(false);
 
-        let window = window_builder.build().map_err(|e| e.to_string())?;
-
-        // Auto-open DevTools for settings window in debug mode
-        #[cfg(debug_assertions)]
-        {
-            println!("[DevTools] Auto-opening DevTools for settings window");
-            if let Err(err) = open_devtools_best_effort(&window) {
-                println!("[DevTools] Failed to auto-open DevTools for settings window: {}", err);
-            }
-        }
+        let _window = window_builder.build().map_err(|e| e.to_string())?;
     }
 
     #[cfg(target_os = "ios")]
