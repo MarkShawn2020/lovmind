@@ -272,6 +272,32 @@ async fn is_ai_enabled(app: tauri::AppHandle) -> Result<bool, String> {
 }
 
 #[tauri::command]
+async fn get_show_tray_count(app: tauri::AppHandle) -> Result<bool, String> {
+    let store = app.store("settings.json").map_err(|e| e.to_string())?;
+    let enabled = store
+        .get("show_tray_count")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true); // Default to true
+    Ok(enabled)
+}
+
+#[tauri::command]
+async fn set_show_tray_count(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    let store = app.store("settings.json").map_err(|e| e.to_string())?;
+    store.set("show_tray_count", serde_json::json!(enabled));
+    store.save().map_err(|e| e.to_string())?;
+
+    // Update tray immediately
+    #[cfg(not(target_os = "ios"))]
+    update_tray_title(&app);
+
+    // Broadcast to all windows
+    app.emit("show-tray-count-changed", enabled)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn set_ai_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     let store = app.store("settings.json").map_err(|e| e.to_string())?;
     store.set("ai_enabled", serde_json::json!(enabled));
@@ -286,10 +312,21 @@ async fn set_ai_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), Stri
 // Helper function to update tray title with today's note count
 #[cfg(not(target_os = "ios"))]
 pub fn update_tray_title(app: &tauri::AppHandle) {
-    let count = count_today_notes(app);
-    let title = format!("{}", count);
+    // Check if show_tray_count is enabled (default: true)
+    let show_count = app
+        .store("settings.json")
+        .ok()
+        .and_then(|store| store.get("show_tray_count").and_then(|v| v.as_bool()))
+        .unwrap_or(true);
+
     if let Some(tray) = app.tray_by_id("main-tray") {
-        let _ = tray.set_title(Some(&title));
+        if show_count {
+            let count = count_today_notes(app);
+            let title = format!("{}", count);
+            let _ = tray.set_title(Some(&title));
+        } else {
+            let _ = tray.set_title(None::<&str>);
+        }
     }
 }
 
@@ -786,6 +823,8 @@ pub fn run() {
             generate_qiniu_token,
             is_ai_enabled,
             set_ai_enabled,
+            get_show_tray_count,
+            set_show_tray_count,
             quit_app,
             get_user_profile,
             save_user_profile,
@@ -949,14 +988,23 @@ pub fn run() {
                 &tray_quit,
             ])?;
 
-            // Create system tray with today's note count
-            let today_count = count_today_notes(&app.handle());
-            let tray_title = format!("{}", today_count);
+            // Create system tray with today's note count (if enabled)
+            let show_tray_count = store.get("show_tray_count")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(true);
+            let tray_title: Option<String> = if show_tray_count {
+                Some(format!("{}", count_today_notes(&app.handle())))
+            } else {
+                None
+            };
             let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png"))
                 .expect("Failed to load tray icon");
-            TrayIconBuilder::with_id("main-tray")
-                .icon(tray_icon)
-                .title(&tray_title)
+            let mut tray_builder = TrayIconBuilder::with_id("main-tray")
+                .icon(tray_icon);
+            if let Some(ref title) = tray_title {
+                tray_builder = tray_builder.title(title);
+            }
+            tray_builder
                 .tooltip("Lovmind")
                 .menu(&tray_menu)
                 .on_menu_event(move |app, event| {

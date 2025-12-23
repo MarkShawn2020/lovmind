@@ -118,6 +118,9 @@ export default function SettingsWindow() {
   // Store loading state
   const [isStoreLoaded, setIsStoreLoaded] = useState(false);
 
+  // Tray count setting
+  const [showTrayCount, setShowTrayCount] = useState(true);
+
   // Cloud storage settings
   const [cloudSettings, setCloudSettings] = useAtom(cloudStorageSettingsAtom);
   const [editingCloudSettings, setEditingCloudSettings] = useState<CloudStorageSettings>(defaultCloudStorageSettings);
@@ -158,7 +161,30 @@ export default function SettingsWindow() {
 
   useEffect(() => {
     loadSettings();
+    loadTrayCountSetting();
   }, []);
+
+  const loadTrayCountSetting = async () => {
+    if (isTauri()) {
+      try {
+        const enabled = await invoke<boolean>('get_show_tray_count');
+        setShowTrayCount(enabled);
+      } catch (error) {
+        console.error('Failed to load tray count setting:', error);
+      }
+    }
+  };
+
+  const handleTrayCountChange = async (enabled: boolean) => {
+    setShowTrayCount(enabled);
+    if (isTauri()) {
+      try {
+        await invoke('set_show_tray_count', { enabled });
+      } catch (error) {
+        console.error('Failed to save tray count setting:', error);
+      }
+    }
+  };
 
   // Helper function to update image max height and broadcast to other windows
   const updateImageMaxHeight = useCallback(async (newHeight: number) => {
@@ -450,6 +476,26 @@ export default function SettingsWindow() {
           {/* Display Tab */}
           {activeTab === 'display' && (
             <div className="space-y-6">
+              {/* Tray Count Toggle */}
+              <div className="p-5 bg-white/60 rounded-2xl border border-transparent hover:border-[#E8E6DC] transition-all">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="font-medium text-[#181818] text-base mb-1">Show Today's Note Count in Tray</div>
+                    <div className="text-sm text-[#87867F]">Display the number of notes created today next to the tray icon</div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showTrayCount}
+                      onChange={(e) => handleTrayCountChange(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-[#E8E6DC] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D97757]"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Image Max Height */}
               <div className="p-5 bg-white/60 rounded-2xl border border-transparent hover:border-[#E8E6DC] transition-all">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex-1">
