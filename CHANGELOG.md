@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+### Minor Changes
+
+- feat(tray): 更新 tray icon 使用 lovstudio logo
+  fix(editor): 修复拖选多个 blocks 后右键选区丢失的问题
+  fix(settings): 移除 settings 窗口自动打开 DevTools
+  fix(notes): 修复置顶切换的竞态条件问题
+
 ## 0.2.2
 
 ### Patch Changes
