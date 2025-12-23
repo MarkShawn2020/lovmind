@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+### Minor Changes
+
+- 更新 Logo 为简洁羽毛设计，体现思维灵感的轻盈特质
+
 ## 0.3.1
 
 ### Patch Changes
