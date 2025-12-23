@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
-import { useAtomValue } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor';
 import { editorContentAtom, notesAtom } from '@/atoms/noteAtoms';
-import { noteStatsAtom } from '@/store';
+import { noteStatsAtom, draftContentAtom, getStoreValue, type DraftContent } from '@/store';
+import { isTauri } from '@/utils/tauri';
 import { useNoteEventSync } from './useNoteEventSync';
 import { useImageHeightSync } from './useImageHeightSync';
 import { useMobileSidebarState } from './useMobileSidebarState';
@@ -125,6 +126,9 @@ export function useMainWindowLogic(
   const editorContent = useAtomValue(editorContentAtom);
   const notes = useAtomValue(notesAtom);
   const noteStats = useAtomValue(noteStatsAtom);
+  const draftContent = useAtomValue(draftContentAtom);
+  const setEditorContent = useSetAtom(editorContentAtom);
+
 
   // Business logic hooks (for toolbar and sidebar)
   const { deleteNote, togglePin, toggleArchive } = useNoteOperations();
@@ -173,12 +177,35 @@ export function useMainWindowLogic(
   // Handlers
   const handleBackToCreate = useCallback(async () => {
     setViewingNoteId(null);
-    editorRef.current?.resetAndFocus();
+
+    // Read draft from Tauri Store directly (not local atom)
+    // This ensures we get the latest content from float windows
+    let latestDraft: DraftContent | null = null;
+    if (isTauri()) {
+      latestDraft = await getStoreValue<DraftContent | null>('lovpen-draft', null);
+    } else {
+      // Fallback to local atom for web
+      latestDraft = draftContent;
+    }
+
+    if (latestDraft && latestDraft.text?.trim()) {
+      setEditorContent({
+        text: latestDraft.text,
+        tags: latestDraft.tags,
+        richContent: latestDraft.richContent,
+        isEmpty: false,
+        sourceNoteId: null, // Create mode
+      });
+      console.log('[Draft] Restored draft from store:', latestDraft.savedAt);
+    } else {
+      editorRef.current?.resetAndFocus();
+    }
+
     // On mobile, switch to editor view
     if (shouldUseMobileView && isMobile) {
       setMobileView('editor');
     }
-  }, [shouldUseMobileView, isMobile]);
+  }, [shouldUseMobileView, isMobile, draftContent, setEditorContent]);
 
   // Use withSidebarClose to auto-close mobile sidebar
   const handleOpenNoteInCurrentWindow = useCallback(

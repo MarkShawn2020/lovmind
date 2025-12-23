@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Archive, Sparkles, Mail, LogOut, UserCircle, Info, Settings, X } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { Toaster } from 'sonner';
 
 import { isTauri } from './utils/tauri';
 import { Note } from './store';
@@ -338,6 +339,18 @@ function MainWindow() {
           </svg>
         </button>
       )}
+
+      {/* Toast notifications */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: 'var(--popover)',
+            color: 'var(--popover-foreground)',
+            border: '1px solid var(--border)',
+          },
+        }}
+      />
     </>
   );
 }

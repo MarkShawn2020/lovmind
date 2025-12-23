@@ -268,7 +268,7 @@ const NotesSidebarComponent = ({
         <ContextMenuTrigger asChild>
           <div
             className={`note-item cursor-pointer bg-[var(--card)] p-2 px-2.5 rounded-[var(--radius)] shadow-sm transition-all relative border border-[var(--border)] h-[90px] min-h-[90px] overflow-hidden flex-shrink-0 hover:-translate-y-0.5 hover:shadow-md hover:border-primary active:scale-[0.98] touch-manipulation group ${
-              currentNoteId === note.id ? 'active' : ''
+              currentNoteId === note.id ? 'border-primary bg-primary/5 shadow-md' : ''
             } ${note.pinned ? 'pinned' : ''} ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}`}
             onClick={handleClick}
             role="button"

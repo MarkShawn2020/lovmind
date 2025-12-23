@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import { useCallback } from 'react';
+import { Toaster } from 'sonner';
 import { BaseMainWindow } from './components/shared/BaseMainWindow';
 import { IOSEditorSheet } from './components/ios/IOSEditorSheet';
 import { useMainWindowLogic } from './hooks/useMainWindowLogic';
@@ -212,6 +213,18 @@ function MainWindowIOS() {
           }}
         />
       </IOSEditorSheet>
+
+      {/* Toast notifications */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: 'var(--popover)',
+            color: 'var(--popover-foreground)',
+            border: '1px solid var(--border)',
+          },
+        }}
+      />
     </div>
   );
 }

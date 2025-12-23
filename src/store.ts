@@ -136,6 +136,30 @@ export const getStoreValue = async <T>(key: string, defaultValue: T): Promise<T>
   return defaultValue;
 };
 
+// Export function to set a value directly to store (after init)
+export const setStoreValue = async <T>(key: string, value: T): Promise<void> => {
+  await waitForStoreReady();
+
+  const jsonValue = JSON.stringify(value);
+
+  // Update memory cache
+  if (value === null) {
+    memoryCache.delete(key);
+  } else {
+    memoryCache.set(key, jsonValue);
+  }
+
+  // Persist to store
+  if (store) {
+    if (value === null) {
+      await store.delete(key);
+    } else {
+      await store.set(key, jsonValue);
+    }
+    await store.save();
+  }
+};
+
 // Helper function to migrate old object-format notes to array format
 const migrateNotesData = (rawData: string): string => {
   try {
@@ -364,6 +388,21 @@ export const cloudStorageSettingsAtom = atomWithStorage<CloudStorageSettings>(
   'lovpen-cloud-storage',
   defaultCloudStorageSettings,
   createTauriStorage<CloudStorageSettings>(),
+  { getOnInit: true }
+);
+
+// Draft content for unsaved new notes
+export interface DraftContent {
+  text: string;
+  tags: string[];
+  richContent: any;
+  savedAt: string; // ISO timestamp
+}
+
+export const draftContentAtom = atomWithStorage<DraftContent | null>(
+  'lovpen-draft',
+  null,
+  createTauriStorage<DraftContent | null>(),
   { getOnInit: true }
 );
 

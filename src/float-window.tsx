@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
-import { useAtomValue } from 'jotai';
+import { useAtomValue, useSetAtom } from 'jotai';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
+import { Toaster } from 'sonner';
 
 import { isTauri } from './utils/tauri';
 import LovmindEditor from '@/components/lovmind-editor/lovmind-editor.tsx';
@@ -16,6 +18,7 @@ import { useWindowOperations } from './hooks/useWindowOperations';
 import { useNoteLoader } from './hooks/useNoteLoader';
 import { useNoteSubmit } from './hooks/useNoteSubmit';
 import { currentNoteAtom, editorContentAtom, notesAtom, currentNoteIdAtom } from './atoms/noteAtoms';
+import { getStoreValue, type DraftContent } from './store';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
 
@@ -68,6 +71,54 @@ function FloatWindowInner() {
   const currentNoteId = useAtomValue(currentNoteIdAtom);
   const editorContent = useAtomValue(editorContentAtom);
   const notes = useAtomValue(notesAtom);
+  const setEditorContent = useSetAtom(editorContentAtom);
+
+  // Check and restore draft for new notes (only once on mount)
+  // After restore, useDraftSync in LovmindEditor keeps both windows in sync
+  const draftRestoredRef = useRef(false);
+  useEffect(() => {
+    if (draftRestoredRef.current || !noteId) return;
+
+    const loadAndRestoreDraft = async () => {
+      try {
+        // Check if this note already exists in backend
+        const existingNote = await invoke<any>('get_temp_note', { id: noteId });
+        if (existingNote) {
+          console.log('[FloatWindow] Note exists in backend, not restoring draft');
+          return;
+        }
+
+        // Read draft directly from Tauri Store (async, cross-window safe)
+        const draft = await getStoreValue<DraftContent | null>('lovpen-draft', null);
+
+        if (!draft || !draft.text?.trim()) {
+          console.log('[FloatWindow] No draft to restore');
+          return;
+        }
+
+        draftRestoredRef.current = true;
+
+        // Restore draft content to editor
+        // Set sourceNoteId to noteId so LovmindEditor's useEffect will update the editor
+        setEditorContent({
+          text: draft.text,
+          tags: draft.tags,
+          richContent: draft.richContent,
+          isEmpty: false,
+          sourceNoteId: noteId, // Must match noteId for LovmindEditor to update
+        });
+
+        // Don't clear draft or emit draft-consumed
+        // useDraftSync will keep both windows in sync from now on
+
+        console.log('[FloatWindow] Restored draft from Tauri Store:', draft.savedAt);
+      } catch (error) {
+        console.error('[FloatWindow] Failed to restore draft:', error);
+      }
+    };
+
+    loadAndRestoreDraft();
+  }, [noteId, setEditorContent]);
 
   // Debug logging
   useEffect(() => {
@@ -361,14 +412,28 @@ function FloatWindowInner() {
 // Wrap with ErrorBoundary to catch any rendering errors
 function FloatWindow() {
   return (
-    <ErrorBoundary
-      onError={(error, errorInfo) => {
-        console.error('[FloatWindow] ErrorBoundary caught error:', error);
-        console.error('[FloatWindow] Component stack:', errorInfo.componentStack);
-      }}
-    >
-      <FloatWindowInner />
-    </ErrorBoundary>
+    <>
+      <ErrorBoundary
+        onError={(error, errorInfo) => {
+          console.error('[FloatWindow] ErrorBoundary caught error:', error);
+          console.error('[FloatWindow] Component stack:', errorInfo.componentStack);
+        }}
+      >
+        <FloatWindowInner />
+      </ErrorBoundary>
+
+      {/* Toast notifications */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: 'var(--popover)',
+            color: 'var(--popover-foreground)',
+            border: '1px solid var(--border)',
+          },
+        }}
+      />
+    </>
   );
 }
 

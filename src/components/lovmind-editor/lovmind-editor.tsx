@@ -15,6 +15,8 @@ import {createInitialValue} from "@/utils/create-initial-value.ts";
 import {useNoteLoader} from "@/hooks/useNoteLoader.ts";
 import {useEditorSync} from "@/hooks/useEditorSync.ts";
 import {useAutoSave} from "@/hooks/useAutoSave.ts";
+import {useDraftPersistence} from "@/hooks/useDraftPersistence.ts";
+import {useDraftSync} from "@/hooks/useDraftSync.ts";
 import {editorContentAtom} from "@/atoms/noteAtoms.ts";
 
 interface LovmindEditorProps {
@@ -109,6 +111,38 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
 
     // Auto-save on typing stop
     useAutoSave();
+
+    // Auto-save draft for unsaved new notes
+    useDraftPersistence();
+
+    // Sync draft content from other windows
+    useDraftSync(noteId ?? null);
+
+    // Track last processed sync to avoid duplicate updates
+    const lastSyncedAtRef = useRef<string | null>(null);
+
+    // Handle sync updates from other windows
+    // This watches for _syncedAt changes and updates the editor
+    useEffect(() => {
+      const syncedAt = (editorContent as any)._syncedAt;
+      if (!syncedAt) return;
+
+      // Skip if we already processed this sync
+      if (lastSyncedAtRef.current === syncedAt) return;
+      lastSyncedAtRef.current = syncedAt;
+
+      // Update editor with synced content
+      const richContent = editorContent.richContent;
+      const newValue = richContent && !isEditorContentEmpty(richContent)
+        ? richContent
+        : createInitialValue('');
+
+      editor.tf.setValue(newValue);
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[LovmindEditor] Applied sync update:', syncedAt);
+      }
+    }, [(editorContent as any)._syncedAt, editorContent.richContent, editor]);
 
     // Handle submit shortcut (Cmd+Enter)
     // Use ref to avoid re-registering listener when onSubmit changes

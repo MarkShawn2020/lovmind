@@ -32,16 +32,11 @@ export function useNoteLoader(noteId: string | null | undefined) {
   const { notes } = useNoteOperations();
 
   useEffect(() => {
-    // Reset when no noteId
+    // When no noteId (create mode), just clear currentNoteId
+    // Don't reset editorContent - let the caller handle it
+    // This allows handleBackToCreate to restore draft content
     if (!noteId) {
       setCurrentNoteId(null);
-      setEditorContent({
-        text: '',
-        tags: [],
-        richContent: null,
-        isEmpty: true,
-        sourceNoteId: null, // Create mode
-      });
       return;
     }
 

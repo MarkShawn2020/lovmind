@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import confetti from 'canvas-confetti';
 
 import { isTauri } from '../utils/tauri';
-import { Note } from '../store';
+import { Note, draftContentAtom } from '../store';
 import { editorContentAtom, notesAtom } from '../atoms/noteAtoms';
 import { extractNoteTitle } from '../utils/titleExtractor';
 import { useNoteOperations } from './useNoteOperations';
@@ -56,6 +56,7 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
   const editorContent = useAtomValue(editorContentAtom);
   const notes = useAtomValue(notesAtom);
   const setEditorContent = useSetAtom(editorContentAtom);
+  const setDraft = useSetAtom(draftContentAtom);
 
   // Business logic hooks
   const { setNotes, updateNote } = useNoteOperations();
@@ -146,6 +147,7 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           }
 
           await updateNote(updatedNote);
+          setDraft(null); // Clear draft after successful update
           console.log('✅ Note updated:', updatedNote.id);
 
           // Now reset the editor DOM
@@ -204,6 +206,7 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
 
           // Add to local state
           setNotes((prevNotes) => [newNote, ...prevNotes]);
+          setDraft(null); // Clear draft after successful creation
 
           // Trigger confetti celebration
           confetti({
@@ -284,6 +287,7 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
 
         // Add to local state
         setNotes((prevNotes) => [newNote, ...prevNotes]);
+        setDraft(null); // Clear draft after successful creation
 
         // Trigger confetti celebration
         confetti({
@@ -330,7 +334,7 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
     } catch (error) {
       console.error('Failed to submit note:', error);
     }
-  }, [editorContent, noteId, notes, setNotes, updateNote, editorRef, resetEditorAfterCreate, onNoteIdChange, onCloseWindow, setEditorContent]);
+  }, [editorContent, noteId, notes, setNotes, updateNote, editorRef, resetEditorAfterCreate, onNoteIdChange, onCloseWindow, setEditorContent, setDraft]);
 
   return { handleSubmit };
 };
