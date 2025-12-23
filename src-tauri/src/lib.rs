@@ -1355,6 +1355,7 @@ pub fn run() {
                     println!("[Reopen Event] Triggered - attempting to show main window");
                     if let Some(main_window) = app_handle.get_webview_window("main") {
                         println!("[Reopen Event] Main window found, showing...");
+                        let _ = main_window.unminimize();
                         let _ = main_window.show();
                         let _ = main_window.set_focus();
                         println!("[Reopen Event] Main window shown and focused");
