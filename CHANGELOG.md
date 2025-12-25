@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+### Patch Changes
+
+- Update app icons with macOS-style dock icon and tray icon
+
 ## 0.4.0
 
 ### Minor Changes
