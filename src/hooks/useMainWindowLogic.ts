@@ -3,7 +3,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { listen } from '@tauri-apps/api/event';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor';
 import { editorContentAtom, notesAtom } from '@/atoms/noteAtoms';
-import { noteStatsAtom, draftContentAtom } from '@/store';
+import { noteStatsAtom, draftContentAtom, getStoreValue, type DraftContent } from '@/store';
 import { isTauri } from '@/utils/tauri';
 import { useNoteEventSync } from './useNoteEventSync';
 import { useImageHeightSync } from './useImageHeightSync';
@@ -130,6 +130,40 @@ export function useMainWindowLogic(
   const draftContent = useAtomValue(draftContentAtom);
   const setEditorContent = useSetAtom(editorContentAtom);
   const setDraftContent = useSetAtom(draftContentAtom);
+
+  // Restore draft content on initial mount (after page refresh)
+  // Use async getStoreValue to ensure we wait for Tauri Store initialization
+  const draftRestoredRef = useRef(false);
+  useEffect(() => {
+    // Only restore once, and only if in create mode (viewingNoteId === null)
+    if (draftRestoredRef.current || viewingNoteId !== null) return;
+
+    const restoreDraft = async () => {
+      // First try the atom value (already loaded from store)
+      let draft = draftContent;
+
+      // If atom is null but we're in Tauri, wait for async store load
+      if (!draft && isTauri()) {
+        draft = await getStoreValue<DraftContent | null>('lovpen-draft', null);
+      }
+
+      if (draft && draft.text?.trim()) {
+        draftRestoredRef.current = true;
+        console.log('[MainWindow] Restoring draft on initial mount:', draft.savedAt);
+        setEditorContent({
+          text: draft.text,
+          tags: draft.tags,
+          richContent: draft.richContent,
+          isEmpty: false,
+          sourceNoteId: null, // Create mode
+        });
+        // Also update the atom so useDraftSync stays in sync
+        setDraftContent(draft);
+      }
+    };
+
+    restoreDraft();
+  }, [viewingNoteId, draftContent, setEditorContent, setDraftContent]);
 
   // Listen for draft-submitted event (from float windows)
   // Clear editor if we're in create mode

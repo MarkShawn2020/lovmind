@@ -1,7 +1,7 @@
 import React from 'react';
 import { User } from 'lucide-react';
 
-import lovpenLogo from '@/assets/lovpen-logo.svg';
+import logo from '@/assets/logo.svg';
 import type { UserProfile } from '@/hooks/useUserProfile';
 import type { NoteStatsSummary } from '@/features/note/types';
 import { isIOS } from '@/utils/platform';
@@ -42,7 +42,7 @@ export const MainHeader = ({
     >
       <div className="flex items-center gap-2">
       <img
-        src={lovpenLogo}
+        src={logo}
         alt="Lovmind"
         className="h-5 w-auto brightness-0 invert select-none"
         draggable={false}
