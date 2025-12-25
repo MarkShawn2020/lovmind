@@ -24,18 +24,22 @@ export const currentNoteAtom = atom((get) => {
 });
 
 // Editor content atom: Unsaved content in the editor
+// _loadVersion: Incremented when content should be loaded INTO the editor (external source)
+//               NOT incremented when content is synced FROM the editor (user typing)
 export const editorContentAtom = atom<{
   text: string;
   tags: string[];
   richContent: Value | null;
   isEmpty: boolean;
-  sourceNoteId: string | null; // Which note this content came from (null = create mode, undefined = user editing)
+  sourceNoteId: string | null; // Which note this content came from (null = create mode)
+  _loadVersion?: number; // Increment to force editor to reload content
 }>({
   text: '',
   tags: [],
   richContent: null,
   isEmpty: true,
   sourceNoteId: null,
+  _loadVersion: 0,
 });
 
 // UI state atom: Global UI preferences

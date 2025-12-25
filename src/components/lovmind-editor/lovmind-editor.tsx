@@ -69,13 +69,17 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       value: initialValue,
     });
 
-    // Track which note content has been loaded into editor
-    const loadedSourceNoteIdRef = useRef<string | null | undefined>(undefined);
+    // Track which version of content has been loaded into editor
+    // _loadVersion is only incremented by external sources (useNoteLoader, draft restore)
+    // NOT by useEditorSync (user typing)
+    const loadedVersionRef = useRef<number>(-1);
 
 
-    // Update editor value ONLY when editorContent matches the current noteId
-    // This ensures we wait for async note loading to complete before setValue
+    // Update editor value ONLY when _loadVersion changes (external content load)
+    // This ensures we don't reload content when user is typing
     useEffect(() => {
+      const loadVersion = editorContent._loadVersion ?? 0;
+
       // Wait until editorContent.sourceNoteId matches the noteId we want to display
       // This prevents setting old content when switching notes
       if (editorContent.sourceNoteId !== noteId) {
@@ -85,12 +89,13 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
         return;
       }
 
-      // Check if we already loaded this content
-      if (loadedSourceNoteIdRef.current === editorContent.sourceNoteId) {
+      // Only load content when _loadVersion changes (external source)
+      // This prevents reloading when useEditorSync updates from user typing
+      if (loadedVersionRef.current === loadVersion) {
         return;
       }
 
-      loadedSourceNoteIdRef.current = editorContent.sourceNoteId;
+      loadedVersionRef.current = loadVersion;
 
       // Get the content to load
       const richContent = editorContent.richContent;
@@ -102,9 +107,9 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       editor.tf.setValue(newValue);
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('[LovmindEditor] Loaded note with sourceNoteId:', editorContent.sourceNoteId);
+        console.log('[LovmindEditor] Loaded note with sourceNoteId:', editorContent.sourceNoteId, 'version:', loadVersion);
       }
-    }, [noteId, editorContent.sourceNoteId, editorContent.richContent, editor]);
+    }, [noteId, editorContent.sourceNoteId, editorContent._loadVersion, editorContent.richContent, editor]);
 
     // Sync editor content to atoms (subscribes to input-state-changed event)
     useEditorSync(editor);

@@ -160,13 +160,14 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           // Now reset the editor DOM
           if (shouldReset) {
             // Clear editor content so next capture starts fresh
-            setEditorContent({
+            setEditorContent((prev) => ({
               text: '',
               tags: [],
               richContent: null,
               isEmpty: true,
               sourceNoteId: null,
-            });
+              _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload (clear)
+            }));
             editorRef.current?.resetAndFocus();
             console.log('[Submit] Editor reset for continuous capture (pinned mode)');
           } else if (onCloseWindow) {
@@ -247,13 +248,14 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
           // Now reset the editor DOM
           if (shouldReset) {
             // Clear editor content so next capture starts fresh
-            setEditorContent({
+            setEditorContent((prev) => ({
               text: '',
               tags: [],
               richContent: null,
               isEmpty: true,
               sourceNoteId: null,
-            });
+              _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload (clear)
+            }));
             editorRef.current?.resetAndFocus();
             console.log('[Submit] Editor reset for continuous capture (pinned mode)');
           } else if (onCloseWindow) {
@@ -331,13 +333,14 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
         }
 
         // Reset editor for new note
-        setEditorContent({
+        setEditorContent((prev) => ({
           text: '',
           tags: [],
           richContent: null,
           isEmpty: true,
           sourceNoteId: null,
-        });
+          _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload (clear)
+        }));
         editorRef.current?.resetAndFocus();
         console.log('[Submit] Editor reset for new note');
       }

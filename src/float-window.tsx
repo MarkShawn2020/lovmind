@@ -101,13 +101,14 @@ function FloatWindowInner() {
 
         // Restore draft content to editor
         // Set sourceNoteId to noteId so LovmindEditor's useEffect will update the editor
-        setEditorContent({
+        setEditorContent((prev) => ({
           text: draft.text,
           tags: draft.tags,
           richContent: draft.richContent,
           isEmpty: false,
           sourceNoteId: noteId, // Must match noteId for LovmindEditor to update
-        });
+          _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload
+        }));
 
         // Don't clear draft or emit draft-consumed
         // useDraftSync will keep both windows in sync from now on

@@ -65,13 +65,14 @@ export function useNoteLoader(noteId: string | null | undefined) {
     if (noteId.startsWith('temp-')) {
       console.log('[useNoteLoader] Temporary noteId detected, initializing empty editor:', noteId);
       setCurrentNoteId(null); // No current note
-      setEditorContent({
+      setEditorContent((prev) => ({
         text: '',
         tags: [],
         richContent: null,
         isEmpty: true,
         sourceNoteId: noteId, // Mark as temp note
-      });
+        _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload
+      }));
       return;
     }
 
@@ -123,13 +124,14 @@ export function useNoteLoader(noteId: string | null | undefined) {
       if (noteData) {
         setCurrentNoteId(noteId);
         // Initialize editor content with note data
-        setEditorContent({
+        setEditorContent((prev) => ({
           text: noteData.text || '',
           tags: noteData.tags || [],
           richContent: noteData.richContent || null,
           isEmpty: !noteData.text && !noteData.richContent,
           sourceNoteId: noteId, // Mark content source
-        });
+          _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload
+        }));
       } else {
         console.warn('[useNoteLoader] Note not found in both backend and Jotai:', noteId);
         setCurrentNoteId(null);

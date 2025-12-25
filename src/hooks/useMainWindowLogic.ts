@@ -150,13 +150,14 @@ export function useMainWindowLogic(
       if (draft && draft.text?.trim()) {
         draftRestoredRef.current = true;
         console.log('[MainWindow] Restoring draft on initial mount:', draft.savedAt);
-        setEditorContent({
+        setEditorContent((prev) => ({
           text: draft.text,
           tags: draft.tags,
           richContent: draft.richContent,
           isEmpty: false,
           sourceNoteId: null, // Create mode
-        });
+          _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload
+        }));
         // Also update the atom so useDraftSync stays in sync
         setDraftContent(draft);
       }
@@ -174,13 +175,14 @@ export function useMainWindowLogic(
       // Only clear if we're in create mode
       if (viewingNoteId === null) {
         console.log('[MainWindow] Draft submitted from another window, clearing editor');
-        setEditorContent({
+        setEditorContent((prev) => ({
           text: '',
           tags: [],
           richContent: null,
           isEmpty: true,
           sourceNoteId: null,
-        });
+          _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload (clear)
+        }));
         setDraftContent(null);
         editorRef.current?.resetAndFocus();
       }
@@ -241,13 +243,14 @@ export function useMainWindowLogic(
 
     // Read draft from local atom (kept in sync by useDraftSync)
     if (draftContent && draftContent.text?.trim()) {
-      setEditorContent({
+      setEditorContent((prev) => ({
         text: draftContent.text,
         tags: draftContent.tags,
         richContent: draftContent.richContent,
         isEmpty: false,
         sourceNoteId: null, // Create mode
-      });
+        _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload
+      }));
       console.log('[Draft] Restored draft:', draftContent.savedAt);
     } else {
       // Delay resetAndFocus to next frame to allow editor to remount

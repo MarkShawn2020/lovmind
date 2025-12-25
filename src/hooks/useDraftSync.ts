@@ -69,14 +69,15 @@ export function useDraftSync(noteId: string | null) {
 
       // Update editor content with synced draft
       // Add _syncedAt marker so useDraftPersistence knows this came from sync
-      setEditorContent({
+      setEditorContent((prev) => ({
         text: draft.text,
         tags: draft.tags,
         richContent: draft.richContent,
         isEmpty: !draft.text?.trim(),
         sourceNoteId: noteId, // Keep current noteId association
+        _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload
         _syncedAt: draft.savedAt, // Mark as synced to prevent re-emit loop
-      } as any);
+      } as any));
     });
 
     return () => {
