@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2
+
+### Patch Changes
+
+- 1176b5d: Fix editor content flicker during note submission
+
 ## 0.4.1
 
 ### Patch Changes
