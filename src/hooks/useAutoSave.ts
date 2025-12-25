@@ -1,10 +1,11 @@
 import { useAtomValue } from 'jotai';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { editorContentAtom, currentNoteAtom } from '@/atoms/noteAtoms';
 import { useNoteOperations } from './useNoteOperations';
 import { extractNoteTitle } from '@/utils/titleExtractor';
 import { isTauri } from '@/utils/tauri';
+import type { Note } from '@/store';
 
 /**
  * Auto-Save Hook
@@ -31,6 +32,11 @@ export function useAutoSave() {
   const { updateNote } = useNoteOperations();
 
   const lastSavedContentRef = useRef<string>('');
+  // Track pending save state for beforeunload
+  const pendingSaveRef = useRef<{
+    note: Note;
+    contentHash: string;
+  } | null>(null);
 
   useEffect(() => {
     // Only auto-save if there's a current note
@@ -61,48 +67,96 @@ export function useAutoSave() {
       return;
     }
 
+    // Build pending save data for beforeunload
+    const hasTypedContent = typeof editorContent.text === 'string' && Boolean(editorContent.text.trim());
+    if (hasTypedContent || !editorContent.isEmpty) {
+      const now = new Date().toISOString();
+      const updatedNote: Note = {
+        ...currentNote,
+        text: editorContent.text,
+        tags: editorContent.tags,
+        richContent: editorContent.richContent,
+        title: currentNote.manualTitle
+          ? currentNote.title
+          : extractNoteTitle({ text: editorContent.text, richContent: editorContent.richContent }),
+        time: new Date().toLocaleString(),
+        isDraft: true,
+        createdAt: currentNote.createdAt || now,
+        updatedAt: now,
+      };
+      pendingSaveRef.current = { note: updatedNote, contentHash };
+    }
+
     // Debounce: Only save after user stops typing
     // Note: In the future, we could listen to InputStatePlugin's typing-stop event
     // For now, we use a simple timer
     const timer = setTimeout(async () => {
-      const hasTypedContent = typeof editorContent.text === 'string' && Boolean(editorContent.text.trim());
+      if (!pendingSaveRef.current) return;
 
-      if (hasTypedContent || !editorContent.isEmpty) {
-        const now = new Date().toISOString();
-        const updatedNote = {
-          ...currentNote,
-          text: editorContent.text,
-          tags: editorContent.tags,
-          richContent: editorContent.richContent,
-          title: currentNote.manualTitle
-            ? currentNote.title // Keep manual title
-            : extractNoteTitle({ text: editorContent.text, richContent: editorContent.richContent }),
-          time: new Date().toLocaleString(),
-          isDraft: true, // Auto-save marks as draft
-          createdAt: currentNote.createdAt || now, // Set createdAt on first save
-          updatedAt: now, // Always update timestamp
-        };
+      const { note: updatedNote, contentHash: hash } = pendingSaveRef.current;
 
-        try {
-          await updateNote(updatedNote);
-          console.log('🔄 Auto-saved as draft:', updatedNote.id);
-          lastSavedContentRef.current = contentHash;
+      try {
+        await updateNote(updatedNote);
+        console.log('🔄 Auto-saved as draft:', updatedNote.id);
+        lastSavedContentRef.current = hash;
+        pendingSaveRef.current = null; // Clear pending save after successful save
 
-          // Update window title if in Tauri
-          if (isTauri()) {
-            try {
-              const currentWindow = getCurrentWebviewWindow();
-              await currentWindow.setTitle(`Edit: ${updatedNote.title}`);
-            } catch (error) {
-              console.error('Failed to update window title:', error);
-            }
+        // Update window title if in Tauri
+        if (isTauri()) {
+          try {
+            const currentWindow = getCurrentWebviewWindow();
+            await currentWindow.setTitle(`Edit: ${updatedNote.title}`);
+          } catch (error) {
+            console.error('Failed to update window title:', error);
           }
-        } catch (error) {
-          console.error('Failed to auto-save:', error);
         }
+      } catch (error) {
+        console.error('Failed to auto-save:', error);
       }
     }, 1000); // 1 second debounce
 
     return () => clearTimeout(timer);
   }, [editorContent, currentNote, updateNote]);
+
+  // Save immediately on page unload (browser refresh, close, etc.)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!pendingSaveRef.current) return;
+
+      const { note: updatedNote, contentHash } = pendingSaveRef.current;
+
+      // Use synchronous updateNote via navigator.sendBeacon for reliability
+      // Since updateNote is async, we need to serialize and send directly
+      if (isTauri()) {
+        // In Tauri, use sync invoke pattern (best effort)
+        // Note: Tauri invoke is async, so we use a workaround
+        try {
+          // Store to localStorage as fallback (will be synced on next load)
+          const pendingKey = `lovpen-pending-save-${updatedNote.id}`;
+          localStorage.setItem(pendingKey, JSON.stringify(updatedNote));
+          console.log('💾 Saved pending note to localStorage before unload:', updatedNote.id);
+        } catch (e) {
+          console.error('Failed to save pending note before unload:', e);
+        }
+      } else {
+        // In web, save to localStorage
+        try {
+          const pendingKey = `lovpen-pending-save-${updatedNote.id}`;
+          localStorage.setItem(pendingKey, JSON.stringify(updatedNote));
+          console.log('💾 Saved pending note to localStorage before unload:', updatedNote.id);
+        } catch (e) {
+          console.error('Failed to save pending note before unload:', e);
+        }
+      }
+
+      lastSavedContentRef.current = contentHash;
+      pendingSaveRef.current = null;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 }

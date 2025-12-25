@@ -330,12 +330,8 @@ function MainWindow() {
           className="fixed bottom-8 left-1/2 -translate-x-1/2 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-95 z-50 sm:hidden"
           aria-label="新建笔记"
         >
-          <svg viewBox="-98.605 -108 1183.26 1296" className="w-7 h-7 fill-current">
-            <g>
-              <path d="M281.73,892.18V281.73C281.73,126.13,155.6,0,0,0l0,0v610.44C0,766.04,126.13,892.18,281.73,892.18z" />
-              <path d="M633.91,1080V469.56c0-155.6-126.13-281.73-281.73-281.73l0,0v610.44C352.14,953.87,478.31,1080,633.91,1080L633.91,1080z" />
-              <path d="M704.32,91.16L704.32,91.16v563.47l0,0c155.6,0,281.73-126.13,281.73-281.73S859.92,91.16,704.32,91.16z" />
-            </g>
+          <svg viewBox="0 0 24 24" className="w-7 h-7 fill-none stroke-current stroke-2">
+            <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       )}

@@ -1,10 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSetAtom } from 'jotai';
 import { invoke } from '@tauri-apps/api/core';
 import { currentNoteIdAtom, notesAtom, editorContentAtom } from '@/atoms/noteAtoms';
 import { useNoteOperations } from './useNoteOperations';
 import { isTauri } from '@/utils/tauri';
 import type { Note } from '@/store';
+
+/**
+ * Check and restore any pending saves from localStorage (saved during beforeunload)
+ */
+function checkAndRestorePendingSave(noteId: string): Note | null {
+  const pendingKey = `lovpen-pending-save-${noteId}`;
+  const pendingData = localStorage.getItem(pendingKey);
+  if (pendingData) {
+    try {
+      const note = JSON.parse(pendingData) as Note;
+      console.log('[useNoteLoader] Found pending save from beforeunload:', noteId);
+      // Clear the pending save after reading
+      localStorage.removeItem(pendingKey);
+      return note;
+    } catch (e) {
+      console.error('[useNoteLoader] Failed to parse pending save:', e);
+      localStorage.removeItem(pendingKey);
+    }
+  }
+  return null;
+}
 
 /**
  * Note Loader Hook
@@ -57,7 +78,21 @@ export function useNoteLoader(noteId: string | null | undefined) {
     const loadNote = async () => {
       let noteData: Note | null = null;
 
-      if (isTauri()) {
+      // First, check for any pending saves from beforeunload
+      const pendingSave = checkAndRestorePendingSave(noteId);
+      if (pendingSave) {
+        noteData = pendingSave;
+        console.log('[useNoteLoader] Using pending save from beforeunload:', noteData);
+        // Sync to backend
+        if (isTauri()) {
+          try {
+            await invoke('store_temp_note', { note: noteData });
+            console.log('[useNoteLoader] Synced pending save to backend');
+          } catch (error) {
+            console.error('[useNoteLoader] Failed to sync pending save to backend:', error);
+          }
+        }
+      } else if (isTauri()) {
         try {
           noteData = await invoke<Note | null>('get_temp_note', { id: noteId });
           console.log('[useNoteLoader] Retrieved note from Tauri backend:', noteData);
