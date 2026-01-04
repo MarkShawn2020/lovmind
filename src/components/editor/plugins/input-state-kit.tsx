@@ -35,6 +35,8 @@ export const InputStatePlugin = createSlatePlugin({
   extendEditor: ({ editor }) => {
     let isComposing = false;
     let typingTimeout: NodeJS.Timeout | null = null;
+    // Flag to suppress input-state-changed events during programmatic updates
+    let isProgrammaticUpdate = false;
     let lastState: InputState = {
       isInputting: false,
       reason: 'focus-lost',
@@ -73,6 +75,15 @@ export const InputStatePlugin = createSlatePlugin({
     (editor.api as any).inputState = {
       get current() {
         return lastState;
+      },
+      // Wrap a function to suppress input-state-changed events during execution
+      withSuppression<T>(fn: () => T): T {
+        isProgrammaticUpdate = true;
+        try {
+          return fn();
+        } finally {
+          isProgrammaticUpdate = false;
+        }
       },
       onCompositionStart() {
         isComposing = true;
@@ -145,11 +156,20 @@ export const InputStatePlugin = createSlatePlugin({
     // Intercept apply to track ALL changes (checkbox toggles, drag-drop, etc.)
     const originalApply = editor.apply;
     editor.apply = (operation: any) => {
+      // Skip emitting events during programmatic updates (e.g., setValue)
+      if (isProgrammaticUpdate) {
+        (originalApply as (op: any) => void)(operation);
+        return;
+      }
+
+      // CRITICAL: Apply operation FIRST, then emit event
+      // This ensures editor.children has the updated content when useEditorSync reads it
+      (originalApply as (op: any) => void)(operation);
+
       // Only emit for operations that modify content (not selection-only changes)
       // Note: Don't check editor.selection here because checkbox clicks happen
       // outside the editable area and selection may be null
       if (operation.type !== 'set_selection') {
-        // Emit directly without selection check for apply operations
         if (!isComposing) {
           emitInputStateChange({
             isInputting: true,
@@ -159,7 +179,6 @@ export const InputStatePlugin = createSlatePlugin({
           scheduleTypingStop();
         }
       }
-      (originalApply as (op: any) => void)(operation);
     };
 
     // Cleanup on unmount
@@ -178,6 +197,7 @@ export const InputStatePlugin = createSlatePlugin({
 export interface InputStateApi {
   inputState: {
     current: InputState;
+    withSuppression: <T>(fn: () => T) => T;
     onCompositionStart: () => void;
     onCompositionEnd: () => void;
     onFocusLost: () => void;

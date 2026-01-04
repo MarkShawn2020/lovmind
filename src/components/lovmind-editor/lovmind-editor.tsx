@@ -65,7 +65,12 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       return createInitialValue('');
     }, [editorContent.richContent]);
 
+    // Use stable id to prevent editor recreation on re-renders
+    // noteId ensures new editor instance when switching notes
+    const editorId = noteId || 'lovmind-new';
+
     const editor = usePlateEditor({
+      id: editorId,
       plugins: EditorKitWithoutFixedToolbar,
       value: initialValue,
     });
@@ -126,7 +131,13 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       removeComboboxInputNodes();
 
       // Update editor value using Plate's API
-      editor.tf.setValue(newValue);
+      // Suppress input-state-changed events to avoid triggering useEditorSync
+      const inputStateApi = (editor.api as any).inputState;
+      if (inputStateApi?.withSuppression) {
+        inputStateApi.withSuppression(() => editor.tf.setValue(newValue));
+      } else {
+        editor.tf.setValue(newValue);
+      }
 
       if (process.env.NODE_ENV === 'development') {
         console.log('[LovmindEditor] Loaded note with sourceNoteId:', editorContent.sourceNoteId, 'version:', loadVersion);
@@ -167,7 +178,13 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       // Remove active combobox inputs before replacing content
       removeComboboxInputNodes();
 
-      editor.tf.setValue(newValue);
+      // Suppress input-state-changed events
+      const inputStateApi = (editor.api as any).inputState;
+      if (inputStateApi?.withSuppression) {
+        inputStateApi.withSuppression(() => editor.tf.setValue(newValue));
+      } else {
+        editor.tf.setValue(newValue);
+      }
 
       if (process.env.NODE_ENV === 'development') {
         console.log('[LovmindEditor] Applied sync update:', syncedAt);
@@ -228,4 +245,5 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
   }
 );
 
-export default LovmindEditor;
+// Memoize to prevent unnecessary re-renders from parent state changes
+export default React.memo(LovmindEditor);
