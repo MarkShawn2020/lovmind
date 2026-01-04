@@ -24,17 +24,6 @@ export function useEditorSync(editor: MyEditor) {
       const { text, tags } = extractTextContent(editor.children as Value);
       const isEmpty = isEditorContentEmpty(editor.children as Value);
 
-      console.log("Content changed:", {
-        text,
-        tags,
-        isEmpty,
-        isFocused: state.isFocused,
-        isInputting: state.isInputting,
-        inputStateReason: state.reason,
-      });
-      console.log(`  📝 Input State: ${state.isInputting ? '✍️  INPUTTING' : '⏸️  STOPPED'} (${state.reason})`);
-      console.log(`  🎯 Focus State: ${state.isFocused ? '👀 FOCUSED' : '👁️  BLURRED'}`);
-
       setEditorContent((prev) => ({
         text,
         tags,

@@ -16,7 +16,6 @@ import { useImageHeightSync } from './hooks/useImageHeightSync';
 import { useMobileSidebarState } from './hooks/useMobileSidebarState';
 import { useNoteOperations } from './hooks/useNoteOperations';
 import { useWindowOperations } from './hooks/useWindowOperations';
-import { useNoteLoader } from './hooks/useNoteLoader';
 import { useNoteSubmit } from './hooks/useNoteSubmit';
 import { currentNoteAtom, editorContentAtom, notesAtom, currentNoteIdAtom } from './atoms/noteAtoms';
 import { getStoreValue, type DraftContent } from './store';
@@ -61,11 +60,8 @@ function FloatWindowInner() {
   useImageHeightSync();
   const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
 
-  // Load note into atoms (CRITICAL: Must be called before checking currentNote)
-  // Note: LovmindEditor also calls useNoteLoader internally, but this is fine
-  // because the hook is idempotent. We need to call it here to ensure currentNoteAtom
-  // is populated before rendering the UI that depends on it.
-  useNoteLoader(noteId);
+  // NOTE: useNoteLoader is called inside LovmindEditor, don't call it here
+  // to avoid duplicate loading and state updates
 
   // Read from atoms (for UI display only)
   const currentNote = useAtomValue(currentNoteAtom);

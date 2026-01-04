@@ -1,10 +1,15 @@
 import type { Note } from '@/store';
 
+export type TodoStatus = 'pending' | 'completed' | 'cancelled';
+
 export interface ExtractedTodo {
   noteId: string;
   noteTitle: string;
+  noteTime: string;
   text: string;
   checked: boolean;
+  status: TodoStatus;
+  memo?: string;
   path: number[]; // Path to the node in richContent for updates
 }
 
@@ -35,12 +40,21 @@ function extractTextFromNode(node: any): string {
 }
 
 /**
+ * Derive status from node properties
+ */
+function deriveStatus(node: any): TodoStatus {
+  if (node.todoStatus) return node.todoStatus as TodoStatus;
+  return node.checked ? 'completed' : 'pending';
+}
+
+/**
  * Recursively find all task list items (nodes with 'checked' property)
  */
 function findTodoNodes(
   nodes: any[],
   noteId: string,
   noteTitle: string,
+  noteTime: string,
   path: number[] = []
 ): ExtractedTodo[] {
   const todos: ExtractedTodo[] = [];
@@ -57,8 +71,11 @@ function findTodoNodes(
         todos.push({
           noteId,
           noteTitle,
+          noteTime,
           text,
           checked: node.checked,
+          status: deriveStatus(node),
+          memo: node.todoMemo,
           path: currentPath,
         });
       }
@@ -66,7 +83,7 @@ function findTodoNodes(
 
     // Recursively search children
     if (Array.isArray(node.children)) {
-      todos.push(...findTodoNodes(node.children, noteId, noteTitle, currentPath));
+      todos.push(...findTodoNodes(node.children, noteId, noteTitle, noteTime, currentPath));
     }
   });
 
@@ -81,7 +98,7 @@ export function extractTodosFromNote(note: Note): ExtractedTodo[] {
     return [];
   }
 
-  return findTodoNodes(note.richContent, note.id, note.title);
+  return findTodoNodes(note.richContent, note.id, note.title, note.time);
 }
 
 /**
@@ -119,7 +136,7 @@ export function countUncompletedTodos(notes: Note[]): number {
   for (const note of notes) {
     if (note.archived) continue;
     const todos = extractTodosFromNote(note);
-    count += todos.filter(t => !t.checked).length;
+    count += todos.filter(t => t.status === 'pending').length;
   }
 
   return count;
@@ -157,6 +174,105 @@ export function updateTodoInNote(
       ...current.children[lastIndex],
       checked,
     };
+  }
+
+  return result;
+}
+
+/**
+ * Update a todo's status in the note's richContent
+ */
+export function updateTodoStatus(
+  richContent: any[],
+  path: number[],
+  status: TodoStatus
+): any[] {
+  if (!Array.isArray(richContent) || path.length === 0) {
+    return richContent;
+  }
+
+  const result = JSON.parse(JSON.stringify(richContent));
+  let current: any = { children: result };
+
+  for (let i = 0; i < path.length - 1; i++) {
+    if (!current.children || !Array.isArray(current.children)) {
+      return richContent;
+    }
+    current = current.children[path[i]];
+  }
+
+  const lastIndex = path[path.length - 1];
+  if (current.children && current.children[lastIndex]) {
+    current.children[lastIndex] = {
+      ...current.children[lastIndex],
+      checked: status === 'completed',
+      todoStatus: status,
+    };
+  }
+
+  return result;
+}
+
+/**
+ * Update a todo's memo in the note's richContent
+ */
+export function updateTodoMemo(
+  richContent: any[],
+  path: number[],
+  memo: string | undefined
+): any[] {
+  if (!Array.isArray(richContent) || path.length === 0) {
+    return richContent;
+  }
+
+  const result = JSON.parse(JSON.stringify(richContent));
+  let current: any = { children: result };
+
+  for (let i = 0; i < path.length - 1; i++) {
+    if (!current.children || !Array.isArray(current.children)) {
+      return richContent;
+    }
+    current = current.children[path[i]];
+  }
+
+  const lastIndex = path[path.length - 1];
+  if (current.children && current.children[lastIndex]) {
+    const node = { ...current.children[lastIndex] };
+    if (memo) {
+      node.todoMemo = memo;
+    } else {
+      delete node.todoMemo;
+    }
+    current.children[lastIndex] = node;
+  }
+
+  return result;
+}
+
+/**
+ * Delete a todo from the note's richContent
+ */
+export function deleteTodoFromNote(
+  richContent: any[],
+  path: number[]
+): any[] {
+  if (!Array.isArray(richContent) || path.length === 0) {
+    return richContent;
+  }
+
+  const result = JSON.parse(JSON.stringify(richContent));
+  let current: any = { children: result };
+
+  for (let i = 0; i < path.length - 1; i++) {
+    if (!current.children || !Array.isArray(current.children)) {
+      return richContent;
+    }
+    current = current.children[path[i]];
+  }
+
+  const lastIndex = path[path.length - 1];
+  if (current.children && Array.isArray(current.children)) {
+    current.children.splice(lastIndex, 1);
   }
 
   return result;

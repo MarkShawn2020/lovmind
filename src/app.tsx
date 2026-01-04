@@ -69,19 +69,9 @@ if (rootElement) {
   if (isDev) {
     console.time('[Perf] Initial render');
   }
-  // Disable StrictMode for editor windows to improve perceived performance
+  // StrictMode disabled for all windows to improve performance
   // StrictMode causes double-rendering which delays content display
-  const shouldUseStrictMode = windowType !== 'editor';
-
-  root.render(
-    shouldUseStrictMode ? (
-      <React.StrictMode>
-        {component}
-      </React.StrictMode>
-    ) : (
-      component
-    )
-  );
+  root.render(component);
   if (isDev) {
     console.timeEnd('[Perf] Initial render');
     console.timeEnd('[Perf] Window load to React render');

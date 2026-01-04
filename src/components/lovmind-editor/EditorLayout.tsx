@@ -78,16 +78,8 @@ export const EditorLayout = ({
               {sidebar}
             </aside>
 
-            {/* Mobile Editor - Shown when mobileView === 'editor' */}
-            <div className={`
-              sm:hidden flex-1 flex flex-col min-w-0
-              ${mobileView === 'editor' ? 'flex' : 'hidden'}
-            `}>
-              <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background">
-                {editor}
-              </div>
-              {toolbar}
-            </div>
+            {/* Mobile Editor Container - CSS visibility only, NO duplicate rendering */}
+            {/* Editor is rendered once below in the shared content area */}
           </>
         )}
 
@@ -106,9 +98,16 @@ export const EditorLayout = ({
           </Drawer>
         )}
 
-        {/* Desktop Main Content Area - Always visible on sm+ screens */}
-        {/* Mobile Main Content Area - Only when NOT using mobileView switching */}
-        <div className={`flex-1 flex-col min-w-0 ${useMobileViewSwitching ? 'hidden sm:flex' : 'flex'}`}>
+        {/* Shared Editor Content Area - Single instance for both mobile and desktop */}
+        {/* On mobile with view switching: hidden when mobileView === 'list' */}
+        {/* On desktop: always visible */}
+        <div className={`
+          flex-1 flex-col min-w-0
+          ${useMobileViewSwitching
+            ? (mobileView === 'editor' ? 'flex' : 'hidden sm:flex')
+            : 'flex'
+          }
+        `}>
           <div className="flex-1 flex flex-col relative overflow-y-auto overflow-x-hidden min-h-0 bg-background">
             {editor}
           </div>
