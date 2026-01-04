@@ -65,6 +65,7 @@ export interface MainWindowLogicReturn {
   toggleArchive: (noteId: string) => Promise<void>;
   updateNote: (note: Note) => Promise<void>;
   userProfile: ReturnType<typeof useUserProfile>['userProfile'];
+  reloadProfile: ReturnType<typeof useUserProfile>['reloadProfile'];
   handleSubmit: () => Promise<void>;
 
   // Multi-select
@@ -196,7 +197,7 @@ export function useMainWindowLogic(
 
   // Business logic hooks (for toolbar and sidebar)
   const { deleteNote, togglePin, toggleArchive, updateNote } = useNoteOperations();
-  const { userProfile } = useUserProfile();
+  const { userProfile, reloadProfile } = useUserProfile();
   const { handleSubmit: originalHandleSubmit } = useNoteSubmit({
     noteId: viewingNoteId,
     editorRef,
@@ -332,6 +333,7 @@ export function useMainWindowLogic(
     toggleArchive,
     updateNote,
     userProfile,
+    reloadProfile,
     handleSubmit,
 
     // Multi-select

@@ -11,9 +11,10 @@ interface UserProfile {
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave?: () => void;
 }
 
-export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
+export default function ProfileModal({ isOpen, onClose, onSave }: ProfileModalProps) {
   const [profile, setProfile] = useState<UserProfile>({});
   const [nickname, setNickname] = useState('');
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -67,18 +68,21 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       try {
         await invoke('save_user_profile', { profile: newProfile });
         setProfile(newProfile);
+        onSave?.();
         onClose();
       } catch (error) {
         console.warn('Failed to save profile to Tauri, falling back to localStorage:', error);
         // Fallback to localStorage if Tauri command not available
         localStorage.setItem('user_profile', JSON.stringify(newProfile));
         setProfile(newProfile);
+        onSave?.();
         onClose();
       }
     } else {
       // Web fallback
       localStorage.setItem('user_profile', JSON.stringify(newProfile));
       setProfile(newProfile);
+      onSave?.();
       onClose();
     }
   };

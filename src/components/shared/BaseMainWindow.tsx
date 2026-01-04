@@ -120,6 +120,7 @@ export function BaseMainWindow({
     deleteNote,
     updateNote,
     userProfile,
+    reloadProfile,
     handleSubmit,
 
     // Multi-select
@@ -243,7 +244,7 @@ export function BaseMainWindow({
         }
         userMenu={null} // Desktop provides this via additionalModals
         profileModal={
-          <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+          <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} onSave={reloadProfile} />
         }
         aboutModal={null} // Desktop provides this via additionalModals
         isMobileSidebarOpen={isMobileSidebarOpen}
