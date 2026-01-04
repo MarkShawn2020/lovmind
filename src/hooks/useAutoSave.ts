@@ -32,12 +32,35 @@ export function useAutoSave() {
   const { updateNote } = useNoteOperations();
 
   const lastSavedContentRef = useRef<string>('');
-  // Track pending save state for beforeunload
+  // Track pending save state for beforeunload and note switching
   const pendingSaveRef = useRef<{
     note: Note;
     contentHash: string;
   } | null>(null);
+  // Track previous note ID to detect actual note switches
+  const prevNoteIdRef = useRef<string | null>(null);
 
+  // Separate effect: Save pending changes when note ID changes (actual note switch)
+  // This ONLY runs when currentNote.id changes, not on every content change
+  useEffect(() => {
+    const currentNoteId = currentNote?.id ?? null;
+    const prevNoteId = prevNoteIdRef.current;
+
+    // If note ID actually changed and we have pending saves, save them now
+    if (prevNoteId !== null && prevNoteId !== currentNoteId && pendingSaveRef.current) {
+      const { note, contentHash } = pendingSaveRef.current;
+      console.log('💾 Saving on note switch:', note.id, '→', currentNoteId);
+      updateNote(note).catch((error) => {
+        console.error('Failed to save on note switch:', error);
+      });
+      lastSavedContentRef.current = contentHash;
+      pendingSaveRef.current = null;
+    }
+
+    prevNoteIdRef.current = currentNoteId;
+  }, [currentNote?.id, updateNote]);
+
+  // Main effect: Debounced auto-save on content changes
   useEffect(() => {
     // Only auto-save if there's a current note
     if (!currentNote) return;
@@ -115,7 +138,11 @@ export function useAutoSave() {
       }
     }, 1000); // 1 second debounce
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      // NOTE: Don't save here! This cleanup runs on every content change.
+      // Note switching is handled by the separate effect above that watches currentNote?.id
+    };
   }, [editorContent, currentNote, updateNote]);
 
   // Save immediately on page unload (browser refresh, close, etc.)

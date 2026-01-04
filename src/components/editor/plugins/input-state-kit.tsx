@@ -109,9 +109,8 @@ export const InputStatePlugin = createSlatePlugin({
       },
     };
 
-    // Intercept insertText to track typing
-    const originalInsertText = editor.insertText;
-    editor.insertText = (text: string) => {
+    // Helper to emit typing state
+    const emitTypingStart = () => {
       if (!isComposing && editor.selection) {
         emitInputStateChange({
           isInputting: true,
@@ -120,7 +119,47 @@ export const InputStatePlugin = createSlatePlugin({
         });
         scheduleTypingStop();
       }
+    };
+
+    // Intercept insertText to track typing
+    const originalInsertText = editor.insertText;
+    editor.insertText = (text: string) => {
+      emitTypingStart();
       (originalInsertText as (text: string) => void)(text);
+    };
+
+    // Intercept deleteBackward to track backspace
+    const originalDeleteBackward = editor.deleteBackward;
+    editor.deleteBackward = (unit: any) => {
+      emitTypingStart();
+      (originalDeleteBackward as (unit: any) => void)(unit);
+    };
+
+    // Intercept deleteForward to track delete key
+    const originalDeleteForward = editor.deleteForward;
+    editor.deleteForward = (unit: any) => {
+      emitTypingStart();
+      (originalDeleteForward as (unit: any) => void)(unit);
+    };
+
+    // Intercept apply to track ALL changes (checkbox toggles, drag-drop, etc.)
+    const originalApply = editor.apply;
+    editor.apply = (operation: any) => {
+      // Only emit for operations that modify content (not selection-only changes)
+      // Note: Don't check editor.selection here because checkbox clicks happen
+      // outside the editable area and selection may be null
+      if (operation.type !== 'set_selection') {
+        // Emit directly without selection check for apply operations
+        if (!isComposing) {
+          emitInputStateChange({
+            isInputting: true,
+            reason: 'typing-start',
+            isFocused: editor.selection !== null,
+          });
+          scheduleTypingStop();
+        }
+      }
+      (originalApply as (op: any) => void)(operation);
     };
 
     // Cleanup on unmount

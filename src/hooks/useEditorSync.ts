@@ -43,6 +43,9 @@ export function useEditorSync(editor: MyEditor) {
         // Keep sourceNoteId from previous state (set by useNoteLoader)
         // Don't override it with user edits
         sourceNoteId: prev.sourceNoteId,
+        // CRITICAL: Preserve _loadVersion to prevent editor reload during typing
+        // If this is not preserved, the load-content effect will think content changed externally
+        _loadVersion: prev._loadVersion,
       }));
     };
 
