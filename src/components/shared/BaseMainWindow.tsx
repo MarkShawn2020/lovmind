@@ -1,10 +1,14 @@
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
+import { useAtom } from 'jotai';
 import LovmindEditor from '@/components/lovmind-editor/lovmind-editor';
 import EditorToolbar from '@/components/EditorToolbar';
 import ProfileModal from '@/components/ProfileModal';
 import { EditorLayout } from '@/components/lovmind-editor/EditorLayout';
 import { MainHeader } from '@/components/lovmind-editor/MainHeader';
+import { TodoAggregateView } from '@/components/TodoAggregateView';
 import { NotesSidebarContainer } from './NotesSidebarContainer';
+import { mainViewModeAtom, type Note } from '@/store';
+import { countUncompletedTodos } from '@/lib/todo-extractor';
 import type { MainWindowLogicReturn } from '@/hooks/useMainWindowLogic';
 
 export interface BaseMainWindowProps {
@@ -114,6 +118,7 @@ export function BaseMainWindow({
     togglePin,
     toggleArchive,
     deleteNote,
+    updateNote,
     userProfile,
     handleSubmit,
 
@@ -136,6 +141,20 @@ export function BaseMainWindow({
     handleBatchArchive,
   } = logic;
 
+  // View mode state (notes vs todos)
+  const [viewMode, setViewMode] = useAtom(mainViewModeAtom);
+
+  // Count uncompleted todos
+  const todoCount = useMemo(() => countUncompletedTodos(notes), [notes]);
+
+  // Handle updating a note (for todo toggle)
+  const handleUpdateNote = async (noteId: string, updates: Partial<Note>) => {
+    const note = notes.find(n => n.id === noteId);
+    if (note) {
+      await updateNote({ ...note, ...updates });
+    }
+  };
+
   // Use provided mobileView or fall back to logic's mobileView
   const effectiveMobileView = mobileView ?? logic.mobileView;
 
@@ -151,10 +170,13 @@ export function BaseMainWindow({
         header={
           <MainHeader
             noteStats={noteStats}
+            todoCount={todoCount}
             userProfile={userProfile}
             onHeaderMouseDown={onHeaderMouseDown}
             onUserMenuToggle={onUserMenuToggle ?? (() => {})}
             userButtonRef={userButtonRef ?? { current: null }}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
         }
         sidebar={
@@ -188,26 +210,36 @@ export function BaseMainWindow({
           />
         }
         editor={
-          <LovmindEditor
-            key={editorKey}
-            noteId={viewingNoteId}
-            onSubmit={handleSubmit}
-            placeholder={editorPlaceholder}
-            ref={editorRef}
-          />
+          viewMode === 'todos' ? (
+            <TodoAggregateView
+              notes={notes}
+              onUpdateNote={handleUpdateNote}
+              onOpenNoteInNewWindow={handleOpenNoteInNewWindow}
+            />
+          ) : (
+            <LovmindEditor
+              key={editorKey}
+              noteId={viewingNoteId}
+              onSubmit={handleSubmit}
+              placeholder={editorPlaceholder}
+              ref={editorRef}
+            />
+          )
         }
         toolbar={
-          <EditorToolbar
-            mode="main"
-            onSubmit={handleSubmit}
-            submitDisabled={editorContent.isEmpty}
-            currentTags={editorContent.tags}
-            allNotes={notes}
-            editorRef={editorRef}
-            onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-            hideSubmitButton={false}
-            onBackToList={isMobile && effectiveMobileView === 'editor' ? onBackToList : undefined}
-          />
+          viewMode === 'todos' ? null : (
+            <EditorToolbar
+              mode="main"
+              onSubmit={handleSubmit}
+              submitDisabled={editorContent.isEmpty}
+              currentTags={editorContent.tags}
+              allNotes={notes}
+              editorRef={editorRef}
+              onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+              hideSubmitButton={false}
+              onBackToList={isMobile && effectiveMobileView === 'editor' ? onBackToList : undefined}
+            />
+          )
         }
         userMenu={null} // Desktop provides this via additionalModals
         profileModal={

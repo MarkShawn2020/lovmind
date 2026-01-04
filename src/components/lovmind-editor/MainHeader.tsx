@@ -4,22 +4,29 @@ import { User } from 'lucide-react';
 import logo from '@/assets/logo.svg';
 import type { UserProfile } from '@/hooks/useUserProfile';
 import type { NoteStatsSummary } from '@/features/note/types';
+import type { MainViewMode } from '@/store';
 import { isIOS } from '@/utils/platform';
 
 interface MainHeaderProps {
   noteStats: NoteStatsSummary;
+  todoCount: number;
   userProfile: UserProfile;
   onHeaderMouseDown?: () => void;
   onUserMenuToggle: (event: React.MouseEvent<HTMLButtonElement>) => void;
   userButtonRef: React.RefObject<HTMLButtonElement | null>;
+  viewMode: MainViewMode;
+  onViewModeChange: (mode: MainViewMode) => void;
 }
 
 export const MainHeader = ({
   noteStats,
+  todoCount,
   userProfile,
   onHeaderMouseDown,
   onUserMenuToggle,
   userButtonRef,
+  viewMode,
+  onViewModeChange,
 }: MainHeaderProps) => {
   // iOS: No top border radius + extra vertical padding for better spacing
   // Desktop: Rounded top corners (floating window aesthetic)
@@ -40,14 +47,46 @@ export const MainHeader = ({
       style={headerStyle}
       onMouseDown={onHeaderMouseDown}
     >
-      <div className="flex items-center gap-2">
-      <img
-        src={logo}
-        alt="Lovmind"
-        className="h-5 w-auto brightness-0 invert select-none"
-        draggable={false}
-      />
-      <h1 className="text-lg font-semibold tracking-tight">Lovmind ({noteStats.total})</h1>
+      <div className="flex items-center gap-5">
+        <div className="flex items-center gap-0.5">
+          <img
+            src={logo}
+            alt="Lovmind"
+            className="h-7 w-auto brightness-0 invert select-none"
+            draggable={false}
+          />
+          <span className="text-2xl" style={{ fontFamily: 'Caveat, cursive' }}>Lovmind</span>
+        </div>
+        <div className="flex items-center gap-1 bg-white/10 rounded-lg p-0.5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewModeChange('notes');
+            }}
+            className={`px-2.5 py-1 text-sm font-medium rounded-md transition-all cursor-pointer border-none ${
+              viewMode === 'notes'
+                ? 'bg-white/20 text-white'
+                : 'text-white/70 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            笔记 ({noteStats.total})
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewModeChange('todos');
+            }}
+            className={`px-2.5 py-1 text-sm font-medium rounded-md transition-all cursor-pointer border-none ${
+              viewMode === 'todos'
+                ? 'bg-white/20 text-white'
+                : 'text-white/70 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            任务 ({todoCount})
+          </button>
+        </div>
       </div>
       <div className="flex gap-2 items-center">
       {noteStats.streak > 2 && (

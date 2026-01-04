@@ -63,6 +63,7 @@ export interface MainWindowLogicReturn {
   deleteNote: (noteId: string, skipConfirmation?: boolean) => Promise<boolean>;
   togglePin: (noteId: string) => Promise<void>;
   toggleArchive: (noteId: string) => Promise<void>;
+  updateNote: (note: Note) => Promise<void>;
   userProfile: ReturnType<typeof useUserProfile>['userProfile'];
   handleSubmit: () => Promise<void>;
 
@@ -194,7 +195,7 @@ export function useMainWindowLogic(
   }, [viewingNoteId, setEditorContent, setDraftContent]);
 
   // Business logic hooks (for toolbar and sidebar)
-  const { deleteNote, togglePin, toggleArchive } = useNoteOperations();
+  const { deleteNote, togglePin, toggleArchive, updateNote } = useNoteOperations();
   const { userProfile } = useUserProfile();
   const { handleSubmit: originalHandleSubmit } = useNoteSubmit({
     noteId: viewingNoteId,
@@ -329,6 +330,7 @@ export function useMainWindowLogic(
     deleteNote,
     togglePin,
     toggleArchive,
+    updateNote,
     userProfile,
     handleSubmit,
 

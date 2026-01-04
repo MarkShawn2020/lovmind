@@ -359,6 +359,10 @@ export const isPinnedCollapsedAtom = atomWithStorage<boolean>(
   { getOnInit: true }
 );
 
+// Main view mode (notes list vs todo aggregate view)
+export type MainViewMode = 'notes' | 'todos';
+export const mainViewModeAtom = atom<MainViewMode>('notes');
+
 // Cloud storage settings (Qiniu)
 export interface CloudStorageSettings {
   enabled: boolean;
