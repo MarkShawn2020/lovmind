@@ -50,13 +50,21 @@ export const ListKit = [
         const isEmpty = Node.string(listItem).trim() === '';
 
         if (isEmpty) {
-          // Instead of converting to paragraph, insert a new empty list item
-          (editor as PlateEditor).tf.insertNodes(
-            (editor as PlateEditor).api.create.block({
-              indent: (listItem as any).indent,
-              listStyleType: (listItem as any).listStyleType,
-            })
-          );
+          const indent = (listItem as any).indent || 1;
+
+          if (indent > 1) {
+            // Outdent: decrease indent by 1 (go to parent level)
+            (editor as PlateEditor).tf.setNodes({
+              indent: indent - 1,
+            });
+          } else {
+            // At top level: convert to paragraph (remove list properties)
+            (editor as PlateEditor).tf.setNodes({
+              listStyleType: undefined,
+              listStart: undefined,
+              indent: undefined,
+            });
+          }
           return;
         }
 
