@@ -7,6 +7,7 @@ import {Plate, usePlateEditor} from 'platejs/react';
 
 import {EditorKitWithoutFixedToolbar} from '@/components/editor/editor-kit.tsx';
 import {Editor, EditorContainer} from '@/components/ui/editor.tsx';
+import {HASHTAG_INPUT_KEY} from '@/components/editor/plugins/hashtag-kit.tsx';
 import {FixedToolbar} from '@/components/ui/fixed-toolbar.tsx';
 import {FixedToolbarButtons} from '@/components/ui/fixed-toolbar-buttons.tsx';
 import {EditorContextMenu} from '@/components/editor/EditorContextMenu.tsx';
@@ -69,6 +70,24 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       value: initialValue,
     });
 
+    // Remove active combobox input nodes before replacing editor content
+    // This prevents crashes when useComboboxInput tries to access removed nodes
+    const removeComboboxInputNodes = React.useCallback(() => {
+      try {
+        const inputs = Array.from(editor.api.nodes({
+          match: { type: HASHTAG_INPUT_KEY },
+          at: [],
+        }));
+        // Remove in reverse order to avoid path invalidation
+        for (let i = inputs.length - 1; i >= 0; i--) {
+          const [, path] = inputs[i];
+          editor.tf.removeNodes({ at: path });
+        }
+      } catch {
+        // Ignore errors during cleanup
+      }
+    }, [editor]);
+
     // Track which version of content has been loaded into editor
     // _loadVersion is only incremented by external sources (useNoteLoader, draft restore)
     // NOT by useEditorSync (user typing)
@@ -103,13 +122,16 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
         ? richContent
         : createInitialValue('');
 
+      // Remove active combobox inputs before replacing content
+      removeComboboxInputNodes();
+
       // Update editor value using Plate's API
       editor.tf.setValue(newValue);
 
       if (process.env.NODE_ENV === 'development') {
         console.log('[LovmindEditor] Loaded note with sourceNoteId:', editorContent.sourceNoteId, 'version:', loadVersion);
       }
-    }, [noteId, editorContent.sourceNoteId, editorContent._loadVersion, editorContent.richContent, editor]);
+    }, [noteId, editorContent.sourceNoteId, editorContent._loadVersion, editorContent.richContent, editor, removeComboboxInputNodes]);
 
     // Sync editor content to atoms (subscribes to input-state-changed event)
     useEditorSync(editor);
@@ -142,12 +164,15 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
         ? richContent
         : createInitialValue('');
 
+      // Remove active combobox inputs before replacing content
+      removeComboboxInputNodes();
+
       editor.tf.setValue(newValue);
 
       if (process.env.NODE_ENV === 'development') {
         console.log('[LovmindEditor] Applied sync update:', syncedAt);
       }
-    }, [(editorContent as any)._syncedAt, editorContent.richContent, editor]);
+    }, [(editorContent as any)._syncedAt, editorContent.richContent, editor, removeComboboxInputNodes]);
 
     // Handle submit shortcut (Cmd+Enter)
     // Use ref to avoid re-registering listener when onSubmit changes
