@@ -22,6 +22,7 @@ import {editorContentAtom} from "@/atoms/noteAtoms.ts";
 
 interface LovmindEditorProps {
   noteId?: string | null;
+  editorId?: string;
   onSubmit?: () => void;
   placeholder?: string;
 }
@@ -46,6 +47,7 @@ export interface LovmindEditorRef {
 const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
   function RenderingWysiwygEditor({
     noteId,
+    editorId: editorIdProp,
     onSubmit,
     placeholder = "Type your amazing content here..."
   }, ref) {
@@ -65,9 +67,9 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
       return createInitialValue('');
     }, [editorContent.richContent]);
 
-    // Use stable id to prevent editor recreation on re-renders
-    // noteId ensures new editor instance when switching notes
-    const editorId = noteId || 'lovmind-new';
+    // Use prop editorId if provided (includes session key for uniqueness),
+    // otherwise fall back to noteId
+    const editorId = editorIdProp || noteId || 'lovmind-new';
 
     const editor = usePlateEditor({
       id: editorId,

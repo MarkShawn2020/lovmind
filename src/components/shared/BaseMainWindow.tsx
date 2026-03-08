@@ -220,6 +220,7 @@ export function BaseMainWindow({
           ) : (
             <LovmindEditor
               key={editorKey}
+              editorId={editorKey}
               noteId={viewingNoteId}
               onSubmit={handleSubmit}
               placeholder={editorPlaceholder}

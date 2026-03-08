@@ -190,6 +190,7 @@ function MainWindowIOS() {
         <div className="flex flex-col overflow-y-auto overflow-x-hidden bg-background" style={{ height: '240px' }}>
           <LovmindEditor
             key={logic.viewingNoteId ?? `create-mode-${logic.editorSessionKey}`}
+            editorId={logic.viewingNoteId ?? `create-mode-${logic.editorSessionKey}`}
             noteId={logic.viewingNoteId}
             onSubmit={logic.handleSubmit}
             placeholder="此时此刻，你在想什么呢？"
