@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+### Patch Changes
+
+- 修复提交后重新打开悬浮窗内容未清空的问题
+
 ## 0.5.0
 
 ### Minor Changes
