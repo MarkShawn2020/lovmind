@@ -8,6 +8,8 @@ import { isTauri } from '../utils/tauri';
 import { Note, draftContentAtom, setStoreValue } from '../store';
 import { editorContentAtom, notesAtom } from '../atoms/noteAtoms';
 import { extractNoteTitle } from '../utils/titleExtractor';
+import { extractTextContent } from '../utils/extract-text-content';
+import { isEditorContentEmpty } from '../utils/is-editor-content-empty';
 import { useNoteOperations } from './useNoteOperations';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
 
@@ -46,6 +48,18 @@ interface UseNoteSubmitOptions {
   onCloseWindow?: () => Promise<void>;
 }
 
+const CONFETTI_OPTIONS = {
+  particleCount: 100,
+  spread: 70,
+  origin: { y: 0.6 },
+  colors: ['#ff3366', '#ff66cc', '#ff99dd', '#9966ff', '#6699ff'],
+  ticks: 200,
+  gravity: 1.2,
+  scalar: 1.2,
+  shapes: ['star', 'circle'] as confetti.Shape[],
+  drift: 0,
+};
+
 /**
  * Custom hook for note submission logic
  * Provides unified submit handling across main window and float windows
@@ -71,9 +85,6 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
       try {
         const editor = editorRef.current.editor;
         if (editor?.children) {
-          const { extractTextContent } = await import('../utils/extract-text-content');
-          const { isEditorContentEmpty } = await import('../utils/is-editor-content-empty');
-
           const { text, tags } = extractTextContent(editor.children);
           const isEmpty = isEditorContentEmpty(editor.children);
 
@@ -101,7 +112,7 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
             };
           }
 
-          console.log('📝 Sync extracted content from editor:', { text, tags, isEmpty });
+          console.log('[Submit] Extracted content from editor:', { text, tags, isEmpty });
         }
       } catch (error) {
         console.warn('Failed to extract sync content, using atom:', error);
@@ -113,13 +124,95 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
       return;
     }
 
+    // Shared helper: check whether editor should reset after create
+    const shouldReset = () =>
+      typeof resetEditorAfterCreate === 'function'
+        ? resetEditorAfterCreate()
+        : resetEditorAfterCreate;
+
+    // Shared helper: create a new note, save, confetti, and handle reset/close
+    const createAndSaveNote = async (id: string) => {
+      const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
+      const newRank = Math.max(maxRank + 1, notes.length + 1);
+      const now = new Date().toISOString();
+
+      const newNote: Note = {
+        id,
+        text: currentContent.text,
+        title: extractNoteTitle({ text: currentContent.text, richContent: currentContent.richContent }),
+        time: new Date().toLocaleString(),
+        tags: currentContent.tags,
+        richContent: currentContent.richContent,
+        pinned: false,
+        archived: false,
+        favorite: false,
+        rank: newRank,
+        isDraft: false,
+        submittedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const reset = shouldReset();
+
+      // If resetting, switch to new noteId BEFORE saving to prevent flicker
+      if (reset) {
+        const nextNoteId = `temp-${crypto.randomUUID()}`;
+        onNoteIdChange?.(nextNoteId);
+        console.log('[Submit] Switched to new noteId before save:', nextNoteId);
+      }
+
+      setNotes((prevNotes) => [newNote, ...prevNotes]);
+      setDraft(null);
+      confetti(CONFETTI_OPTIONS);
+
+      if (isTauri()) {
+        try {
+          await invoke('store_temp_note', { note: newNote });
+          await invoke('broadcast_note_update', { note: newNote });
+          await setStoreValue('lovpen-draft', null);
+          await emit('draft-submitted', { noteId: newNote.id });
+          console.log('[Submit] Note created and broadcasted:', newNote.id);
+        } catch (error) {
+          console.error('Failed to save to backend:', error);
+        }
+      }
+
+      if (reset) {
+        setEditorContent((prev) => ({
+          text: '',
+          tags: [],
+          richContent: null,
+          isEmpty: true,
+          sourceNoteId: null,
+          _loadVersion: (prev._loadVersion ?? 0) + 1,
+        }));
+        editorRef.current?.resetAndFocus();
+        console.log('[Submit] Editor reset for continuous capture (pinned mode)');
+      } else if (onCloseWindow) {
+        await onCloseWindow();
+      }
+    };
+
+    // Shared helper: reset editor after any submit
+    const resetEditor = () => {
+      setEditorContent((prev) => ({
+        text: '',
+        tags: [],
+        richContent: null,
+        isEmpty: true,
+        sourceNoteId: null,
+        _loadVersion: (prev._loadVersion ?? 0) + 1,
+      }));
+      editorRef.current?.resetAndFocus();
+    };
+
     try {
       if (noteId) {
-        // Update existing note (or create with provided ID)
         const existingNote = notes.find(n => n.id === noteId);
 
         if (existingNote) {
-          // Update existing note and convert from draft to submitted
+          // Update existing note
           const now = new Date().toISOString();
           const updatedNote: Note = {
             ...existingNote,
@@ -130,219 +223,42 @@ export const useNoteSubmit = (options: UseNoteSubmitOptions) => {
               ? existingNote.title
               : extractNoteTitle({ text: currentContent.text, richContent: currentContent.richContent }),
             time: new Date().toLocaleString(),
-            isDraft: false, // Convert to formal note
-            submittedAt: existingNote.isDraft ? now : (existingNote.submittedAt || now), // Set submission time if was draft
+            isDraft: false,
+            submittedAt: existingNote.isDraft ? now : (existingNote.submittedAt || now),
             updatedAt: now,
           };
 
-          // Check if we should reset (do this BEFORE updating to prevent flicker)
-          const shouldReset = typeof resetEditorAfterCreate === 'function'
-            ? resetEditorAfterCreate()
-            : resetEditorAfterCreate;
+          const reset = shouldReset();
 
-          // If resetting, switch to new noteId BEFORE updating to prevent flicker
-          if (shouldReset) {
-            const nextNoteId = `temp-${Date.now()}`;
+          if (reset) {
+            const nextNoteId = `temp-${crypto.randomUUID()}`;
             onNoteIdChange?.(nextNoteId);
-            console.log('[Submit] Switched to new noteId before update (prevent flicker):', nextNoteId);
+            console.log('[Submit] Switched to new noteId before update:', nextNoteId);
           }
 
           await updateNote(updatedNote);
-          setDraft(null); // Clear draft after successful update
+          setDraft(null);
 
-          // Clear draft from store and notify other windows
           if (isTauri()) {
             await setStoreValue('lovpen-draft', null);
             await emit('draft-submitted', { noteId: updatedNote.id });
           }
-          console.log('✅ Note updated:', updatedNote.id);
+          console.log('[Submit] Note updated:', updatedNote.id);
 
-          // Now reset the editor DOM
-          if (shouldReset) {
-            // Clear editor content so next capture starts fresh
-            setEditorContent((prev) => ({
-              text: '',
-              tags: [],
-              richContent: null,
-              isEmpty: true,
-              sourceNoteId: null,
-              _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload (clear)
-            }));
-            editorRef.current?.resetAndFocus();
+          if (reset) {
+            resetEditor();
             console.log('[Submit] Editor reset for continuous capture (pinned mode)');
           } else if (onCloseWindow) {
-            // Normal mode: close window after successful update
             await onCloseWindow();
-            return; // Early return to prevent further execution
+            return;
           }
         } else {
-          // Create new note with provided ID (for blank notes from Cmd+N)
-          const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
-          const newRank = Math.max(maxRank + 1, notes.length + 1);
-
-          const now = new Date().toISOString();
-          const newNote: Note = {
-            id: noteId,
-            text: currentContent.text,
-            title: extractNoteTitle({ text: currentContent.text, richContent: currentContent.richContent }),
-            time: new Date().toLocaleString(),
-            tags: currentContent.tags,
-            richContent: currentContent.richContent,
-            pinned: false,
-            archived: false,
-            favorite: false,
-            rank: newRank,
-            isDraft: false, // Submit creates formal note
-            submittedAt: now,
-            createdAt: now,
-            updatedAt: now,
-          };
-
-          // Check if we should reset (do this BEFORE saving to prevent flicker)
-          const shouldReset = typeof resetEditorAfterCreate === 'function'
-            ? resetEditorAfterCreate()
-            : resetEditorAfterCreate;
-
-          // If resetting, switch to new noteId BEFORE saving to prevent flicker
-          let nextNoteId: string | null = null;
-          if (shouldReset) {
-            nextNoteId = `temp-${Date.now()}`;
-            // Switch immediately to prevent rendering the created note
-            onNoteIdChange?.(nextNoteId);
-            console.log('[Submit] Switched to new noteId before save (prevent flicker):', nextNoteId);
-          }
-
-          // Add to local state
-          setNotes((prevNotes) => [newNote, ...prevNotes]);
-          setDraft(null); // Clear draft after successful creation
-
-          // Trigger confetti celebration
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#ff3366', '#ff66cc', '#ff99dd', '#9966ff', '#6699ff'],
-            ticks: 200,
-            gravity: 1.2,
-            scalar: 1.2,
-            shapes: ['star', 'circle'],
-            drift: 0
-          });
-
-          // Save to backend and notify other windows
-          if (isTauri()) {
-            try {
-              await invoke('store_temp_note', { note: newNote });
-              await invoke('broadcast_note_update', { note: newNote });
-
-              // Clear draft from store and notify other windows
-              await setStoreValue('lovpen-draft', null);
-              await emit('draft-submitted', { noteId: newNote.id });
-
-              console.log('✅ Note created and broadcasted:', newNote.id);
-            } catch (error) {
-              console.error('Failed to save to backend:', error);
-            }
-          }
-
-          // Now reset the editor DOM
-          if (shouldReset) {
-            // Clear editor content so next capture starts fresh
-            setEditorContent((prev) => ({
-              text: '',
-              tags: [],
-              richContent: null,
-              isEmpty: true,
-              sourceNoteId: null,
-              _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload (clear)
-            }));
-            editorRef.current?.resetAndFocus();
-            console.log('[Submit] Editor reset for continuous capture (pinned mode)');
-          } else if (onCloseWindow) {
-            // Close window after successful creation (for float window normal mode)
-            await onCloseWindow();
-            return; // Early return to prevent further execution
-          }
+          // Create new note with provided ID (blank notes from Cmd+N)
+          await createAndSaveNote(noteId);
         }
       } else {
         // Create new note with generated ID
-        const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
-        const newRank = Math.max(maxRank + 1, notes.length + 1);
-
-        const now = new Date().toISOString();
-        const newNote: Note = {
-          id: Date.now().toString(),
-          text: currentContent.text,
-          title: extractNoteTitle({ text: currentContent.text, richContent: currentContent.richContent }),
-          time: new Date().toLocaleString(),
-          tags: currentContent.tags,
-          richContent: currentContent.richContent,
-          pinned: false,
-          archived: false,
-          favorite: false,
-          rank: newRank,
-          isDraft: false, // Submit creates formal note
-          submittedAt: now,
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        // Check if we should reset (do this BEFORE saving to prevent flicker)
-        const shouldReset = typeof resetEditorAfterCreate === 'function'
-          ? resetEditorAfterCreate()
-          : resetEditorAfterCreate;
-
-        // If resetting, switch to new noteId BEFORE saving to prevent flicker
-        if (shouldReset) {
-          const nextNoteId = `temp-${Date.now()}`;
-          onNoteIdChange?.(nextNoteId);
-          console.log('[Submit] Switched to new noteId before save (prevent flicker):', nextNoteId);
-        }
-
-        // Add to local state
-        setNotes((prevNotes) => [newNote, ...prevNotes]);
-        setDraft(null); // Clear draft after successful creation
-
-        // Trigger confetti celebration
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#ff3366', '#ff66cc', '#ff99dd', '#9966ff', '#6699ff'],
-          ticks: 200,
-          gravity: 1.2,
-          scalar: 1.2,
-          shapes: ['star', 'circle'],
-          drift: 0
-        });
-
-        // Save to backend and notify float windows
-        if (isTauri()) {
-          try {
-            await invoke('store_temp_note', { note: newNote });
-            await invoke('broadcast_note_update', { note: newNote });
-
-            // Clear draft from store and notify float windows to close
-            await setStoreValue('lovpen-draft', null);
-            await emit('draft-submitted', { noteId: newNote.id });
-
-            console.log('✅ Note created and broadcasted:', newNote.id);
-          } catch (error) {
-            console.error('Failed to save to backend:', error);
-          }
-        }
-
-        // Reset editor for new note
-        setEditorContent((prev) => ({
-          text: '',
-          tags: [],
-          richContent: null,
-          isEmpty: true,
-          sourceNoteId: null,
-          _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload (clear)
-        }));
-        editorRef.current?.resetAndFocus();
-        console.log('[Submit] Editor reset for new note');
+        await createAndSaveNote(crypto.randomUUID());
       }
     } catch (error) {
       console.error('Failed to submit note:', error);

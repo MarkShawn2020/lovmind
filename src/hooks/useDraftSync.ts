@@ -25,6 +25,9 @@ export function useDraftSync(noteId: string | null) {
 
   // Track last received draft to prevent loops
   const lastReceivedDraftRef = useRef<string | null>(null);
+  // Track latest editorContent to avoid stale closure
+  const editorContentRef = useRef(editorContent);
+  editorContentRef.current = editorContent;
 
   useEffect(() => {
     if (!isTauri()) return;
@@ -48,10 +51,13 @@ export function useDraftSync(noteId: string | null) {
       // Always update draftContentAtom so handleBackToCreate can read it
       setDraftContent(draft);
 
+      // Read fresh editorContent from ref (avoids stale closure)
+      const currentEditorContent = editorContentRef.current;
+
       // Check if we should also sync to editor:
       // 1. Main window in create mode (noteId === null, sourceNoteId === null)
       // 2. Float window with unsaved note (noteId exists but note not in backend)
-      const isMainWindowCreateMode = noteId === null && editorContent.sourceNoteId === null;
+      const isMainWindowCreateMode = noteId === null && currentEditorContent.sourceNoteId === null;
       const isFloatWindowNewNote = noteId !== null && !notes.some(n => n.id === noteId);
 
       if (!isMainWindowCreateMode && !isFloatWindowNewNote) {
@@ -60,7 +66,7 @@ export function useDraftSync(noteId: string | null) {
       }
 
       // Skip if our local content is newer (user is actively typing here)
-      const localSyncedAt = (editorContent as any)._syncedAt;
+      const localSyncedAt = (currentEditorContent as any)._syncedAt;
       if (localSyncedAt && localSyncedAt > draft.savedAt) {
         return;
       }
@@ -83,5 +89,5 @@ export function useDraftSync(noteId: string | null) {
     return () => {
       unlistenPromise.then((unlisten) => unlisten());
     };
-  }, [noteId, notes, editorContent.sourceNoteId, setEditorContent, setDraftContent]);
+  }, [noteId, notes, setEditorContent, setDraftContent]);
 }

@@ -225,9 +225,12 @@ export function useMainWindowLogic(
     notes,
   });
 
-  // Wrap handleSubmit to auto-return to list on mobile after submission
+  // Wrap handleSubmit to auto-return to create mode after submission
   const handleSubmit = useCallback(async () => {
     await originalHandleSubmit();
+
+    // Reset to create mode so sidebar highlight and editor state stay in sync
+    setViewingNoteId(null);
 
     // Bump editor session so that next time we enter create mode,
     // the editor remounts with a fresh empty state.

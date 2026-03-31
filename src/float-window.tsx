@@ -296,11 +296,22 @@ function FloatWindowInner() {
   useEffect(() => {
     if (!isTauri()) return;
 
-    const unlistenPromise = listen<{ noteId: string }>('draft-submitted', async () => {
+    const unlistenPromise = listen<{ noteId: string }>('draft-submitted', async (event) => {
+      const submittedNoteId = event.payload.noteId;
+
+      // Only react if this window is editing the submitted note
+      // or if this window has an unsaved note (not in notes array)
+      const isEditingSubmittedNote = noteId === submittedNoteId;
+      const isUnsavedNote = noteId !== null && !notes.some(n => n.id === noteId);
+
+      if (!isEditingSubmittedNote && !isUnsavedNote) {
+        console.log('[FloatWindow] Draft submitted for different note, ignoring:', submittedNoteId);
+        return;
+      }
+
       // Don't close if window is pinned (always-on-top mode)
       if (isAlwaysOnTop) {
         console.log('[FloatWindow] Draft submitted but window is pinned, staying open');
-        // Reset editor for new note
         editorRef.current?.resetAndFocus();
         return;
       }
@@ -313,7 +324,7 @@ function FloatWindowInner() {
     return () => {
       unlistenPromise.then((unlisten) => unlisten());
     };
-  }, [isAlwaysOnTop]);
+  }, [isAlwaysOnTop, noteId, notes]);
 
   // Show loading while note is being loaded
   if (!noteId) {

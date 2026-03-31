@@ -101,19 +101,8 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
           try {
             // Ensure window is shown first
             await webview.show();
-            // Set focus
             await webview.setFocus();
             console.log('Float window created and focused for note:', note.id);
-
-            // Auto-open DevTools in development mode
-            if (import.meta.env.DEV) {
-              console.log('[DevTools] Auto-opening DevTools for editor window');
-              try {
-                await invoke('open_devtools', { window: webview });
-              } catch (error) {
-                console.warn('[DevTools] Failed to auto-open DevTools:', error);
-              }
-            }
           } catch (error) {
             console.error('Failed to focus window after creation:', error);
           }
@@ -181,16 +170,6 @@ export const useWindowOperations = (notes: Note[], setNotes: (notes: Note[] | ((
           await webview.show();
           await webview.setFocus();
           console.log('New note window created and focused');
-
-          // Auto-open DevTools in development mode
-          if (import.meta.env.DEV) {
-            console.log('[DevTools] Auto-opening DevTools for new note window');
-            try {
-              await invoke('open_devtools', { window: webview });
-            } catch (error) {
-              console.warn('[DevTools] Failed to auto-open DevTools:', error);
-            }
-          }
         } catch (error) {
           console.error('Failed to focus new note window:', error);
         }

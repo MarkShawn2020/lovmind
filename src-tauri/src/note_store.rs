@@ -116,6 +116,9 @@ fn write_json_atomic(path: &Path, value: &impl Serialize) -> Result<(), String> 
     let tmp_path = path.with_extension("tmp");
     let data = serde_json::to_vec_pretty(value).map_err(|e| e.to_string())?;
     fs::write(&tmp_path, data).map_err(|e| e.to_string())?;
+    // On Windows, rename fails if target exists, so remove first.
+    // On Unix, rename atomically replaces the target.
+    #[cfg(target_os = "windows")]
     if path.exists() {
         fs::remove_file(path).map_err(|e| e.to_string())?;
     }

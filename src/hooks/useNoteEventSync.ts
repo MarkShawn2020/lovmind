@@ -63,7 +63,7 @@ export function useNoteEventSync(options?: { enableBroadcastChannel?: boolean })
             newNotes[existingNoteIndex] = updatedNote;
             return newNotes;
           } else {
-            return [...prevNotes, updatedNote];
+            return [updatedNote, ...prevNotes];
           }
         });
       }
@@ -89,7 +89,7 @@ export function useNoteEventSync(options?: { enableBroadcastChannel?: boolean })
             newNotes[existingNoteIndex] = updatedNote;
             return newNotes;
           } else {
-            return [...prevNotes, updatedNote];
+            return [updatedNote, ...prevNotes];
           }
         });
       }
