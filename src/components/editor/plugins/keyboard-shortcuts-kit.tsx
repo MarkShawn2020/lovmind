@@ -6,7 +6,6 @@ import {createSlatePlugin} from 'platejs';
  * Keyboard Shortcuts Plugin
  *
  * Handles global keyboard shortcuts:
- * - Cmd+Enter: Submit/Send shortcut
  * - Cmd+S: Save shortcut (triggers auto-save feedback)
  *
  * Emits events for parent components to handle UI feedback.
@@ -71,21 +70,6 @@ export const KeyboardShortcutsPlugin = createSlatePlugin({
 
             // Only handle if event is from this editor
             if (!isEventFromThisEditor(event)) return;
-
-            // Cmd+Enter: Submit shortcut
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                event.stopPropagation();
-
-                if (isDev) {
-                    console.log('[KeyboardShortcuts] ✅ Cmd+Enter - emitting submit-shortcut');
-                }
-
-                if (typeof editor.emit === 'function') {
-                    editor.emit('submit-shortcut');
-                }
-                return;
-            }
 
             // Cmd+S: Save shortcut
             if (event.key.toLowerCase() === 's') {

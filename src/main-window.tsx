@@ -68,12 +68,8 @@ function MainWindow() {
     }
   }, []);
 
-  const handleBackToList = useCallback(async () => {
+  const handleBackToList = useCallback(() => {
     if (!logic.isMobile) return;
-
-    // Auto-submit when leaving editor on mobile (single-column layout)
-    // This ensures newly created notes are saved when user taps "back"
-    await logic.handleSubmit();
     logic.setMobileView('list');
   }, [logic]);
 

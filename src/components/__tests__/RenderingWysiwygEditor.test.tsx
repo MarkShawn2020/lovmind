@@ -30,11 +30,9 @@ vi.mock('jotai', () => ({
 }));
 
 describe('RenderingWysiwygEditor', () => {
-  let onSubmitMock: ReturnType<typeof vi.fn>;
   let editorRef: React.RefObject<LovmindEditorRef | null>;
 
   beforeEach(() => {
-    onSubmitMock = vi.fn();
     editorRef = createRef<LovmindEditorRef | null>();
   });
 
@@ -144,24 +142,6 @@ describe('RenderingWysiwygEditor', () => {
 
       // Verify the method doesn't throw
       expect(editorRef.current?.resetAndFocus).toBeDefined();
-    });
-  });
-
-  describe('Keyboard Shortcuts', () => {
-    it('should accept onSubmit callback', () => {
-      const { container } = render(
-        <LovmindEditor
-          onSubmit={onSubmitMock as any}
-          placeholder="Type here"
-        />
-      );
-
-      const editor = container.querySelector('[data-slate-editor]') as HTMLElement;
-      expect(editor).toBeInTheDocument();
-      expect(onSubmitMock).toBeDefined();
-
-      // Note: Keyboard event simulation doesn't work properly in JSDOM with Plate.js
-      // This would require browser environment or E2E tests
     });
   });
 

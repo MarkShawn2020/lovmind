@@ -1,55 +1,55 @@
-import { useAtomValue } from 'jotai';
-import { useEffect, useRef, useCallback } from 'react';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useEffect, useRef } from 'react';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { editorContentAtom, currentNoteAtom } from '@/atoms/noteAtoms';
+import { invoke } from '@tauri-apps/api/core';
+import { editorContentAtom, currentNoteAtom, currentNoteIdAtom, notesAtom } from '@/atoms/noteAtoms';
 import { useNoteOperations } from './useNoteOperations';
 import { extractNoteTitle } from '@/utils/titleExtractor';
 import { isTauri } from '@/utils/tauri';
-import type { Note } from '@/store';
+import { draftContentAtom, setStoreValue, type Note } from '@/store';
+
+interface UseAutoSaveOptions {
+  onNoteAutoCreated?: (noteId: string) => void;
+}
 
 /**
  * Auto-Save Hook
  *
- * Automatically saves editor content to the current note when user stops typing.
- * Replaces the auto-save logic scattered in useNoteEditorController's handleContentChange.
- *
- * Features:
- * - Triggers on typing-stop (debounced)
- * - Respects manual title (manualTitle flag)
- * - Updates window title in Tauri
- * - Prevents duplicate saves
- *
- * Usage:
- * ```typescript
- * function FloatWindow() {
- *   useAutoSave(); // That's it!
- * }
- * ```
+ * Automatically saves editor content. Handles both:
+ * - Existing notes: updates on typing-stop (debounced)
+ * - New notes: auto-creates when content is typed in create mode
  */
-export function useAutoSave() {
+export function useAutoSave(options: UseAutoSaveOptions = {}) {
+  const { onNoteAutoCreated } = options;
+
   const editorContent = useAtomValue(editorContentAtom);
   const currentNote = useAtomValue(currentNoteAtom);
+  const currentNoteId = useAtomValue(currentNoteIdAtom);
+  const [notes, setNotes] = useAtom(notesAtom);
   const { updateNote } = useNoteOperations();
+  const setDraft = useSetAtom(draftContentAtom);
 
   const lastSavedContentRef = useRef<string>('');
-  // Track pending save state for beforeunload and note switching
   const pendingSaveRef = useRef<{
     note: Note;
     contentHash: string;
   } | null>(null);
-  // Track previous note ID to detect actual note switches
   const prevNoteIdRef = useRef<string | null>(null);
+  const onNoteAutoCreatedRef = useRef(onNoteAutoCreated);
+  onNoteAutoCreatedRef.current = onNoteAutoCreated;
 
-  // Separate effect: Save pending changes when note ID changes (actual note switch)
-  // This ONLY runs when currentNote.id changes, not on every content change
+  // Ref for updateNote to avoid stale closure in unmount-save
+  const updateNoteRef = useRef(updateNote);
+  updateNoteRef.current = updateNote;
+
+  // Save pending changes when note ID changes (actual note switch)
   useEffect(() => {
-    const currentNoteId = currentNote?.id ?? null;
+    const noteId = currentNote?.id ?? null;
     const prevNoteId = prevNoteIdRef.current;
 
-    // If note ID actually changed and we have pending saves, save them now
-    if (prevNoteId !== null && prevNoteId !== currentNoteId && pendingSaveRef.current) {
+    if (prevNoteId !== null && prevNoteId !== noteId && pendingSaveRef.current) {
       const { note, contentHash } = pendingSaveRef.current;
-      console.log('💾 Saving on note switch:', note.id, '→', currentNoteId);
+      console.log('💾 Saving on note switch:', note.id, '→', noteId);
       updateNote(note).catch((error) => {
         console.error('Failed to save on note switch:', error);
       });
@@ -57,18 +57,25 @@ export function useAutoSave() {
       pendingSaveRef.current = null;
     }
 
-    prevNoteIdRef.current = currentNoteId;
+    prevNoteIdRef.current = noteId;
   }, [currentNote?.id, updateNote]);
+
+  // Unmount save: flush pending changes when component unmounts
+  useEffect(() => {
+    return () => {
+      if (pendingSaveRef.current) {
+        const { note } = pendingSaveRef.current;
+        console.log('💾 Saving on unmount:', note.id);
+        updateNoteRef.current(note).catch((error) => {
+          console.error('Failed to save on unmount:', error);
+        });
+        pendingSaveRef.current = null;
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Main effect: Debounced auto-save on content changes
   useEffect(() => {
-    // Only auto-save if there's a current note
-    if (!currentNote) return;
-
-    // Don't save empty content
-    if (editorContent.isEmpty) return;
-
-    // Prevent duplicate saves
     const contentHash = JSON.stringify({
       text: editorContent.text,
       tags: editorContent.tags,
@@ -77,7 +84,66 @@ export function useAutoSave() {
 
     if (contentHash === lastSavedContentRef.current) return;
 
-    // Don't save if content matches the current note (no changes made)
+    const hasTypedContent = typeof editorContent.text === 'string' && Boolean(editorContent.text.trim());
+
+    // === Auto-create: no existing note but we have a noteId and content ===
+    // Only auto-create when there's actual content (don't create empty notes)
+    if (!currentNote && currentNoteId && hasTypedContent) {
+      // Check if note already exists in notes array (might not be in currentNote yet)
+      const existingInArray = notes.find(n => n.id === currentNoteId);
+      if (!existingInArray) {
+        const now = new Date().toISOString();
+        const maxRank = notes.reduce((max, note) => Math.max(max, note.rank || 0), 0);
+        const newRank = Math.max(maxRank + 1, notes.length + 1);
+
+        const newNote: Note = {
+          id: currentNoteId,
+          text: editorContent.text,
+          title: extractNoteTitle({ text: editorContent.text, richContent: editorContent.richContent }),
+          time: new Date().toLocaleString(),
+          tags: editorContent.tags,
+          richContent: editorContent.richContent,
+          pinned: false,
+          archived: false,
+          favorite: false,
+          rank: newRank,
+          isDraft: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        // Auto-create fires immediately (no debounce)
+        setNotes((prev) => [newNote, ...prev]);
+        lastSavedContentRef.current = contentHash;
+
+        // Clear draft: note is now real, no stale draft should linger
+        setDraft(null);
+
+        // Notify parent so viewingNoteId transitions seamlessly
+        onNoteAutoCreatedRef.current?.(newNote.id);
+
+        // Persist to backend async
+        (async () => {
+          try {
+            if (isTauri()) {
+              await invoke('store_temp_note', { note: newNote });
+              await invoke('broadcast_note_update', { note: newNote });
+              await setStoreValue('lovpen-draft', null);
+            }
+            console.log('✨ Auto-created note:', newNote.id);
+          } catch (error) {
+            console.error('Failed to persist auto-created note:', error);
+          }
+        })();
+
+        return;
+      }
+    }
+
+    // === Auto-save existing note ===
+    if (!currentNote) return;
+
+    // Don't save if content matches the current note (no changes)
     const noteContentHash = JSON.stringify({
       text: currentNote.text,
       tags: currentNote.tags,
@@ -85,50 +151,43 @@ export function useAutoSave() {
     });
 
     if (contentHash === noteContentHash) {
-      // Content hasn't changed from saved state, just update the ref
       lastSavedContentRef.current = contentHash;
       return;
     }
 
-    // Build pending save data for beforeunload
-    const hasTypedContent = typeof editorContent.text === 'string' && Boolean(editorContent.text.trim());
-    if (hasTypedContent || !editorContent.isEmpty) {
-      const now = new Date().toISOString();
-      const updatedNote: Note = {
-        ...currentNote,
-        text: editorContent.text,
-        tags: editorContent.tags,
-        richContent: editorContent.richContent,
-        title: currentNote.manualTitle
-          ? currentNote.title
-          : extractNoteTitle({ text: editorContent.text, richContent: editorContent.richContent }),
-        time: new Date().toLocaleString(),
-        isDraft: true,
-        createdAt: currentNote.createdAt || now,
-        updatedAt: now,
-      };
-      pendingSaveRef.current = { note: updatedNote, contentHash };
-    }
+    // Build pending save
+    const now = new Date().toISOString();
+    const updatedNote: Note = {
+      ...currentNote,
+      text: editorContent.text,
+      tags: editorContent.tags,
+      richContent: editorContent.richContent,
+      title: currentNote.manualTitle
+        ? currentNote.title
+        : extractNoteTitle({ text: editorContent.text, richContent: editorContent.richContent }),
+      time: new Date().toLocaleString(),
+      isDraft: false,
+      createdAt: currentNote.createdAt || now,
+      updatedAt: now,
+    };
+    pendingSaveRef.current = { note: updatedNote, contentHash };
 
-    // Debounce: Only save after user stops typing
-    // Note: In the future, we could listen to InputStatePlugin's typing-stop event
-    // For now, we use a simple timer
     const timer = setTimeout(async () => {
       if (!pendingSaveRef.current) return;
 
-      const { note: updatedNote, contentHash: hash } = pendingSaveRef.current;
+      const { note: savedNote, contentHash: hash } = pendingSaveRef.current;
 
       try {
-        await updateNote(updatedNote);
-        console.log('🔄 Auto-saved as draft:', updatedNote.id);
+        await updateNote(savedNote);
+        console.log('🔄 Auto-saved:', savedNote.id);
         lastSavedContentRef.current = hash;
-        pendingSaveRef.current = null; // Clear pending save after successful save
+        pendingSaveRef.current = null;
 
         // Update window title if in Tauri
         if (isTauri()) {
           try {
             const currentWindow = getCurrentWebviewWindow();
-            await currentWindow.setTitle(`Edit: ${updatedNote.title}`);
+            await currentWindow.setTitle(`Edit: ${savedNote.title}`);
           } catch (error) {
             console.error('Failed to update window title:', error);
           }
@@ -136,44 +195,24 @@ export function useAutoSave() {
       } catch (error) {
         console.error('Failed to auto-save:', error);
       }
-    }, 1000); // 1 second debounce
+    }, 1000);
 
-    return () => {
-      clearTimeout(timer);
-      // NOTE: Don't save here! This cleanup runs on every content change.
-      // Note switching is handled by the separate effect above that watches currentNote?.id
-    };
-  }, [editorContent, currentNote, updateNote]);
+    return () => { clearTimeout(timer); };
+  }, [editorContent, currentNote, currentNoteId, notes, setNotes, updateNote]);
 
-  // Save immediately on page unload (browser refresh, close, etc.)
+  // Save immediately on page unload
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (!pendingSaveRef.current) return;
 
       const { note: updatedNote, contentHash } = pendingSaveRef.current;
 
-      // Use synchronous updateNote via navigator.sendBeacon for reliability
-      // Since updateNote is async, we need to serialize and send directly
-      if (isTauri()) {
-        // In Tauri, use sync invoke pattern (best effort)
-        // Note: Tauri invoke is async, so we use a workaround
-        try {
-          // Store to localStorage as fallback (will be synced on next load)
-          const pendingKey = `lovpen-pending-save-${updatedNote.id}`;
-          localStorage.setItem(pendingKey, JSON.stringify(updatedNote));
-          console.log('💾 Saved pending note to localStorage before unload:', updatedNote.id);
-        } catch (e) {
-          console.error('Failed to save pending note before unload:', e);
-        }
-      } else {
-        // In web, save to localStorage
-        try {
-          const pendingKey = `lovpen-pending-save-${updatedNote.id}`;
-          localStorage.setItem(pendingKey, JSON.stringify(updatedNote));
-          console.log('💾 Saved pending note to localStorage before unload:', updatedNote.id);
-        } catch (e) {
-          console.error('Failed to save pending note before unload:', e);
-        }
+      try {
+        const pendingKey = `lovpen-pending-save-${updatedNote.id}`;
+        localStorage.setItem(pendingKey, JSON.stringify(updatedNote));
+        console.log('💾 Saved pending note to localStorage before unload:', updatedNote.id);
+      } catch (e) {
+        console.error('Failed to save pending note before unload:', e);
       }
 
       lastSavedContentRef.current = contentHash;
@@ -181,9 +220,6 @@ export function useAutoSave() {
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
+    return () => { window.removeEventListener('beforeunload', handleBeforeUnload); };
   }, []);
 }

@@ -1,6 +1,7 @@
 import { atom } from 'jotai';
 import type { Value } from 'platejs';
 import { notesAtom } from '@/store'; // Re-export from store.ts
+import { extractNoteTitle } from '@/utils/titleExtractor';
 
 /**
  * Note Management Atoms
@@ -40,6 +41,32 @@ export const editorContentAtom = atom<{
   isEmpty: true,
   sourceNoteId: null,
   _loadVersion: 0,
+});
+
+/**
+ * Derived: notes array with live editor content overlaid on the active note.
+ * Gives sidebar real-time title/text/tags updates without waiting for auto-save.
+ */
+export const notesWithLiveEditorAtom = atom((get) => {
+  const notes = get(notesAtom);
+  const editor = get(editorContentAtom);
+  const noteId = get(currentNoteIdAtom);
+
+  if (!noteId) return notes;
+
+  return notes.map((note) => {
+    if (note.id !== noteId) return note;
+    // Overlay live editor content (including derived title)
+    return {
+      ...note,
+      text: editor.text,
+      tags: editor.tags,
+      richContent: editor.richContent,
+      title: note.manualTitle
+        ? note.title
+        : extractNoteTitle({ text: editor.text, richContent: editor.richContent }),
+    };
+  });
 });
 
 // UI state atom: Global UI preferences

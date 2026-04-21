@@ -23,7 +23,7 @@ import {editorContentAtom} from "@/atoms/noteAtoms.ts";
 interface LovmindEditorProps {
   noteId?: string | null;
   editorId?: string;
-  onSubmit?: () => void;
+  onNoteAutoCreated?: (noteId: string) => void;
   placeholder?: string;
 }
 
@@ -48,7 +48,7 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
   function RenderingWysiwygEditor({
     noteId,
     editorId: editorIdProp,
-    onSubmit,
+    onNoteAutoCreated,
     placeholder = "Type your amazing content here..."
   }, ref) {
     // Load note into atoms (handles both create mode and view mode)
@@ -149,8 +149,8 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
     // Sync editor content to atoms (subscribes to input-state-changed event)
     useEditorSync(editor);
 
-    // Auto-save on typing stop
-    useAutoSave();
+    // Auto-save on typing stop (also handles auto-create for new notes)
+    useAutoSave({ onNoteAutoCreated });
 
     // Auto-save draft for unsaved new notes
     useDraftPersistence();
@@ -192,29 +192,6 @@ const LovmindEditor = forwardRef<LovmindEditorRef, LovmindEditorProps>(
         console.log('[LovmindEditor] Applied sync update:', syncedAt);
       }
     }, [(editorContent as any)._syncedAt, editorContent.richContent, editor, removeComboboxInputNodes]);
-
-    // Handle submit shortcut (Cmd+Enter)
-    // Use ref to avoid re-registering listener when onSubmit changes
-    const onSubmitRef = useRef(onSubmit);
-    useEffect(() => {
-      onSubmitRef.current = onSubmit;
-    }, [onSubmit]);
-
-    useEffect(() => {
-      const handleSubmitShortcut = () => {
-        onSubmitRef.current?.();
-      };
-
-      if (typeof editor.on === 'function') {
-        editor.on('submit-shortcut', handleSubmitShortcut);
-      }
-
-      return () => {
-        if (typeof editor.off === 'function') {
-          editor.off('submit-shortcut', handleSubmitShortcut);
-        }
-      };
-    }, [editor]); // Only depend on editor, not onSubmit
 
     useImperativeHandle(ref, () => ({
       resetAndFocus: () => (editor.api as any).commands.resetAndFocus(),

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
 import { Toaster } from 'sonner';
 
 import { isTauri } from './utils/tauri';
@@ -16,8 +15,7 @@ import { useImageHeightSync } from './hooks/useImageHeightSync';
 import { useMobileSidebarState } from './hooks/useMobileSidebarState';
 import { useNoteOperations } from './hooks/useNoteOperations';
 import { useWindowOperations } from './hooks/useWindowOperations';
-import { useNoteSubmit } from './hooks/useNoteSubmit';
-import { currentNoteAtom, editorContentAtom, notesAtom, currentNoteIdAtom } from './atoms/noteAtoms';
+import { currentNoteAtom, editorContentAtom, notesAtom, notesWithLiveEditorAtom, currentNoteIdAtom } from './atoms/noteAtoms';
 import { getStoreValue, type DraftContent } from './store';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor.tsx';
@@ -68,6 +66,7 @@ function FloatWindowInner() {
   const currentNoteId = useAtomValue(currentNoteIdAtom);
   const editorContent = useAtomValue(editorContentAtom);
   const notes = useAtomValue(notesAtom);
+  const liveNotes = useAtomValue(notesWithLiveEditorAtom);
   const setEditorContent = useSetAtom(editorContentAtom);
 
   // Check and restore draft for new notes (only once on mount)
@@ -134,25 +133,6 @@ function FloatWindowInner() {
   // to satisfy the Rules of Hooks
   const { togglePin, toggleArchive, deleteNote, updateNote } = useNoteOperations();
   const { openNoteInNewWindow } = useWindowOperations(notes, () => {});
-  const { handleSubmit } = useNoteSubmit({
-    noteId,
-    editorRef,
-    // Reset editor after creating new note, only in pinned mode
-    resetEditorAfterCreate: () => isAlwaysOnTop,
-    // Update activeNoteId when creating a new note after reset
-    onNoteIdChange: (newNoteId) => {
-      console.log('[FloatWindow] Switching to new noteId:', newNoteId);
-      setActiveNoteId(newNoteId);
-    },
-    // Close window after submit in normal (non-pinned) mode
-    onCloseWindow: async () => {
-      if (!isAlwaysOnTop && isTauri()) {
-        const currentWindow = getCurrentWindow();
-        await currentWindow.close();
-        console.log('[FloatWindow] Window closed after submit (normal mode)');
-      }
-    },
-  });
 
   // Title editing handlers
   const handleTitleChange = useCallback((value: string) => {
@@ -292,40 +272,6 @@ function FloatWindowInner() {
     };
   }, []);
 
-  // Listen for draft-submitted event and close window if not pinned
-  useEffect(() => {
-    if (!isTauri()) return;
-
-    const unlistenPromise = listen<{ noteId: string }>('draft-submitted', async (event) => {
-      const submittedNoteId = event.payload.noteId;
-
-      // Only react if this window is editing the submitted note
-      // or if this window has an unsaved note (not in notes array)
-      const isEditingSubmittedNote = noteId === submittedNoteId;
-      const isUnsavedNote = noteId !== null && !notes.some(n => n.id === noteId);
-
-      if (!isEditingSubmittedNote && !isUnsavedNote) {
-        console.log('[FloatWindow] Draft submitted for different note, ignoring:', submittedNoteId);
-        return;
-      }
-
-      // Don't close if window is pinned (always-on-top mode)
-      if (isAlwaysOnTop) {
-        console.log('[FloatWindow] Draft submitted but window is pinned, staying open');
-        editorRef.current?.resetAndFocus();
-        return;
-      }
-
-      console.log('[FloatWindow] Draft submitted, closing window');
-      const currentWindow = getCurrentWindow();
-      await currentWindow.close();
-    });
-
-    return () => {
-      unlistenPromise.then((unlisten) => unlisten());
-    };
-  }, [isAlwaysOnTop, noteId, notes]);
-
   // Show loading while note is being loaded
   if (!noteId) {
     return (
@@ -401,7 +347,7 @@ function FloatWindowInner() {
       }
       sidebar={
         <NotesSidebarContainer
-          notes={notes}
+          notes={liveNotes}
           currentNoteId={noteId}
           showArchived={false}
           onOpenNote={handleOpenNote}
@@ -417,15 +363,12 @@ function FloatWindowInner() {
         <LovmindEditor
           key={noteId || 'loading'}
           noteId={noteId}
-          onSubmit={handleSubmit}
           ref={editorRef}
         />
       }
       toolbar={
         <EditorToolbar
           mode="float"
-          onSubmit={handleSubmit}
-          submitDisabled={editorContent.isEmpty}
           currentTags={editorContent.tags}
           allNotes={notes}
           editorRef={editorRef}

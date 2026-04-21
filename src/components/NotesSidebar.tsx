@@ -161,46 +161,31 @@ const NotesSidebarComponent = ({
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
 
-    // Priority 2: Sort by creation date (time field) descending (newest first)
-    const aTime = new Date(a.time).getTime();
-    const bTime = new Date(b.time).getTime();
+    // Priority 2: Sort by createdAt descending (newest first)
+    // Prefer createdAt (ISO string), fall back to time (locale string)
+    const aTime = new Date(a.createdAt || a.time).getTime();
+    const bTime = new Date(b.createdAt || b.time).getTime();
 
-    // Handle invalid dates - fallback to id-based comparison
-    if (isNaN(aTime) || isNaN(bTime)) {
-      const aNum = Number(a.id);
-      const bNum = Number(b.id);
-
-      if (!isNaN(aNum) && !isNaN(bNum)) {
-        return bNum - aNum;
-      }
-
-      return b.id.localeCompare(a.id);
+    if (!isNaN(aTime) && !isNaN(bTime)) {
+      return bTime - aTime;
     }
 
-    return bTime - aTime;
+    return b.id.localeCompare(a.id);
   });
 
   // Calculate persistent ranks based on creation order (for notes without pre-assigned rank)
   // This represents the note's position in the overall creation timeline, regardless of pin/archive status
   const noteRanks = new Map<string, number>();
   const rankedNotes = [...notes].sort((a, b) => {
-    // Sort by creation time descending (newest first) to match creation order
-    const aTime = new Date(a.time).getTime();
-    const bTime = new Date(b.time).getTime();
+    // Sort by createdAt descending (newest first) to match creation order
+    const aTime = new Date(a.createdAt || a.time).getTime();
+    const bTime = new Date(b.createdAt || b.time).getTime();
 
-    // Handle invalid dates - fallback to id-based comparison
-    if (isNaN(aTime) || isNaN(bTime)) {
-      const aNum = Number(a.id);
-      const bNum = Number(b.id);
-
-      if (!isNaN(aNum) && !isNaN(bNum)) {
-        return bNum - aNum;
-      }
-
-      return b.id.localeCompare(a.id);
+    if (!isNaN(aTime) && !isNaN(bTime)) {
+      return bTime - aTime;
     }
 
-    return bTime - aTime;
+    return b.id.localeCompare(a.id);
   });
 
   rankedNotes.forEach((note, index) => {

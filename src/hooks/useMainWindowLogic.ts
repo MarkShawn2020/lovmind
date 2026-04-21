@@ -1,8 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { listen } from '@tauri-apps/api/event';
 import type { LovmindEditorRef } from '@/components/lovmind-editor/lovmind-editor';
-import { editorContentAtom, notesAtom } from '@/atoms/noteAtoms';
+import { editorContentAtom, notesAtom, notesWithLiveEditorAtom } from '@/atoms/noteAtoms';
 import { noteStatsAtom, draftContentAtom, getStoreValue, type DraftContent } from '@/store';
 import { isTauri } from '@/utils/tauri';
 import { useNoteEventSync } from './useNoteEventSync';
@@ -10,7 +9,6 @@ import { useImageHeightSync } from './useImageHeightSync';
 import { useMobileSidebarState } from './useMobileSidebarState';
 import { useNoteOperations } from './useNoteOperations';
 import { useUserProfile } from './useUserProfile';
-import { useNoteSubmit } from './useNoteSubmit';
 import { useMultiSelect } from './useMultiSelect';
 import { useMultiSelectOperations } from './useMultiSelectOperations';
 import { useIsMobile } from './useIsMobile';
@@ -38,9 +36,9 @@ export interface MainWindowLogicReturn {
   // State
   viewingNoteId: string | null;
   setViewingNoteId: (id: string | null) => void;
+  editorNoteId: string;
   mobileView: 'list' | 'editor';
   setMobileView: (view: 'list' | 'editor') => void;
-  editorSessionKey: number;
   showArchived: boolean;
   setShowArchived: (show: boolean) => void;
   isProfileModalOpen: boolean;
@@ -57,6 +55,7 @@ export interface MainWindowLogicReturn {
   // Atoms
   editorContent: ReturnType<typeof useAtomValue<typeof editorContentAtom>>;
   notes: Note[];
+  liveNotes: Note[]; // notes with live editor content overlaid (for sidebar display)
   noteStats: ReturnType<typeof useAtomValue<typeof noteStatsAtom>>;
 
   // Operations
@@ -66,7 +65,6 @@ export interface MainWindowLogicReturn {
   updateNote: (note: Note) => Promise<void>;
   userProfile: ReturnType<typeof useUserProfile>['userProfile'];
   reloadProfile: ReturnType<typeof useUserProfile>['reloadProfile'];
-  handleSubmit: () => Promise<void>;
 
   // Multi-select
   isMultiSelectMode: boolean;
@@ -84,6 +82,7 @@ export interface MainWindowLogicReturn {
   handleBackToCreate: () => void;
   handleOpenNoteInCurrentWindow: (note: Note) => void;
   handleCreateNewNote: () => void;
+  handleNoteAutoCreated: (noteId: string) => void;
   handleBatchDelete: () => Promise<void>;
   handleBatchArchive: () => Promise<void>;
 }
@@ -103,12 +102,14 @@ export function useMainWindowLogic(
   // Local state: which note we're viewing (null = create mode)
   const [viewingNoteId, setViewingNoteId] = useState<string | null>(null);
 
+  // Pre-generated noteId for create mode (avoids remount on auto-create)
+  const [createModeNoteId, setCreateModeNoteId] = useState(() => crypto.randomUUID());
+
+  // Computed: the noteId the editor should use
+  const editorNoteId = viewingNoteId ?? createModeNoteId;
+
   // Mobile view state: 'list' shows notes sidebar, 'editor' shows editor
   const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
-
-  // Editor session key: used to force editor remount in create mode
-  // so that the input area is cleared after successful submit
-  const [editorSessionKey, setEditorSessionKey] = useState(0);
 
   // Local UI state
   const [showArchived, setShowArchived] = useState(false);
@@ -125,26 +126,23 @@ export function useMainWindowLogic(
   useImageHeightSync();
   const { isMobileSidebarOpen, setIsMobileSidebarOpen, withSidebarClose } = useMobileSidebarState();
 
-  // Read from atoms (for UI display only)
+  // Read from atoms
   const editorContent = useAtomValue(editorContentAtom);
   const notes = useAtomValue(notesAtom);
+  const liveNotes = useAtomValue(notesWithLiveEditorAtom);
   const noteStats = useAtomValue(noteStatsAtom);
   const draftContent = useAtomValue(draftContentAtom);
   const setEditorContent = useSetAtom(editorContentAtom);
   const setDraftContent = useSetAtom(draftContentAtom);
 
   // Restore draft content on initial mount (after page refresh)
-  // Use async getStoreValue to ensure we wait for Tauri Store initialization
   const draftRestoredRef = useRef(false);
   useEffect(() => {
-    // Only restore once, and only if in create mode (viewingNoteId === null)
     if (draftRestoredRef.current || viewingNoteId !== null) return;
 
     const restoreDraft = async () => {
-      // First try the atom value (already loaded from store)
       let draft = draftContent;
 
-      // If atom is null but we're in Tauri, wait for async store load
       if (!draft && isTauri()) {
         draft = await getStoreValue<DraftContent | null>('lovpen-draft', null);
       }
@@ -157,10 +155,9 @@ export function useMainWindowLogic(
           tags: draft.tags,
           richContent: draft.richContent,
           isEmpty: false,
-          sourceNoteId: null, // Create mode
-          _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload
+          sourceNoteId: null,
+          _loadVersion: (prev._loadVersion ?? 0) + 1,
         }));
-        // Also update the atom so useDraftSync stays in sync
         setDraftContent(draft);
       }
     };
@@ -168,41 +165,9 @@ export function useMainWindowLogic(
     restoreDraft();
   }, [viewingNoteId, draftContent, setEditorContent, setDraftContent]);
 
-  // Listen for draft-submitted event (from float windows)
-  // Clear editor if we're in create mode
-  useEffect(() => {
-    if (!isTauri()) return;
-
-    const unlistenPromise = listen<{ noteId: string }>('draft-submitted', () => {
-      // Only clear if we're in create mode
-      if (viewingNoteId === null) {
-        console.log('[MainWindow] Draft submitted from another window, clearing editor');
-        setEditorContent((prev) => ({
-          text: '',
-          tags: [],
-          richContent: null,
-          isEmpty: true,
-          sourceNoteId: null,
-          _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload (clear)
-        }));
-        setDraftContent(null);
-        editorRef.current?.resetAndFocus();
-      }
-    });
-
-    return () => {
-      unlistenPromise.then((unlisten) => unlisten());
-    };
-  }, [viewingNoteId, setEditorContent, setDraftContent]);
-
-  // Business logic hooks (for toolbar and sidebar)
+  // Business logic hooks
   const { deleteNote, togglePin, toggleArchive, updateNote } = useNoteOperations();
   const { userProfile, reloadProfile } = useUserProfile();
-  const { handleSubmit: originalHandleSubmit } = useNoteSubmit({
-    noteId: viewingNoteId,
-    editorRef,
-    resetEditorAfterCreate: true,
-  });
 
   // Multi-select hooks
   const {
@@ -225,57 +190,36 @@ export function useMainWindowLogic(
     notes,
   });
 
-  // Wrap handleSubmit to auto-return to create mode after submission
-  const handleSubmit = useCallback(async () => {
-    await originalHandleSubmit();
-
-    // Reset to create mode so sidebar highlight and editor state stay in sync
-    setViewingNoteId(null);
-
-    // Bump editor session so that next time we enter create mode,
-    // the editor remounts with a fresh empty state.
-    setEditorSessionKey((prev) => prev + 1);
-
-    // On mobile, return to list view after submitting
-    if (shouldUseMobileView && isMobile) {
-      setMobileView('list');
-    }
-  }, [originalHandleSubmit, shouldUseMobileView, isMobile]);
+  // Callback when auto-save creates a new note
+  const handleNoteAutoCreated = useCallback((noteId: string) => {
+    // Transition viewingNoteId to the auto-created note
+    // editorKey stays the same (editorNoteId was already this UUID)
+    setViewingNoteId(noteId);
+    console.log('[MainWindow] Note auto-created, set viewingNoteId:', noteId);
+  }, []);
 
   // Handlers
   const handleBackToCreate = useCallback(() => {
     setViewingNoteId(null);
+    // Generate fresh UUID for the next create session
+    setCreateModeNoteId(crypto.randomUUID());
 
-    // Read draft from local atom (kept in sync by useDraftSync)
-    if (draftContent && draftContent.text?.trim()) {
-      setEditorContent((prev) => ({
-        text: draftContent.text,
-        tags: draftContent.tags,
-        richContent: draftContent.richContent,
-        isEmpty: false,
-        sourceNoteId: null, // Create mode
-        _loadVersion: (prev._loadVersion ?? 0) + 1, // Force editor reload
-      }));
-      console.log('[Draft] Restored draft:', draftContent.savedAt);
-    } else {
-      // Delay resetAndFocus to next frame to allow editor to remount
-      // (editorKey changes when viewingNoteId becomes null, causing React to remount the editor)
-      requestAnimationFrame(() => {
-        editorRef.current?.resetAndFocus();
-      });
-    }
+    // With auto-save, no draft restoration needed — old note is already saved,
+    // new editor starts fresh via useNoteLoader
+    requestAnimationFrame(() => {
+      editorRef.current?.resetAndFocus();
+    });
 
     // On mobile, switch to editor view
     if (shouldUseMobileView && isMobile) {
       setMobileView('editor');
     }
-  }, [shouldUseMobileView, isMobile, draftContent, setEditorContent]);
+  }, [shouldUseMobileView, isMobile]);
 
   // Use withSidebarClose to auto-close mobile sidebar
   const handleOpenNoteInCurrentWindow = useCallback(
     withSidebarClose((note: Note) => {
       setViewingNoteId(note.id);
-      // On mobile, switch to editor view when opening a note
       if (shouldUseMobileView && isMobile) {
         setMobileView('editor');
       }
@@ -309,9 +253,9 @@ export function useMainWindowLogic(
     // State
     viewingNoteId,
     setViewingNoteId,
+    editorNoteId,
     mobileView,
     setMobileView,
-    editorSessionKey,
     showArchived,
     setShowArchived,
     isProfileModalOpen,
@@ -328,6 +272,7 @@ export function useMainWindowLogic(
     // Atoms
     editorContent,
     notes,
+    liveNotes,
     noteStats,
 
     // Operations
@@ -337,7 +282,6 @@ export function useMainWindowLogic(
     updateNote,
     userProfile,
     reloadProfile,
-    handleSubmit,
 
     // Multi-select
     isMultiSelectMode,
@@ -355,6 +299,7 @@ export function useMainWindowLogic(
     handleBackToCreate,
     handleOpenNoteInCurrentWindow,
     handleCreateNewNote,
+    handleNoteAutoCreated,
     handleBatchDelete,
     handleBatchArchive,
   };

@@ -96,7 +96,7 @@ export function BaseMainWindow({
   const {
     // State
     viewingNoteId,
-    editorSessionKey,
+    editorNoteId,
     showArchived,
     isProfileModalOpen,
     setIsProfileModalOpen,
@@ -112,6 +112,7 @@ export function BaseMainWindow({
     // Atoms
     editorContent,
     notes,
+    liveNotes,
     noteStats,
 
     // Operations
@@ -121,7 +122,6 @@ export function BaseMainWindow({
     updateNote,
     userProfile,
     reloadProfile,
-    handleSubmit,
 
     // Multi-select
     isMultiSelectMode,
@@ -138,6 +138,7 @@ export function BaseMainWindow({
     // Handlers
     handleOpenNoteInCurrentWindow,
     handleCreateNewNote,
+    handleNoteAutoCreated,
     handleBatchDelete,
     handleBatchArchive,
   } = logic;
@@ -159,8 +160,8 @@ export function BaseMainWindow({
   // Use provided mobileView or fall back to logic's mobileView
   const effectiveMobileView = mobileView ?? logic.mobileView;
 
-  // Editor key: for create mode, include session key to force remount
-  const editorKey = viewingNoteId ?? `create-mode-${editorSessionKey}`;
+  // Editor key: use editorNoteId (stable across auto-create transition)
+  const editorKey = editorNoteId;
 
   // Fallback for onOpenNoteInNewWindow (iOS doesn't support multi-window)
   const handleOpenNoteInNewWindow = onOpenNoteInNewWindow ?? handleOpenNoteInCurrentWindow;
@@ -182,7 +183,7 @@ export function BaseMainWindow({
         }
         sidebar={
           <NotesSidebarContainer
-            notes={notes}
+            notes={liveNotes}
             currentNoteId={viewingNoteId ?? undefined}
             showArchived={showArchived}
             onOpenNote={handleOpenNoteInCurrentWindow}
@@ -221,8 +222,8 @@ export function BaseMainWindow({
             <LovmindEditor
               key={editorKey}
               editorId={editorKey}
-              noteId={viewingNoteId}
-              onSubmit={handleSubmit}
+              noteId={editorNoteId}
+              onNoteAutoCreated={handleNoteAutoCreated}
               placeholder={editorPlaceholder}
               ref={editorRef}
             />
@@ -232,13 +233,10 @@ export function BaseMainWindow({
           viewMode === 'todos' ? null : (
             <EditorToolbar
               mode="main"
-              onSubmit={handleSubmit}
-              submitDisabled={editorContent.isEmpty}
               currentTags={editorContent.tags}
               allNotes={notes}
               editorRef={editorRef}
               onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-              hideSubmitButton={false}
               onBackToList={isMobile && effectiveMobileView === 'editor' ? onBackToList : undefined}
             />
           )
