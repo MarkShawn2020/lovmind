@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2
+
+### Patch Changes
+
+- 重构笔记创建/编辑流程：合并 useNoteSubmit 到 useAutoSave，统一创建/更新路径，清理冗余状态管理；补充规格文档。
+
 ## 0.5.1
 
 ### Patch Changes
